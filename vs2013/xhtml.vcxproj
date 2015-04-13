@@ -1,0 +1,248 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\filesystem.cpp" />
+    <ClCompile Include="..\src\json.cpp" />
+    <ClCompile Include="..\src\kre\AttributeSet.cpp" />
+    <ClCompile Include="..\src\kre\AttributeSetOGL.cpp" />
+    <ClCompile Include="..\src\kre\Blend.cpp" />
+    <ClCompile Include="..\src\kre\BlendModeScope.cpp" />
+    <ClCompile Include="..\src\kre\BlendOGL.cpp" />
+    <ClCompile Include="..\src\kre\Blittable.cpp" />
+    <ClCompile Include="..\src\kre\CameraObject.cpp" />
+    <ClCompile Include="..\src\kre\Canvas.cpp" />
+    <ClCompile Include="..\src\kre\CanvasOGL.cpp" />
+    <ClCompile Include="..\src\kre\ClipScope.cpp" />
+    <ClCompile Include="..\src\kre\ClipScopeOGL.cpp" />
+    <ClCompile Include="..\src\kre\Color.cpp" />
+    <ClCompile Include="..\src\kre\ColorScope.cpp" />
+    <ClCompile Include="..\src\kre\Depth.cpp" />
+    <ClCompile Include="..\src\kre\DisplayDevice.cpp" />
+    <ClCompile Include="..\src\kre\DisplayDeviceOGL.cpp" />
+    <ClCompile Include="..\src\kre\DisplayDeviceOGLFixed.cpp" />
+    <ClCompile Include="..\src\kre\DisplayDeviceSDL.cpp" />
+    <ClCompile Include="..\src\kre\EffectsOGL.cpp" />
+    <ClCompile Include="..\src\kre\FboOGL.cpp" />
+    <ClCompile Include="..\src\kre\Font.cpp" />
+    <ClCompile Include="..\src\kre\FontSDL.cpp" />
+    <ClCompile Include="..\src\kre\Frustum.cpp" />
+    <ClCompile Include="..\src\kre\LightObject.cpp" />
+    <ClCompile Include="..\src\kre\ModelMatrixScope.cpp" />
+    <ClCompile Include="..\src\kre\ParticleSystem.cpp" />
+    <ClCompile Include="..\src\kre\ParticleSystemAffectors.cpp" />
+    <ClCompile Include="..\src\kre\ParticleSystemEmitters.cpp" />
+    <ClCompile Include="..\src\kre\ParticleSystemObservers.cpp" />
+    <ClCompile Include="..\src\kre\ParticleSystemParameters.cpp" />
+    <ClCompile Include="..\src\kre\Renderable.cpp" />
+    <ClCompile Include="..\src\kre\RenderManager.cpp" />
+    <ClCompile Include="..\src\kre\RenderQueue.cpp" />
+    <ClCompile Include="..\src\kre\RenderTarget.cpp" />
+    <ClCompile Include="..\src\kre\SceneGraph.cpp" />
+    <ClCompile Include="..\src\kre\SceneNode.cpp" />
+    <ClCompile Include="..\src\kre\SceneObject.cpp" />
+    <ClCompile Include="..\src\kre\SceneParameters.cpp" />
+    <ClCompile Include="..\src\kre\Scissor.cpp" />
+    <ClCompile Include="..\src\kre\ScissorOGL.cpp" />
+    <ClCompile Include="..\src\kre\Shaders.cpp" />
+    <ClCompile Include="..\src\kre\ShadersOGL.cpp" />
+    <ClCompile Include="..\src\kre\StencilScope.cpp" />
+    <ClCompile Include="..\src\kre\StencilScopeOGL.cpp" />
+    <ClCompile Include="..\src\kre\Surface.cpp" />
+    <ClCompile Include="..\src\kre\SurfaceSDL.cpp" />
+    <ClCompile Include="..\src\kre\TexPack.cpp" />
+    <ClCompile Include="..\src\kre\Texture.cpp" />
+    <ClCompile Include="..\src\kre\TextureOGL.cpp" />
+    <ClCompile Include="..\src\kre\TextureSDL.cpp" />
+    <ClCompile Include="..\src\kre\UniformBuffer.cpp" />
+    <ClCompile Include="..\src\kre\UniformBufferOGL.cpp" />
+    <ClCompile Include="..\src\kre\Util.cpp" />
+    <ClCompile Include="..\src\kre\VGraph.cpp" />
+    <ClCompile Include="..\src\kre\VGraphCairo.cpp" />
+    <ClCompile Include="..\src\kre\VGraphOGL.cpp" />
+    <ClCompile Include="..\src\kre\VGraphOGLFixed.cpp" />
+    <ClCompile Include="..\src\kre\WindowManager.cpp" />
+    <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\variant.cpp" />
+    <ClCompile Include="..\src\variant_utils.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_attributes.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_doc.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_element.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_parser.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_render_ctx.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\asserts.hpp" />
+    <ClInclude Include="..\src\filesystem.hpp" />
+    <ClInclude Include="..\src\formatter.hpp" />
+    <ClInclude Include="..\src\json.hpp" />
+    <ClInclude Include="..\src\kre\AttributeSet.hpp" />
+    <ClInclude Include="..\src\kre\AttributeSetOGL.hpp" />
+    <ClInclude Include="..\src\kre\Blend.hpp" />
+    <ClInclude Include="..\src\kre\BlendModeScope.hpp" />
+    <ClInclude Include="..\src\kre\BlendOGL.hpp" />
+    <ClInclude Include="..\src\kre\Blittable.hpp" />
+    <ClInclude Include="..\src\kre\CameraObject.hpp" />
+    <ClInclude Include="..\src\kre\Canvas.hpp" />
+    <ClInclude Include="..\src\kre\CanvasOGL.hpp" />
+    <ClInclude Include="..\src\kre\ClipScope.hpp" />
+    <ClInclude Include="..\src\kre\ClipScopeOGL.hpp" />
+    <ClInclude Include="..\src\kre\Color.hpp" />
+    <ClInclude Include="..\src\kre\ColorScope.hpp" />
+    <ClInclude Include="..\src\kre\Depth.hpp" />
+    <ClInclude Include="..\src\kre\DisplayDevice.hpp" />
+    <ClInclude Include="..\src\kre\DisplayDeviceFwd.hpp" />
+    <ClInclude Include="..\src\kre\DisplayDeviceOGL.hpp" />
+    <ClInclude Include="..\src\kre\DisplayDeviceOGLFixed.hpp" />
+    <ClInclude Include="..\src\kre\DisplayDeviceSDL.hpp" />
+    <ClInclude Include="..\src\kre\Effects.hpp" />
+    <ClInclude Include="..\src\kre\EffectsOGL.hpp" />
+    <ClInclude Include="..\src\kre\FboOGL.hpp" />
+    <ClInclude Include="..\src\kre\Font.hpp" />
+    <ClInclude Include="..\src\kre\FontSDL.hpp" />
+    <ClInclude Include="..\src\kre\Frustum.hpp" />
+    <ClInclude Include="..\src\kre\geometry.hpp" />
+    <ClInclude Include="..\src\kre\LightObject.hpp" />
+    <ClInclude Include="..\src\kre\ModelMatrixScope.hpp" />
+    <ClInclude Include="..\src\kre\ParticleSystem.hpp" />
+    <ClInclude Include="..\src\kre\ParticleSystemAffectors.hpp" />
+    <ClInclude Include="..\src\kre\ParticleSystemEmitters.hpp" />
+    <ClInclude Include="..\src\kre\ParticleSystemFwd.hpp" />
+    <ClInclude Include="..\src\kre\ParticleSystemObservers.hpp" />
+    <ClInclude Include="..\src\kre\ParticleSystemParameters.hpp" />
+    <ClInclude Include="..\src\kre\PixelFormat.hpp" />
+    <ClInclude Include="..\src\kre\Renderable.hpp" />
+    <ClInclude Include="..\src\kre\RenderFwd.hpp" />
+    <ClInclude Include="..\src\kre\RenderManager.hpp" />
+    <ClInclude Include="..\src\kre\RenderQueue.hpp" />
+    <ClInclude Include="..\src\kre\RenderTarget.hpp" />
+    <ClInclude Include="..\src\kre\SceneFwd.hpp" />
+    <ClInclude Include="..\src\kre\SceneGraph.hpp" />
+    <ClInclude Include="..\src\kre\SceneNode.hpp" />
+    <ClInclude Include="..\src\kre\SceneObject.hpp" />
+    <ClInclude Include="..\src\kre\SceneParameters.hpp" />
+    <ClInclude Include="..\src\kre\SceneUtil.hpp" />
+    <ClInclude Include="..\src\kre\Scissor.hpp" />
+    <ClInclude Include="..\src\kre\ScissorOGL.hpp" />
+    <ClInclude Include="..\src\kre\ScopeableValue.hpp" />
+    <ClInclude Include="..\src\kre\SDLWrapper.hpp" />
+    <ClInclude Include="..\src\kre\Shaders.hpp" />
+    <ClInclude Include="..\src\kre\ShadersOGL.hpp" />
+    <ClInclude Include="..\src\kre\spline.hpp" />
+    <ClInclude Include="..\src\kre\spline3d.hpp" />
+    <ClInclude Include="..\src\kre\StencilScope.hpp" />
+    <ClInclude Include="..\src\kre\StencilScopeOGL.hpp" />
+    <ClInclude Include="..\src\kre\StencilSettings.hpp" />
+    <ClInclude Include="..\src\kre\Surface.hpp" />
+    <ClInclude Include="..\src\kre\SurfaceSDL.hpp" />
+    <ClInclude Include="..\src\kre\TexPack.hpp" />
+    <ClInclude Include="..\src\kre\Texture.hpp" />
+    <ClInclude Include="..\src\kre\TextureOGL.hpp" />
+    <ClInclude Include="..\src\kre\TextureSDL.hpp" />
+    <ClInclude Include="..\src\kre\TextureUtils.hpp" />
+    <ClInclude Include="..\src\kre\UniformBuffer.hpp" />
+    <ClInclude Include="..\src\kre\UniformBufferOGL.hpp" />
+    <ClInclude Include="..\src\kre\Util.hpp" />
+    <ClInclude Include="..\src\kre\VGraph.hpp" />
+    <ClInclude Include="..\src\kre\VGraphCairo.hpp" />
+    <ClInclude Include="..\src\kre\VGraphFwd.hpp" />
+    <ClInclude Include="..\src\kre\VGraphOGL.hpp" />
+    <ClInclude Include="..\src\kre\VGraphOGLFixed.hpp" />
+    <ClInclude Include="..\src\kre\VGraphPatterns.hpp" />
+    <ClInclude Include="..\src\kre\WindowManager.hpp" />
+    <ClInclude Include="..\src\kre\WindowManagerFwd.hpp" />
+    <ClInclude Include="..\src\profile_timer.hpp" />
+    <ClInclude Include="..\src\utf8_to_codepoint.hpp" />
+    <ClInclude Include="..\src\variant.hpp" />
+    <ClInclude Include="..\src\variant_utils.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_attributes.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_doc.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_element.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_fwd.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_parser.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_render_ctx.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\kre\geometry.inl" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{7A1337EB-A208-4F6F-B971-C86A3621FDA3}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>xhtml</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\src\xhtml;..\src\kre;..\src;..\external\include;..\external\include\SDL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>..\external\lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1,2 +1,3 @@
 # xhtml
-Toy XHTML parser
+
+Experimental XHTML parser.
