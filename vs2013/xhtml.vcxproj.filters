@@ -25,6 +25,9 @@
     <Filter Include="Source Files\xhtml">
       <UniqueIdentifier>{b86f2245-1a25-41f2-8496-a5150c5ab23e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Test Files">
+      <UniqueIdentifier>{67e4ce04-6245-4411-9193-eb285e0ad4af}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -229,6 +232,12 @@
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
     <ClCompile Include="..\src\xhtml\xhtml_attributes.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\css_parser.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\css_lexer.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
   </ItemGroup>
@@ -503,10 +512,19 @@
     <ClInclude Include="..\src\xhtml\xhtml_attributes.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\xhtml\css_parser.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\css_lexer.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\kre\geometry.inl">
       <Filter>Header Files\kre</Filter>
+    </None>
+    <None Include="..\data\test1.xhtml">
+      <Filter>Test Files</Filter>
     </None>
   </ItemGroup>
 </Project>

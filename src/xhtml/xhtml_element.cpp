@@ -24,6 +24,7 @@
 #include <map>
 
 #include "asserts.hpp"
+#include "css_lexer.hpp"
 #include "xhtml_element.hpp"
 
 namespace xhtml
@@ -137,6 +138,10 @@ namespace xhtml
 	Element::Element(const ptree& pt)
 		: attrs_(pt)
 	{
+		// XXX added as a test here only.
+		if(!attrs_.getStyle().empty()) {
+			css::Tokenizer tok(attrs_.getStyle());
+		}
 	}
 
 	Element::~Element()

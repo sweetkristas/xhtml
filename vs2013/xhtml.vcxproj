@@ -74,6 +74,8 @@
     <ClCompile Include="..\src\main.cpp" />
     <ClCompile Include="..\src\variant.cpp" />
     <ClCompile Include="..\src\variant_utils.cpp" />
+    <ClCompile Include="..\src\xhtml\css_lexer.cpp" />
+    <ClCompile Include="..\src\xhtml\css_parser.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_attributes.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_doc.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_element.cpp" />
@@ -164,6 +166,8 @@
     <ClInclude Include="..\src\utf8_to_codepoint.hpp" />
     <ClInclude Include="..\src\variant.hpp" />
     <ClInclude Include="..\src\variant_utils.hpp" />
+    <ClInclude Include="..\src\xhtml\css_lexer.hpp" />
+    <ClInclude Include="..\src\xhtml\css_parser.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_attributes.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_doc.hpp" />
@@ -173,6 +177,7 @@
     <ClInclude Include="..\src\xhtml\xhtml_render_ctx.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\data\test1.xhtml" />
     <None Include="..\src\kre\geometry.inl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

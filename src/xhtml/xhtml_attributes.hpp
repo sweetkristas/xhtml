@@ -55,6 +55,11 @@ namespace xhtml
 		void setOnKeyPress(const std::string& value) { on_key_press_ = value; }
 		void setOnKeyDown(const std::string& value) { on_key_down_ = value; }
 		void setOnKeyUp(const std::string& value) { on_key_up_ = value; }
+
+		const std::string& getID() { return id_; }
+		const std::string& getClass() { return class_; }
+		const std::string& getStyle() { return style_; }
+		const std::string& getTitle() { return title_; }
 	private:
 		// %coreattrs
 		std::string id_;
@@ -63,8 +68,8 @@ namespace xhtml
 		std::string title_;
 
 		// % i18n
-		std::string lang_;
-		std::string dir_;
+		std::string lang_;	// Language information
+		std::string dir_;	// text direction.
 		
 		// %events
 		std::string on_click_;
