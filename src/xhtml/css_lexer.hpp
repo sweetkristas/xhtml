@@ -21,8 +21,13 @@
 	   distribution.
 */
 
+#pragma once
+
+#include <memory>
 #include <string>
 #include <vector>
+
+#include "variant.hpp"
 
 namespace css
 {
@@ -70,21 +75,25 @@ namespace css
 		ID = 2,
 	};
 
-	struct Token {
-		explicit Token(TokenId ident) : id(ident), tok(), flags(TokenFlags::UNRESTRICTED) {}
-		explicit Token(TokenId ident, const std::string& s) : id(ident), tok(s), flags(TokenFlags::UNRESTRICTED) {}
-		explicit Token(TokenId ident, const std::string& s, TokenFlags f) : id(ident), tok(s), flags(f) {}
-		explicit Token(TokenId ident, TokenFlags f) : id(ident), tok(), flags(f) {}
-		TokenId id;
-		std::string tok;
-		TokenFlags flags;
+	class Token 
+	{
+	public:
+		explicit Token(TokenId id) : id_(id) {}
+		virtual ~Token() {}
+		TokenId id() const { return id_; }
+		virtual std::string toString();
+		virtual variant value() { return variant(); }
+	private:
+		TokenId id_;
 	};
+	typedef std::shared_ptr<Token> TokenPtr;
 
 	// The tokenizer class expects an input of unicode codepoints.
 	class Tokenizer
 	{
 	public:
 		explicit Tokenizer(const std::string& inp);
+		const std::vector<TokenPtr>& getTokens() const { return tokens_; }
 	private:
 		void advance(int n=1);
 		char32_t next(int n=1);
@@ -92,12 +101,12 @@ namespace css
 		std::string consumeEscape();
 		void consumeWhitespace();
 		void consumeComments();
-		Token consumeString(char32_t end_codepoint);
-		Token consumeNumericToken();
-		Token consumeIdentlikeToken();
-		std::string consumeNumber();
+		TokenPtr consumeString(char32_t end_codepoint);
+		TokenPtr consumeNumericToken();
+		TokenPtr consumeIdentlikeToken();
+		double consumeNumber();
 		std::string consumeName();
-		Token consumeURLToken();
+		TokenPtr consumeURLToken();
 		void consumeBadURL();
 
 		std::vector<char32_t> cp_string_;
@@ -105,5 +114,7 @@ namespace css
 
 		// Look ahead+0
 		char32_t la0_;
+
+		std::vector<TokenPtr> tokens_;
 	};
 }

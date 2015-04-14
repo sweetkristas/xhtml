@@ -24,7 +24,7 @@
 #include <map>
 
 #include "asserts.hpp"
-#include "css_lexer.hpp"
+#include "css_parser.hpp"
 #include "xhtml_element.hpp"
 
 namespace xhtml
@@ -119,6 +119,21 @@ namespace xhtml
 		};
 		ElementRegistrar<TextElement> text_element(XmlText);
 
+		struct StyleElement : public Element
+		{
+			explicit StyleElement(const ptree& pt) : Element(pt) {}
+			bool handleParse(const boost::property_tree::ptree& pt) override {
+				auto styles = pt.get_child_optional(XmlText);
+				if(styles) {
+				// XXX added as a test here only.
+					css::Tokenizer tok(styles->data());
+					css::Parser parse(tok.getTokens());
+				}
+				return false;
+			}
+		};
+		ElementRegistrar<StyleElement> style_element("style");
+
 		// Start of elements.
 		struct TitleElement : public Element
 		{
@@ -141,6 +156,7 @@ namespace xhtml
 		// XXX added as a test here only.
 		if(!attrs_.getStyle().empty()) {
 			css::Tokenizer tok(attrs_.getStyle());
+			css::Parser parse(tok.getTokens());
 		}
 	}
 
