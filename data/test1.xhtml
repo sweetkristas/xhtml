@@ -12,19 +12,31 @@
  ]]>
  </script>
  <style>
-         ins {
-             background: hsl(120, 50%, 90%);
-             color: green;
-         }
+    ins {
+        background: hsl(120, 50%, 90%);
+        color: green;
+    }
 
-         del {
-             background: hsl(0, 50%, 90%);
-             color: darkred;
-         }
+    del {
+        background: hsl(0, 50%, 90%);
+        color: darkred;
+    }
 
-         ins, del {
-             text-decoration: none;
-         }
+    ins, del {
+        text-decoration: none;
+    }
+
+    a {
+        background-image: url(default.png);
+        color: white;
+        display: block;
+        height: 30px;
+        width: 100px;
+    }
+    a:hover {
+        background-image: url(rollover.png);
+        color: lightpink;
+    }
  </style> 
  </head>
  <body onload="loadpdf()">

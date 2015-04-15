@@ -76,6 +76,7 @@
     <ClCompile Include="..\src\variant_utils.cpp" />
     <ClCompile Include="..\src\xhtml\css_lexer.cpp" />
     <ClCompile Include="..\src\xhtml\css_parser.cpp" />
+    <ClCompile Include="..\src\xhtml\document_object_model.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_attributes.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_doc.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_element.cpp" />
@@ -168,6 +169,7 @@
     <ClInclude Include="..\src\variant_utils.hpp" />
     <ClInclude Include="..\src\xhtml\css_lexer.hpp" />
     <ClInclude Include="..\src\xhtml\css_parser.hpp" />
+    <ClInclude Include="..\src\xhtml\document_object_model.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_attributes.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_doc.hpp" />

@@ -598,10 +598,11 @@ namespace css
 	TokenPtr Tokenizer::consumeIdentlikeToken()
 	{
 		std::string str = consumeName();
-		if(str.size() >= 4 && (str[0] == 'u' || str[0] == 'U') 
+		if(str.size() >= 3 && (str[0] == 'u' || str[0] == 'U') 
 			&& (str[1] == 'r' || str[1] == 'R')
 			&& (str[2] == 'l' || str[2] == 'L') 
-			&& str[3] == '(') {
+			&& la0_ == '(') {
+			advance();
 			while(whitespace(la0_) && whitespace(next())) {
 				advance();
 			}
