@@ -33,33 +33,47 @@
 
 namespace xhtml
 {
-	typedef std::function<ElementPtr(const boost::property_tree::ptree& pt)> ElementFactoryFnType;
-	class Element
+	typedef std::function<ElementPtr(const std::string& name, const boost::property_tree::ptree& pt)> ElementFactoryFnType;
+	class Element : public std::enable_shared_from_this<Element>
 	{
 	public:
 		virtual ~Element();
+		const std::string& getName() const { return name_; }
 		static ElementPtr factory(const std::string& name, const boost::property_tree::ptree& pt);
 		void parse(const boost::property_tree::ptree& pt);
 		void render(RenderContext* ctx) const;
 		static void registerFactoryFunction(const std::string& type, ElementFactoryFnType fn);
+		void preOrderTraverse(std::function<void(ElementPtr)> fn);
 	protected:
-		explicit Element(const boost::property_tree::ptree& pt);
+		explicit Element(const std::string& name, const boost::property_tree::ptree& pt);
 		bool parseWithText(const boost::property_tree::ptree& pt);
 		void addChild(ElementPtr child);
 	private:
 		virtual bool handleParse(const boost::property_tree::ptree& pt) { return true; }
 		virtual void handleRender(RenderContext* ctx) const {}
+		std::string name_;
 		Attributes attrs_;
 		std::vector<ElementPtr> children_;
 	};
 
-	template<class T>
+	template<typename T>
 	struct ElementRegistrar
 	{
 		ElementRegistrar(const std::string& type)
 		{
 			// register the class factory function 
-			Element::registerFactoryFunction(type, [](const boost::property_tree::ptree& pt) -> ElementPtr { return std::make_shared<T>(pt); });
+			Element::registerFactoryFunction(type, [](const std::string& name, const boost::property_tree::ptree& pt) -> ElementPtr { return std::make_shared<T>(name, pt); });
+		}
+	};
+
+	// ugly hack -- need a more elegant template/std::forward solution
+	template<typename T>
+	struct ElementRegistrarInt
+	{
+		ElementRegistrarInt(const std::string& type, int value)
+		{
+			// register the class factory function 
+			Element::registerFactoryFunction(type, [value](const std::string& name, const boost::property_tree::ptree& pt) -> ElementPtr { return std::make_shared<T>(name, pt, value); });
 		}
 	};
 }

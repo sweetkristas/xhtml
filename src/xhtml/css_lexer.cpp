@@ -88,7 +88,7 @@ namespace css
 		{
 		public:
 			explicit StringToken(const std::string& str) : Token(TokenId::STRING), str_(str) {}
-			std::string toString() override {
+			std::string toString() const override {
 				return formatter() << "StringToken(" << str_ << ")";
 			}
 			variant value() override { return variant(str_); }
@@ -100,7 +100,7 @@ namespace css
 		{
 		public:
 			explicit AtToken(const std::string& ident) : Token(TokenId::AT), ident_(ident) {}
-			std::string toString() override {
+			std::string toString() const override {
 				return formatter() << "AtToken(" << ident_ << ")";
 			}
 			variant value() override { return variant(ident_); }
@@ -112,7 +112,7 @@ namespace css
 		{
 		public:
 			explicit NumberToken(double value) : Token(TokenId::NUMBER), value_(value) {}
-			std::string toString() override {
+			std::string toString() const override {
 				return formatter() << "NumberToken(" << value_ << ")";
 			}
 			variant value() override { return variant(value_); }
@@ -124,7 +124,7 @@ namespace css
 		{
 		public:
 			explicit DimensionToken(double value, const std::string& units) : Token(TokenId::NUMBER), value_(value), units_(units) {}
-			std::string toString() override {
+			std::string toString() const override {
 				return formatter() << "DimensionToken(" << value_ << " " << units_ << ")";
 			}
 			variant value() override { 
@@ -142,7 +142,7 @@ namespace css
 		{
 		public:
 			explicit IdentToken(const std::string& ident) : Token(TokenId::IDENT), ident_(ident) {}
-			std::string toString() override {
+			std::string toString() const override {
 				return formatter() << "IdentToken(" << ident_ << ")";
 			}
 			variant value() override { return variant(ident_); }
@@ -155,7 +155,7 @@ namespace css
 		public:
 			UrlToken() : Token(TokenId::URL), url_() {}
 			explicit UrlToken(const std::string& url) : Token(TokenId::URL), url_(url) {}
-			std::string toString() override {
+			std::string toString() const override {
 				return formatter() << "UrlToken(" << url_<< ")";
 			}
 			variant value() override { return variant(url_); }
@@ -166,8 +166,8 @@ namespace css
 		class FunctionToken : public Token
 		{
 		public:
-			explicit FunctionToken(const std::string& fn) : Token(TokenId::IDENT), fn_(fn) {}
-			std::string toString() override {
+			explicit FunctionToken(const std::string& fn) : Token(TokenId::FUNCTION), fn_(fn) {}
+			std::string toString() const override {
 				return formatter() << "FunctionToken(" << fn_ << ")";
 			}
 			variant value() override { return variant(fn_); }
@@ -179,7 +179,7 @@ namespace css
 		{
 		public:
 			explicit PercentToken(double value) : Token(TokenId::PERCENT), value_(value) {}
-			std::string toString() override {
+			std::string toString() const override {
 				return formatter() << "PercentToken(" << value_ << "%%)";
 			}
 			variant value() override { return variant(value_); }
@@ -191,10 +191,11 @@ namespace css
 		{
 		public:
 			explicit DelimiterToken(const std::string& delim) : Token(TokenId::DELIM), delim_(delim) {}
-			std::string toString() override {
+			std::string toString() const override {
 				return formatter() << "DelimiterToken(" << delim_ << ")";
 			}
 			variant value() override { return variant(delim_); }
+			const std::string& getValue() const { return delim_; }
 		private:
 			std::string delim_;
 		};
@@ -203,7 +204,7 @@ namespace css
 		{
 		public:
 			explicit HashToken(bool restricted, const std::string& name) : Token(TokenId::HASH), name_(name), unrestricted_(!restricted) {}
-			std::string toString() override {
+			std::string toString() const override {
 				return formatter() << "HashToken(" << (unrestricted_ ? "unrestricted " : "id ") << name_ << ")";
 			}
 			variant value() override { 
@@ -405,6 +406,7 @@ namespace css
 				advance();
 			}
 		}
+		// deubgging to print list of tokens.
 		LOG_DEBUG("Token list: ");
 		for(auto& tok : tokens_) {
 			LOG_DEBUG("    " << tok->toString());
@@ -613,7 +615,7 @@ namespace css
 			} else {
 				return consumeURLToken();
 			}
-		} else if(la0_ == '.') {
+		} else if(la0_ == '(') {
 			advance();
 			return std::make_shared<FunctionToken>(str);
 		}
@@ -675,9 +677,14 @@ namespace css
 		}
 	}
 
-	std::string Token::toString()
+	std::string Token::toString() const
 	{
-		switch(id_) {
+		return tokenIdToString(id_);
+	}
+
+	std::string Token::tokenIdToString(TokenId id) 
+	{
+		switch(id) {
 			case TokenId::BAD_STRING:		return "BAD-STRING";
 			case TokenId::BAD_URL:			return "BAD-URL";
 			case TokenId::INCLUDE_MATCH:	return "INCLUDE-MATCH";

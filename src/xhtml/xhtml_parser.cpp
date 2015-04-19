@@ -74,10 +74,20 @@ namespace xhtml
 
 	void Parser::parse(const boost::property_tree::ptree& pt)
 	{
-		for(auto& element : pt) {
-			auto ele = Element::factory(element.first, element.second);
-			ele->parse(element.second);
+		auto element = pt.get_child_optional("html");
+		if(element) {
+			auto ele = Element::factory("html", *element);
+			ele->parse(*element);
+			//doc_->root = ele;
+
+
+			// XXX for testing
+			ele->preOrderTraverse([](ElementPtr e) { std::cerr << "  Element: " << e->getName() << "\n"; });
 		}
+		//for(auto& element : pt) {
+		//	auto ele = Element::factory(element.first, element.second);
+		//	ele->parse(element.second);
+		//}
 	}
 }
 

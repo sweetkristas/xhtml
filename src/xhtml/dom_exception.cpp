@@ -31,25 +31,23 @@ namespace dom
 	{
 		const char* exception_code_to_message(ExceptionCode err)
 		{
-			switch(ExceptionCode)
-			{
-			case dom::ExceptionCode::INDEX_SIZE_ERR:				return "Index size error";
-			case dom::ExceptionCode::DOMSTRING_SIZE_ERR:			return "DOMstring size error";
-			case dom::ExceptionCode::HIERARCHY_REQUEST_ERR:			return "Hierarchy request error";
-			case dom::ExceptionCode::WRONG_DOCUMENT_ERR:			return "Wrong document error";
-			case dom::ExceptionCode::INVALID_CHARACTER_ERR:			return "Invalid character error";
-			case dom::ExceptionCode::NO_DATA_ALLOWED_ERR:			return "No data allowed error";
-			case dom::ExceptionCode::NO_MODIFICATION_ALLOWED_ERR:	return "No modification allowed error";
-			case dom::ExceptionCode::NOT_FOUND_ERR:					return "Not found error";
-			case dom::ExceptionCode::NOT_SUPPORTED_ERR:				return "Not supported error";
-			case dom::ExceptionCode::INUSE_ATTRIBUTE_ERR:			return "attribute in-use error";
-			case dom::ExceptionCode::INVALID_STATE_ERR:				return "invalid state error";
-			case dom::ExceptionCode::SYNTAX_ERR:					return "syntax error";
-			case dom::ExceptionCode::INVALID_MODIFICATION_ERR:		return "invalid modification error";
-			case dom::ExceptionCode::NAMESPACE_ERR:					return "namespace error";
-			case dom::ExceptionCode::INVALID_ACCESS_ERR:			return "invalid access error";
-			default:
-				break;
+			switch(err) {
+				case ExceptionCode::INDEX_SIZE_ERR:				return "Index size error";
+				case ExceptionCode::DOMSTRING_SIZE_ERR:			return "DOMstring size error";
+				case ExceptionCode::HIERARCHY_REQUEST_ERR:		return "Hierarchy request error";
+				case ExceptionCode::WRONG_DOCUMENT_ERR:			return "Wrong document error";
+				case ExceptionCode::INVALID_CHARACTER_ERR:		return "Invalid character error";
+				case ExceptionCode::NO_DATA_ALLOWED_ERR:		return "No data allowed error";
+				case ExceptionCode::NO_MODIFICATION_ALLOWED_ERR:return "No modification allowed error";
+				case ExceptionCode::NOT_FOUND_ERR:				return "Not found error";
+				case ExceptionCode::NOT_SUPPORTED_ERR:			return "Not supported error";
+				case ExceptionCode::INUSE_ATTRIBUTE_ERR:		return "attribute in-use error";
+				case ExceptionCode::INVALID_STATE_ERR:			return "invalid state error";
+				case ExceptionCode::SYNTAX_ERR:					return "syntax error";
+				case ExceptionCode::INVALID_MODIFICATION_ERR:	return "invalid modification error";
+				case ExceptionCode::NAMESPACE_ERR:				return "namespace error";
+				case ExceptionCode::INVALID_ACCESS_ERR:			return "invalid access error";
+				default: break;
 			}
 			return "Unrecognized error code.";
 		}

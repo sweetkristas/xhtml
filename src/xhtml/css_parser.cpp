@@ -29,57 +29,66 @@ namespace css
 	namespace 
 	{
 		// rules
-		class AtRule : public Rule
+		class AtRule : public Token
 		{
 		public:
-			AtRule(const std::string& name) : Rule(RuleId::AT) {}
+			AtRule(const std::string& name) : Token(TokenId::AT_RULE_TOKEN), name_(name) {}
 			std::string toString() const override {
-				return "AT-RULE";
+				std::ostringstream ss;
+				for(auto& p : getParameters()) {
+					ss << " " << p->toString();
+				}
+				return formatter() << "@" << name_ << "(" << ss.str() << ")";
+			}
+		private:
+			std::string name_;
+		};
+
+		class RuleToken : public Token
+		{
+		public:
+			RuleToken() : Token(TokenId::RULE_TOKEN) {}
+			std::string toString() const override {
+				std::ostringstream ss;
+				for(auto& p : getParameters()) {
+					ss << " " << p->toString();
+				}
+				return formatter() << "QualifiedRule(" << ss.str() << ")";
 			}
 		private:
 		};
 
-		class BlockRule : public Rule
+		class BlockToken : public Token
 		{
 		public:
-			BlockRule() : Rule(RuleId::BLOCK) {}
-			std::string toString() const override {
-				return "BLOCK-RULE";
+			BlockToken() : Token(TokenId::BLOCK_TOKEN) {}
+			explicit BlockToken(const std::vector<TokenPtr>& params) 
+				: Token(TokenId::BLOCK_TOKEN) 
+			{
+				addParameters(params);
 			}
+			std::string toString() const override {
+				std::ostringstream ss;
+				for(auto& p : getParameters()) {
+					ss << " " << p->toString();
+				}
+				return formatter() << "BlockToken(" << ss.str() << ")";
+			}
+			variant value() override { return variant(); }
 		private:
 		};
 
-		class FunctionRule : public Rule
+		class SelectorToken : public Token
 		{
 		public:
-			FunctionRule() : Rule(RuleId::FUNCTION) {}
+			SelectorToken() : Token(TokenId::SELECTOR_TOKEN) {}
 			std::string toString() const override {
-				return "FUNCTION-RULE";
-			}
-		private:
-		};
-		
-		class QualifiedRule : public Rule
-		{
-		public:
-			QualifiedRule() : Rule(RuleId::QUALIFIED) {}
-			std::string toString() const override {
-				return "QUALIFIED-RULE";
-			}
-		private:
-		};
-
-		// Special case rule for preserving token values.
-		class PreservedToken : public Rule
-		{
-		public:
-			PreservedToken(TokenId token_id, const variant& value) : Rule(RuleId::TOKEN), token_id_(token_id), value_(value) {}
-			std::string toString() const override {
-				return "PRESERVED-TOKEN";
-			}
-		private:
-			TokenId token_id_;
-			variant value_;
+				std::ostringstream ss;
+				for(auto& p : getParameters()) {
+					ss << " " << p->toString();
+				}
+				return formatter() << "Selector(" << ss.str() << ")";
+			};
 		};
 	}
 
@@ -104,9 +113,9 @@ namespace css
 		std::advance(token_, n);
 	}
 
-	std::vector<RulePtr> Parser::pasrseRuleList(int level)
+	std::vector<TokenPtr> Parser::pasrseRuleList(int level)
 	{
-		std::vector<RulePtr> rules;
+		std::vector<TokenPtr> rules;
 		while(true) {
 			if(currentTokenType() == TokenId::WHITESPACE) {
 				advance();
@@ -128,7 +137,7 @@ namespace css
 		return rules;
 	}
 
-	RulePtr Parser::parseAtRule()
+	TokenPtr Parser::parseAtRule()
 	{
 		variant value = (*token_)->value();
 		auto rule = std::make_shared<AtRule>(value.as_string());
@@ -138,126 +147,153 @@ namespace css
 				return rule;
 			} else if(currentTokenType() == TokenId::LBRACE) {
 				advance();
-				rule->setValue(parseBraceBlock());
+				rule->addParameters(parseBraceBlock());
 			} else if(currentTokenType() == TokenId::LPAREN) {
 				advance();
-				rule->setValue(parseParenBlock());
+				rule->addParameters(parseParenBlock());
 			} else if(currentTokenType() == TokenId::LBRACKET) {
 				advance();
-				rule->setValue(parseBracketBlock());
+				rule->addParameters(parseBracketBlock());
 			}
 		}
 		return nullptr;
 	}
 
-	RulePtr Parser::parseQualifiedRule()
+	TokenPtr Parser::parseQualifiedRule()
 	{
-		auto rule = std::make_shared<QualifiedRule>();
+		auto rule = std::make_shared<RuleToken>();
 		while(true) {
 			if(currentTokenType() == TokenId::EOF_TOKEN) {
 				LOG_ERROR("EOF token while parsing qualified rule prelude.");
 				return nullptr;
 			} else if(currentTokenType() == TokenId::LBRACE) {
 				advance();
-				rule->setValue(parseBraceBlock());
+				rule->setValue(std::make_shared<BlockToken>(parseBraceBlock()));
 				return rule;
 			} else {
-				rule->addPrelude(parseComponentValue());
+				rule->addParameter(parseComponentValue());
 			}
 		}
 		return nullptr;
 	}
 
-	RulePtr Parser::parseDeclarationList()
+	TokenPtr Parser::parseDeclarationList()
 	{
 		// XXX
 		return nullptr;
 	}
 
-	RulePtr Parser::parseDeclaration()
+	TokenPtr Parser::parseDeclaration()
 	{
 		// XXX
 		return nullptr;
 	}
 
-	RulePtr Parser::parseImportant()
+	TokenPtr Parser::parseImportant()
 	{
 		// XXX
 		return nullptr;
 	}
 
-	RulePtr Parser::parseComponentValue()
+	TokenPtr Parser::parseComponentValue()
 	{
 		if(currentTokenType() == TokenId::LBRACE) {
 			advance();
-			return parseBraceBlock();
+			return std::make_shared<BlockToken>(parseBraceBlock());
 		} else if(currentTokenType() == TokenId::FUNCTION) {
 			return parseFunction();
 		}
-		variant value = (*token_)->value();
-		auto tok = std::make_shared<PreservedToken>(currentTokenType(), value);
+		
+		auto tok = *token_;
 		advance();
 		return tok;
 	}
 
-	RulePtr Parser::parseBraceBlock()
+	std::vector<TokenPtr> Parser::parseBraceBlock()
 	{
-		auto block = std::make_shared<BlockRule>();
-		block->addValue(std::make_shared<PreservedToken>(currentTokenType(), (*token_)->value()));
+		std::vector<TokenPtr> res;
+		res.emplace_back(*token_);
 		while(true) {
 			if(currentTokenType() == TokenId::EOF_TOKEN || currentTokenType() == TokenId::RBRACE) {
 				advance();
-				return block;
+				return res;
 			} else {
-				block->addValue(parseComponentValue());
+				res.emplace_back(parseComponentValue());
 			}
 		}
-		return nullptr;
+		return res;
 	}
 
-	RulePtr Parser::parseParenBlock()
+	std::vector<TokenPtr> Parser::parseParenBlock()
 	{
-		auto block = std::make_shared<BlockRule>();
-		block->addValue(std::make_shared<PreservedToken>(currentTokenType(), (*token_)->value()));
+		std::vector<TokenPtr> res;
+		res.emplace_back(*token_);
 		while(true) {
 			if(currentTokenType() == TokenId::EOF_TOKEN || currentTokenType() == TokenId::RPAREN) {
 				advance();
-				return block;
+				return res;
 			} else {
-				block->addValue(parseComponentValue());
+				res.emplace_back(parseComponentValue());
 			}
 		}
-		return nullptr;
+		return res;
 	}
 
-	RulePtr Parser::parseBracketBlock()
+	std::vector<TokenPtr> Parser::parseBracketBlock()
 	{
-		auto block = std::make_shared<BlockRule>();
-		block->addValue(std::make_shared<PreservedToken>(currentTokenType(), (*token_)->value()));
+		std::vector<TokenPtr> res;
+		res.emplace_back(*token_);
 		while(true) {
 			if(currentTokenType() == TokenId::EOF_TOKEN || currentTokenType() == TokenId::RBRACKET) {
 				advance();
-				return block;
+				return res;
 			} else {
-				block->addValue(parseComponentValue());
+				res.emplace_back(parseComponentValue());
 			}
 		}
-		return nullptr;
+		return res;
 	}
 
-	RulePtr Parser::parseFunction()
+	TokenPtr Parser::parseFunction()
 	{
-		auto func = std::make_shared<FunctionRule>();
-		func->addValue(std::make_shared<PreservedToken>(currentTokenType(), (*token_)->value()));
+		auto fn_token = *token_;
 		advance();
 		while(true) {
 			if(currentTokenType() == TokenId::EOF_TOKEN || currentTokenType() == TokenId::RPAREN) {
-				return func;
+				advance();
+				return fn_token;
 			} else {
-				func->addValue(parseComponentValue());
+				fn_token->addParameter(parseComponentValue());
 			}
 		}
-		return nullptr;
+		return fn_token;
+	}
+
+	void Parser::parseRule(TokenPtr rule)
+	{
+		std::ostringstream ss;
+		ss << "RULE. prelude:";
+		for(auto& r : rule->getParameters()) {
+			ss << " " << r->toString();
+		}
+		ss << "; values: " << rule->getValue()->toString();
+		LOG_DEBUG(ss.str());
+
+		auto prelude = rule->getParameters().begin();
+		while((*prelude)->id() == TokenId::WHITESPACE) {
+			++prelude;
+		}
+
+		if((*prelude)->id() == TokenId::AT_RULE_TOKEN) {
+			// parse at rule
+
+			// XXX temporarily skip @ rules.
+			//while(!(*prelude)->isToken(TokenId::SEMICOLON) && !(*prelude)->isToken(TokenId::RBRACE) && prelude != rule->getPrelude().end()) {
+			//}
+			ASSERT_LOG(false, "fix @ rules.");
+		} else {
+			SelectorParser selectors(prelude, rule->getParameters().end());
+		}
 	}
 
 	// StyleSheet functions
@@ -266,8 +302,199 @@ namespace css
 	{
 	}
 
-	void StyleSheet::addRules(std::vector<RulePtr>* rules)
+	void StyleSheet::addRules(std::vector<TokenPtr>* rules)
 	{
 		rules_.swap(*rules);
+	}
+
+	SelectorParser::SelectorParser(std::vector<TokenPtr>::const_iterator it, std::vector<TokenPtr>::const_iterator end)
+		: it_(it),
+		  end_(end)
+	{
+		parseSelectorGroup();
+	}
+
+	bool SelectorParser::isCurrentToken(TokenId value)
+	{
+		if(it_ == end_) {
+			return false;
+		}
+		return (*it_)->id() == value;
+	}
+
+	void SelectorParser::advance(int n)
+	{
+		std::advance(it_, n);
+	}
+
+	std::vector<SelectorPtr> SelectorParser::parseSelectorGroup()
+	{
+		parseSelector();
+		while(isCurrentToken(TokenId::COMMA)) {
+			advance();
+			whitespace();
+			parseSelector();
+		}
+		std::vector<SelectorPtr> res;
+		return res;
+	}
+
+	void SelectorParser::parseSelector()
+	{
+		parseSimpleSelectorSeq();
+		while(isCombinator()) {
+			parseCombinator();
+			parseSimpleSelectorSeq();
+		}
+	}
+
+	void SelectorParser::parseCombinator()
+	{
+		if(isCurrentTokenDelim("+") || isCurrentTokenDelim(">") || isCurrentTokenDelim("~")) {
+			// XXX store combinator here.
+			advance();
+			whitespace();
+		}
+	}
+
+	bool SelectorParser::isCurrentTokenDelim(const std::string& ch)
+	{
+		return isCurrentToken(TokenId::DELIM) && (*it_)->value().as_string() == ch;
+	}
+
+	bool SelectorParser::parseSeqModifiers()
+	{
+		bool res = true;
+		// [ HASH | class | attrib | pseudo | negation ]
+		if(isCurrentToken(TokenId::HASH)) {
+			// XXX Store token attributes.
+			advance();
+		} else if(isCurrentTokenDelim(".")) {
+			advance();
+			if(!isCurrentToken(TokenId::IDENT)) {
+				LOG_ERROR("did not find identifier after matching class selector");
+			}
+			// XXX Store class identifier.
+			advance();
+		} else if(isCurrentTokenDelim("[")) {
+			advance();
+			parseAttribute();
+		} else if(isCurrentTokenDelim(":")) {
+			advance();
+			if(isCurrentTokenDelim(":")) {
+				// XXX is pseudo-element
+				advance();
+			} else {
+				// XXX is pseudo-class
+			}
+			if(isCurrentToken(TokenId::IDENT)) {
+				// XXX store identifier
+				advance();
+			} else if(isCurrentToken(TokenId::FUNCTION)) {
+				// XXX store function name and parameters.
+				// may need to parse parameters with
+				//  [ [ PLUS | '-' | DIMENSION | NUMBER | STRING | IDENT ] S* ]+
+				advance();
+			}
+		//} else if(isCurrentToken(TokenId::NOT) {
+		} else {
+			res = false;
+		}
+		return res;
+	}
+
+	void SelectorParser::parseSimpleSelectorSeq()
+	{
+		// [ type_selector | universal ]
+		if((isCurrentToken(TokenId::IDENT) || isCurrentTokenDelim("*")) && isNextTokenDelim("|")) {
+			// XXX parse namespace selector
+			advance(2);
+		}
+
+		if(isCurrentToken(TokenId::IDENT)) {
+			// XXX element name;
+			advance();
+		} else if(isCurrentTokenDelim("*")) {
+			// XXX universal element
+			advance();
+		} else {
+			parseSeqModifiers();
+		}
+
+		while(parseSeqModifiers()) {
+		}
+	}
+
+	bool SelectorParser::isCombinator()
+	{
+		bool res = false;
+		while(isCurrentToken(TokenId::WHITESPACE)) {
+			advance();
+			res = true;
+		}
+		if(isCurrentTokenDelim("+") || isCurrentTokenDelim(">") || isCurrentTokenDelim("~")) {
+			res = true;
+		}
+		return res;
+	}
+
+	void SelectorParser::parseAttribute()
+	{
+		// assume first '[' already removed.
+		// remove whitespace.
+		whitespace();
+		// [ namespace_prefix ]?
+		if((isCurrentToken(TokenId::IDENT) || isCurrentTokenDelim("*")) || isNextTokenDelim("|")) {
+			advance(2);
+			// XXX Set namespace prefix.
+		}
+		if(!isCurrentToken(TokenId::IDENT)) {
+			LOG_ERROR("error no identifier found in selector production.");
+			// XXX recovery			
+		}
+		// XXX store selector identifier
+		if(isCurrentToken(TokenId::PREFIX_MATCH) 
+			|| isCurrentToken(TokenId::SUFFIX_MATCH) 
+			|| isCurrentToken(TokenId::SUBSTRING_MATCH) 
+			|| isCurrentTokenDelim("=") 
+			|| isCurrentToken(TokenId::INCLUDE_MATCH)
+			|| isCurrentToken(TokenId::DASH_MATCH)) {
+			// XXX store match type
+			advance();
+			whitespace();
+			if(isCurrentToken(TokenId::STRING)) {
+				// XXX add string to attribute
+			} else if (!isCurrentToken(TokenId::IDENT)) {
+				// XXX add ident to attribute
+			} else {
+				LOG_ERROR("Didn't match right bracket in production.");
+				// XXX throw error and re-sync to next rule
+			}
+			whitespace();
+		}
+
+		if(!isCurrentTokenDelim("]")) {
+			advance();
+			LOG_ERROR("Didn't match right bracket in production.");
+			// XXX throw error and re-sync to next rule
+		}
+		advance();
+	}
+
+	bool SelectorParser::isNextTokenDelim(const std::string& ch)
+	{
+		auto next = it_ + 1;
+		if(next == end_) {
+			return false;
+		}
+		return (*next)->id() == TokenId::DELIM && (*next)->value().as_string() == ch;
+	}
+
+	void SelectorParser::whitespace()
+	{
+		// S*
+		while(isCurrentToken(TokenId::WHITESPACE)) {
+			advance();
+		}
 	}
 }

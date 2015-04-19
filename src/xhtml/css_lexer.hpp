@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 
+#include "formatter.hpp"
 #include "variant.hpp"
 
 namespace css
@@ -68,6 +69,12 @@ namespace css
 		LBRACE,
 		RBRACE,
 		EOF_TOKEN,
+
+		// These are special tokens
+		BLOCK_TOKEN,
+		AT_RULE_TOKEN,
+		RULE_TOKEN,
+		SELECTOR_TOKEN,
 	};
 
 	enum class TokenFlags {
@@ -75,18 +82,31 @@ namespace css
 		ID = 2,
 	};
 
+	class Token;
+	typedef std::shared_ptr<Token> TokenPtr;
+
 	class Token 
 	{
 	public:
 		explicit Token(TokenId id) : id_(id) {}
 		virtual ~Token() {}
 		TokenId id() const { return id_; }
-		virtual std::string toString();
-		virtual variant value() { return variant(); }
+		virtual std::string toString() const;
+		virtual variant value() { return variant(toString()); }
+
+		void addParameters(std::vector<TokenPtr> tok) { params_.insert(params_.end(), tok.begin(), tok.end()); }
+		void addParameter(TokenPtr tok) { params_.emplace_back(tok); }
+		const std::vector<TokenPtr>& getParameters() const { return params_; }
+		
+		void setValue(TokenPtr tok) { value_ = tok; }
+		TokenPtr getValue() const { return value_; }
+		
+		static std::string tokenIdToString(TokenId id);
 	private:
 		TokenId id_;
+		std::vector<TokenPtr> params_;
+		TokenPtr value_;
 	};
-	typedef std::shared_ptr<Token> TokenPtr;
 
 	// The tokenizer class expects an input of unicode codepoints.
 	class Tokenizer

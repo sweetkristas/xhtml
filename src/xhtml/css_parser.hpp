@@ -25,59 +25,44 @@
 
 namespace css
 {
-	enum class RuleId {
-		AT,
-		QUALIFIED,
-		DECLARATION,
-		BLOCK,
-		FUNCTION,
-		TOKEN,
-	};
-
-	class Rule;
-	typedef std::shared_ptr<Rule> RulePtr;
-
-	class Rule
-	{
-	public:
-		explicit Rule(RuleId id) : id_(id) {}
-		virtual ~Rule() {}
-		virtual std::string toString() const = 0;
-		void setValue(RulePtr value) { values_.clear(); values_.emplace_back(value); }
-		void addValue(RulePtr value) { values_.emplace_back(value); }
-		void addPrelude(RulePtr value) { prelude_.emplace_back(value); }
-	private:
-		RuleId id_;
-		std::vector<RulePtr> values_;
-		std::vector<RulePtr> prelude_;
-	};
-
 	class StyleSheet
 	{
 	public:
 		StyleSheet();
-		void addRules(std::vector<RulePtr>* rule);
+		void addRules(std::vector<TokenPtr>* rule);
+
+		const std::vector<TokenPtr>& getRules() const { return rules_; }
 	private:
-		std::vector<RulePtr> rules_;
+		std::vector<TokenPtr> rules_;
 	};
 	typedef std::shared_ptr<StyleSheet> StyleSheetPtr;
+
+	class Selector
+	{
+	public:
+		Selector();
+	private:
+	};
+	typedef std::shared_ptr<Selector> SelectorPtr;
 
 	class Parser
 	{
 	public:
 		Parser(const std::vector<TokenPtr>& tokens);
+		const StyleSheetPtr& getStyleSheet() const { return style_sheet_; }
+		static void parseRule(TokenPtr);
 	private:
-		std::vector<RulePtr> pasrseRuleList(int level);
-		RulePtr parseAtRule();
-		RulePtr parseQualifiedRule();
-		RulePtr parseDeclarationList();
-		RulePtr parseDeclaration();
-		RulePtr parseImportant();
-		RulePtr parseComponentValue();
-		RulePtr parseBraceBlock();
-		RulePtr parseParenBlock();
-		RulePtr parseBracketBlock();
-		RulePtr parseFunction();
+		std::vector<TokenPtr> pasrseRuleList(int level);
+		TokenPtr parseAtRule();
+		TokenPtr parseQualifiedRule();
+		TokenPtr parseDeclarationList();
+		TokenPtr parseDeclaration();
+		TokenPtr parseImportant();
+		TokenPtr parseComponentValue();
+		std::vector<TokenPtr> parseBraceBlock();
+		std::vector<TokenPtr> parseParenBlock();
+		std::vector<TokenPtr> parseBracketBlock();
+		TokenPtr parseFunction();
 
 		TokenId currentTokenType();
 		void advance(int n=1);
@@ -85,5 +70,30 @@ namespace css
 		StyleSheetPtr style_sheet_;
 		std::vector<TokenPtr>::const_iterator token_;
 		std::vector<TokenPtr>::const_iterator end_;
+	};
+
+	class SelectorParser
+	{
+	public:
+		SelectorParser(std::vector<TokenPtr>::const_iterator it, std::vector<TokenPtr>::const_iterator end);
+	private:
+		void advance(int n=1);
+		bool isCurrentToken(TokenId value);
+		bool isCurrentTokenDelim(const std::string& ch);
+		bool isNextTokenDelim(const std::string& ch);
+
+		std::vector<SelectorPtr> parseSelectorGroup();
+		bool isCombinator();
+		void parseSelector();
+		void parseCombinator();
+		void parseSimpleSelectorSeq();
+		void parseAttribute();
+		bool parseSeqModifiers();
+		
+		void whitespace();
+
+		std::vector<TokenPtr>::const_iterator it_;
+		std::vector<TokenPtr>::const_iterator end_;
+
 	};
 }

@@ -60,6 +60,7 @@ namespace dom
 	class NamedNodeMap
 	{
 	public:
+		NamedNodeMap();
 		explicit NamedNodeMap(std::weak_ptr<Document> owner);
 		NamedNodeMap(const NamedNodeMap& m, bool deep);
 		NodePtr getNamedItem(const std::string& name) const;
@@ -67,9 +68,9 @@ namespace dom
 		NodePtr removeNamedItem(const std::string& name);
 		NodePtr getItem(int n) const;
 		int getLength() const { return map_.size(); }
-		NodePtr getNamedItemNS(const std::string namespace_uri, std::string& name) const;
-		NodePtr setNamedItemNS(NodePtr node) const;
-		NodePtr removeNamedItemNS(const std::string namespace_uri, std::string& name);
+		NodePtr getNamedItemNS(const std::string namespace_uri, const std::string& name) const;
+		NodePtr setNamedItemNS(NodePtr node);
+		NodePtr removeNamedItemNS(const std::string namespace_uri, const std::string& name);
 		DocumentPtr getOwnerDocument() const;
 		bool isReadOnly() const { return false; }
 	private:
@@ -105,10 +106,12 @@ namespace dom
 		typedef std::vector<NodePtr>::iterator iterator;
 		typedef std::vector<NodePtr>::const_iterator const_iterator;
 		NodeList(bool read_only=false);
+		~NodeList();
 		bool empty() const { return nodes_.empty(); }
 		NodePtr getItem(int n) const;
 		NodePtr front() const { return nodes_.front(); }
 		NodePtr back() const { return nodes_.back(); }
+		NodePtr insertAfter(NodePtr new_node, NodePtr ref_node);
 		NodePtr insertBefore(NodePtr new_node, NodePtr ref_node);
 		NodePtr replaceChild(NodePtr new_node, NodePtr old_node);
 		NodePtr removeChild(NodePtr new_child);
@@ -129,8 +132,10 @@ namespace dom
 		explicit Node(NodeType type, const std::string& name, std::weak_ptr<Document> owner);
 		Node(const Node& node, bool deep);
 		void setParent(std::weak_ptr<Node> parent);
+		void setNextSibling(std::weak_ptr<Node> right) { right_ = right; }
+		void setPreviousSibling(std::weak_ptr<Node> left) { left_ = left; }
 		virtual const std::string& getNodeName() const { return name_; }
-		virtual const std::string& getNodeValue() const { return ""; }
+		virtual const std::string& getNodeValue() const { return value_; }
 		virtual void setNodeValue(const std::string& value) {}
 		NodeType type() const { return type_; }
 		DocumentPtr getOwnerDocument() const;
@@ -142,29 +147,31 @@ namespace dom
 		const NodeList& getChildNodes() const { return children_; }
 		NodeList& getChildNodes() { return children_; }
 
+		NodePtr insertAfter(NodePtr new_child, NodePtr ref_child);
 		NodePtr insertBefore(NodePtr new_child, NodePtr ref_child);
 		NodePtr replaceChild(NodePtr new_child, NodePtr old_child);
 		NodePtr removeChild(NodePtr new_child);
 		NodePtr appendChild(NodePtr new_child);
-		bool hasChildNodes() const { !children_.empty(); }
+		bool hasChildNodes() const { return !children_.empty(); }
 
 		virtual NodePtr cloneNode(bool deep) const;
 		void normalize();
 		bool isSupported(const std::string& feature, const std::string& version) const;
-		virtual const std::string& getNamespaceURI() const { return ""; }
-		virtual const std::string& getPrefix() const { return ""; }
-		virtual const std::string& getLocalName() const { return ""; }
+		virtual const std::string& getNamespaceURI() const;
+		virtual const std::string& getPrefix() const;
+		virtual const std::string& getLocalName() const;
 		virtual bool hasAttributes() const { return false; }
 		virtual bool isReadOnly() const { return false; }
 	protected:
-		NodePtr get_this_ptr() const { return std::static_pointer_cast<Node>(shared_from_this()); }
-		void getElementsByTagName(NodeList* nl, const std::string& tagname) const;
+		void getElementsByTagName(NodeList* nl, const std::string& tagname);
+		void getElementsByTagNameNS(NodeList* nl, const std::string& namespaceuri, const std::string& localname);
 	private:
 		NodeType type_;
 		std::string name_;
+		std::string value_;
 		std::weak_ptr<Document> owner_document_;
 		std::weak_ptr<Node> parent_;
-		//NodePtr left_, right_;
+		std::weak_ptr<Node> left_, right_;
 
 		NodeList children_;
 	};
@@ -173,6 +180,7 @@ namespace dom
 	{
 	public:
 		explicit Notation(const std::string& name, const std::string& public_id, const std::string& system_id, std::weak_ptr<Document> owner);
+		Notation(const Notation& node, bool deep);
 		NodePtr cloneNode(bool deep) const override;
 		const std::string& getPublicId() const { return public_id_; }
 		const std::string& getSystemId() const { return system_id_; }
@@ -186,6 +194,7 @@ namespace dom
 	{
 	public:
 		explicit Entity(const std::string& public_id, const std::string& system_id, const std::string& notation_name, std::weak_ptr<Document> owner);
+		Entity(const Entity& node, bool deep);
 		NodePtr cloneNode(bool deep) const override;
 		const std::string& getPublicId() const { return public_id_; }		
 		const std::string& getSystemId() const { return system_id_; }
@@ -200,6 +209,7 @@ namespace dom
 	{
 	public:
 		explicit ProcessingInstruction(const std::string& target, const std::string& data, std::weak_ptr<Document> owner);
+		ProcessingInstruction(const ProcessingInstruction& node, bool deep);
 		NodePtr cloneNode(bool deep) const override;
 		const std::string& getData() const { return data_; }
 	private:
@@ -211,6 +221,7 @@ namespace dom
 	{
 	public:
 		explicit Attribute(const std::string& name, const std::string& value, std::weak_ptr<Document> owner);
+		Attribute(const Attribute& node, bool deep);
 		NodePtr cloneNode(bool deep) const override;
 		const std::string& getNodeValue() const override { return value_; }
 		void setNodeValue(const std::string& value) override { value_ = value; specified_ = true; }
@@ -239,19 +250,19 @@ namespace dom
 		AttributePtr getAttributeNode(const std::string& name) const;
 		AttributePtr setAttributeNode(AttributePtr attr);
 		AttributePtr removeAttributeNode(AttributePtr attr);
-		NodeList getElementsByTagName(const std::string& tagname) const;
+		NodeList getElementsByTagName(const std::string& tagname);
 		const std::string& getAttributeNS(const std::string& namespaceuri, const std::string& localname) const;
 		void setAttributeNS(const std::string& namespaceuri, const std::string& qualifiedname, const std::string& value);
 		void removeAttributeNS(const std::string& namespaceuri, const std::string& localname);
 		AttributePtr getAttributeNodeNS(const std::string& namespaceuri, const std::string& localname) const;
 		AttributePtr setAttributeNodeNS(AttributePtr attr);
-		NodeList getElementsByTagNameNS(const std::string& namespaceuri, const std::string& localname) const;
+		NodeList getElementsByTagNameNS(const std::string& namespaceuri, const std::string& localname);
 		bool hasAttribute(const std::string& name);
 		bool hasAttributeNS(const std::string& namespaceuri, const std::string& localname);
 		const std::string& getNamespaceURI() const override { return namespace_uri_; }
 		const std::string& getPrefix() const override { return prefix_; }
 		const std::string& getLocalName() const override { return local_name_; }
-		ElementPtr get_this_ptr() const { return std::static_pointer_cast<Element>(shared_from_this()); }
+		ElementPtr get_this_ptr() { return std::static_pointer_cast<Element>(shared_from_this()); }
 	private:
 		NamedNodeMap attributes_;
 		std::string prefix_;
@@ -259,10 +270,11 @@ namespace dom
 		std::string namespace_uri_;
 	};
 
-	class CharacterData : public Node
+	class CharacterData
 	{
 	public:
-		explicit CharacterData(const std::string& data, std::weak_ptr<Document> owner);
+		explicit CharacterData(const std::string& data);
+		CharacterData(const CharacterData& node, bool deep);
 		const std::string& getData() const { return data_; }
 		void setData(const std::string& data) { data_ = data; }
 		int length() const { return data_.size(); }
@@ -270,7 +282,6 @@ namespace dom
 		std::string substring(int offset, int count);
 		void append(const std::string& arg);
 		void insert(int offset, const std::string& arg);
-		void remove(int offset, int count);
 		void replace(int offset, int count, const std::string& arg);
 	private:
 		std::string data_;
@@ -279,18 +290,22 @@ namespace dom
 	class Text;
 	typedef std::shared_ptr<Text> TextPtr;
 
-	class Text : public CharacterData
+	class Text : public CharacterData, public Node
 	{
 	public:
 		explicit Text(const std::string& data, std::weak_ptr<Document> owner);
+		Text(const Text& node, bool deep);
 		NodePtr cloneNode(bool deep) const override;
 		TextPtr splitText(int offset);
+	protected:
+		explicit Text(NodeType type, const std::string& name, const std::string& data, std::weak_ptr<Document> owner);
 	};
 
-	class Comment : public CharacterData
+	class Comment : public CharacterData, public Node
 	{
 	public:
 		explicit Comment(const std::string& data, std::weak_ptr<Document> owner);
+		Comment(const Comment& node, bool deep);
 		NodePtr cloneNode(bool deep) const override;
 	};
 	typedef std::shared_ptr<Comment> CommentPtr;
@@ -299,6 +314,7 @@ namespace dom
 	{
 	public:
 		explicit CDATASection(const std::string& data, std::weak_ptr<Document> owner);
+		CDATASection(const CDATASection& node, bool deep);
 		NodePtr cloneNode(bool deep) const override;
 	};
 	typedef std::shared_ptr<CDATASection> CDATASectionPtr;
@@ -306,7 +322,7 @@ namespace dom
 	class DocumentType
 	{
 	public:
-		explicit DocumentType(const std::string& name, std::weak_ptr<Document> owner);
+		explicit DocumentType(const std::string& name, const std::string& public_id, const std::string& system_id);
 		const std::string& getName() const { return name_; }
 		const NamedNodeMap& getEntities() const { return entities_; }
 		const NamedNodeMap& getNotations() const { return notations_; }
@@ -320,6 +336,7 @@ namespace dom
 		std::string public_id_;
 		std::string system_id_;
 		std::string internal_subset_;
+		std::weak_ptr<Document> owner_;
 	};
 	typedef std::unique_ptr<DocumentType> DocumentTypePtr;
 
@@ -353,6 +370,7 @@ namespace dom
 		AttributePtr createAttributeNS(const std::string& namespaceuri, const std::string& qualified_name);
 		NodeList getElementsByTagNameNS(const std::string& namespaceuri, const std::string& localname);
 		ElementPtr getElementById(const std::string& id);
+		DocumentPtr get_this_ptr() { return std::static_pointer_cast<Document>(shared_from_this()); }
 	private:
 		// Document type definition.
 		DocumentTypePtr doctype_;

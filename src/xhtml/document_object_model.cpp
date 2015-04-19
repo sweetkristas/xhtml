@@ -27,10 +27,18 @@ namespace dom
 {
 	namespace
 	{
+		const std::string null_str = "";
+
 		std::string internal_create_qname(const std::string& namespace_uri, const std::string& localname)
 		{
 			return namespace_uri + ":" + localname;
 		}
+	}
+
+	NamedNodeMap::NamedNodeMap()
+		: map_(),
+		  owner_document_()
+	{
 	}
 
 	NamedNodeMap::NamedNodeMap(std::weak_ptr<Document> owner)
@@ -99,7 +107,7 @@ namespace dom
 
 	NodePtr NamedNodeMap::getItem(int n) const
 	{
-		if(n >= map_.size()) {
+		if(n >= static_cast<int>(map_.size())) {
 			return nullptr;
 		}
 		auto it = map_.begin();
@@ -110,7 +118,7 @@ namespace dom
 		return it->second;
 	}
 
-	NodePtr NamedNodeMap::getNamedItemNS(const std::string namespace_uri, std::string& name) const
+	NodePtr NamedNodeMap::getNamedItemNS(const std::string namespace_uri, const std::string& name) const
 	{
 		// we store namepsace in the map as namespaceuri + ":" + localname
 		auto it = map_.find(internal_create_qname(namespace_uri, name));
@@ -120,7 +128,7 @@ namespace dom
 		return it->second;
 	}
 
-	NodePtr NamedNodeMap::setNamedItemNS(NodePtr node) const
+	NodePtr NamedNodeMap::setNamedItemNS(NodePtr node)
 	{
 		// XXX INUSE_ATTRIBUTE_ERR: Raised if arg is an Attr that is already an attribute of another Element object. 
 		// The DOM user must explicitly clone Attr nodes to re-use them in other elements.
@@ -143,7 +151,7 @@ namespace dom
 		return res;
 	}
 
-	NodePtr NamedNodeMap::removeNamedItemNS(const std::string namespace_uri, std::string& name)
+	NodePtr NamedNodeMap::removeNamedItemNS(const std::string namespace_uri, const std::string& name)
 	{
 		if(isReadOnly()) {
 			throw Exception(ExceptionCode::NO_MODIFICATION_ALLOWED_ERR);
@@ -178,8 +186,8 @@ namespace dom
 		  name_(node.name_),
 		  owner_document_(node.owner_document_),
 		  parent_(),
-		  left_(nullptr),
-		  right_(nullptr),
+		  left_(),
+		  right_(),
 		  children_()
 	{
 		if(deep) {
@@ -219,31 +227,60 @@ namespace dom
 
 	NodePtr Node::getPreviousSibling() const
 	{
-		return left_;
+		return left_.lock();
 	}
 
 	NodePtr Node::getNextSibling() const
 	{
-		return right_;
+		return right_.lock();
+	}
+
+	NodePtr Node::insertAfter(NodePtr new_child, NodePtr ref_child)
+	{
+		if(new_child->getOwnerDocument() != getOwnerDocument()) {
+			throw Exception(ExceptionCode::WRONG_DOCUMENT_ERR);
+		}
+		if(ref_child->isReadOnly() || isReadOnly()) {
+			throw Exception(ExceptionCode::NO_MODIFICATION_ALLOWED_ERR);
+		}
+		return children_.insertAfter(new_child, ref_child);
 	}
 
 	NodePtr Node::insertBefore(NodePtr new_child, NodePtr ref_child)
 	{
+		if(new_child->getOwnerDocument() != getOwnerDocument()) {
+			throw Exception(ExceptionCode::WRONG_DOCUMENT_ERR);
+		}
+		if(ref_child->isReadOnly() || isReadOnly()) {
+			throw Exception(ExceptionCode::NO_MODIFICATION_ALLOWED_ERR);
+		}
 		return children_.insertBefore(new_child, ref_child);
 	}
 
 	NodePtr Node::replaceChild(NodePtr new_child, NodePtr old_child)
 	{
+		if(new_child->getOwnerDocument() != getOwnerDocument()) {
+			throw Exception(ExceptionCode::WRONG_DOCUMENT_ERR);
+		}
+		if(old_child->isReadOnly() || isReadOnly()) {
+			throw Exception(ExceptionCode::NO_MODIFICATION_ALLOWED_ERR);
+		}
 		return children_.replaceChild(new_child, old_child);
 	}
 
 	NodePtr Node::removeChild(NodePtr new_child)
 	{
+		if(new_child->isReadOnly() || isReadOnly()) {
+			throw Exception(ExceptionCode::NO_MODIFICATION_ALLOWED_ERR);
+		}
 		return children_.removeChild(new_child);
 	}
 
 	NodePtr Node::appendChild(NodePtr new_child)
 	{
+		if(new_child->isReadOnly() || isReadOnly()) {
+			throw Exception(ExceptionCode::NO_MODIFICATION_ALLOWED_ERR);
+		}
 		return children_.appendChild(new_child);
 	}
 
@@ -266,16 +303,44 @@ namespace dom
 		return false;
 	}
 
-	void Node::getElementsByTagName(NodeList* nl, const std::string& tagname) const
+	void Node::getElementsByTagName(NodeList* nl, const std::string& tagname)
 	{
 		// pre-order traversal to extract all children with the given tagname.
 		// * is the special "any" tag.
 		if(tagname == getNodeName() || (tagname == "*" && type() == NodeType::ELEMENT_NODE)) {
-			nl->appendChild(get_this_ptr());
+			nl->appendChild(shared_from_this());
 		}
 		for(auto& c : getChildNodes()) {
 			c->getElementsByTagName(nl, tagname);
 		}
+	}
+
+	void Node::getElementsByTagNameNS(NodeList* nl, const std::string& namespaceuri, const std::string& localname)
+	{
+		if((namespaceuri == getNamespaceURI() && localname == getLocalName())
+			|| (namespaceuri == "*" && getLocalName() == localname) 
+			|| (namespaceuri == getNamespaceURI() && localname == "*")
+			|| (namespaceuri == "*" && localname == "*")) {
+			nl->appendChild(shared_from_this());
+		}
+		for(auto& c : getChildNodes()) {
+			c->getElementsByTagNameNS(nl, namespaceuri, localname);
+		}
+	}
+
+	const std::string& Node::getNamespaceURI() const 
+	{ 
+		return null_str;
+	}
+	
+	const std::string& Node::getPrefix() const 
+	{
+		return null_str;
+	}
+	
+	const std::string& Node::getLocalName() const 
+	{ 
+		return null_str; 
 	}
 
 
@@ -441,7 +506,7 @@ namespace dom
 		count_ = 0;
 	}*/
 
-	NodeList::NodeList(bool read_only=false)
+	NodeList::NodeList(bool read_only)
 		: nodes_(),
 		  read_only_(read_only)
 	{
@@ -455,30 +520,115 @@ namespace dom
 		return nodes_[n];
 	}
 
+	NodePtr NodeList::insertAfter(NodePtr new_node, NodePtr ref_node)
+	{
+		auto it = nodes_.begin();
+		for(; it != nodes_.end(); ++it) {
+			if(*it == ref_node) {
+				// XXX handle DocumentFragment nodes.
+				if(ref_node->getNextSibling()) {
+					ref_node->getNextSibling()->setPreviousSibling(new_node);
+				}
+				new_node->setNextSibling(ref_node->getNextSibling());
+				ref_node->setNextSibling(new_node);
+				new_node->setPreviousSibling(ref_node);
+				nodes_.insert(it+1, new_node);
+				return new_node;
+			}
+		}
+		throw Exception(ExceptionCode::NOT_FOUND_ERR);
+	}
+
 	NodePtr NodeList::insertBefore(NodePtr new_node, NodePtr ref_node)
 	{
-		// XXX
+		auto it = nodes_.begin();
+		for(; it != nodes_.end(); ++it) {
+			if(*it == ref_node) {
+				// XXX handle DocumentFragment nodes.
+				if(ref_node->getPreviousSibling()) {
+					ref_node->getPreviousSibling()->setNextSibling(new_node);
+				}
+				new_node->setPreviousSibling(ref_node->getPreviousSibling());
+				ref_node->setPreviousSibling(new_node);
+				new_node->setNextSibling(ref_node);
+				nodes_.insert(it, new_node);
+				return new_node;
+			}
+		}
+		throw Exception(ExceptionCode::NOT_FOUND_ERR);
 	}
 
 	NodePtr NodeList::replaceChild(NodePtr new_node, NodePtr old_node)
 	{
-		// XXX
+		auto it = nodes_.begin();
+		for(; it != nodes_.end(); ++it) {
+			if(*it == old_node) {
+				// XXX handle DocumentFragment nodes.
+				if(old_node->getPreviousSibling()) {
+					old_node->getPreviousSibling()->setNextSibling(new_node);
+				}
+				if(old_node->getNextSibling()) {
+					old_node->getNextSibling()->setPreviousSibling(new_node);
+				}
+				new_node->setNextSibling(old_node->getNextSibling());
+				new_node->setPreviousSibling(old_node->getPreviousSibling());
+				*it = new_node;
+				old_node->setNextSibling(std::weak_ptr<Node>());
+				old_node->setPreviousSibling(std::weak_ptr<Node>());
+				return old_node;
+			}
+		}
+		throw Exception(ExceptionCode::NOT_FOUND_ERR);
 	}
 
-	NodePtr NodeList::removeChild(NodePtr new_child)
+	NodePtr NodeList::removeChild(NodePtr old_node)
 	{
-		// XXX
+		auto it = nodes_.begin();
+		for(; it != nodes_.end(); ++it) {
+			if(*it == old_node) {
+				if(old_node->getPreviousSibling()) {
+					old_node->getPreviousSibling()->setNextSibling(old_node->getNextSibling());
+				}
+				if(old_node->getNextSibling()) {
+					old_node->getNextSibling()->setPreviousSibling(old_node->getPreviousSibling());
+				}
+				old_node->setNextSibling(std::weak_ptr<Node>());
+				old_node->setPreviousSibling(std::weak_ptr<Node>());
+				nodes_.erase(it);
+				return old_node;
+			}
+		}
+		throw Exception(ExceptionCode::NOT_FOUND_ERR);
 	}
 
 	NodePtr NodeList::appendChild(NodePtr new_child)
 	{
-		// XXX
+		// XXX handle DocumentFragment nodes.
+		nodes_.back()->setNextSibling(new_child);
+		new_child->setPreviousSibling(nodes_.back());
+		nodes_.emplace_back(new_child);
+		return new_child;
+	}
+	
+	NodeList::~NodeList()
+	{
+		for(auto& n : nodes_) {
+			n->setNextSibling(std::weak_ptr<Node>());
+			n->setPreviousSibling(std::weak_ptr<Node>());
+		}
 	}
 
 	Notation::Notation(const std::string& name, const std::string& public_id, const std::string& system_id, std::weak_ptr<Document> owner)
 		: Node(NodeType::NOTATION_NODE, name, owner),
 		  public_id_(public_id),
 		  system_id_(system_id)
+	{
+	}
+
+	Notation::Notation(const Notation& node, bool deep)
+		: Node(node, deep),
+		  public_id_(node.public_id_),
+		  system_id_(node.system_id_)
 	{
 	}
 
@@ -496,6 +646,14 @@ namespace dom
 	{
 	}
 
+	Entity::Entity(const Entity& node, bool deep)
+		: Node(node, deep),
+		  public_id_(node.public_id_),
+		  system_id_(node.system_id_),
+		  notation_name_(node.notation_name_)
+	{
+	}
+
 	NodePtr Entity::cloneNode(bool deep) const
 	{
 		return std::make_shared<Entity>(*this, deep);
@@ -504,6 +662,12 @@ namespace dom
 	ProcessingInstruction::ProcessingInstruction(const std::string& target, const std::string& data, std::weak_ptr<Document> owner)
 		: Node(NodeType::PROCESSING_INSTRUCTION_NODE, target, owner),
 		  data_(data)
+	{
+	}
+
+	ProcessingInstruction::ProcessingInstruction(const ProcessingInstruction& node, bool deep)
+		: Node(node, deep),
+		  data_(node.data_)
 	{
 	}
 
@@ -522,6 +686,16 @@ namespace dom
 	{
 	}
 
+	Attribute::Attribute(const Attribute& node, bool deep)
+		: Node(node, deep),
+		  value_(node.value_),
+		  specified_(true),
+		  prefix_(node.prefix_),
+		  local_name_(node.local_name_),
+		  namespace_uri_(node.namespace_uri_)
+	{
+	}
+
 	NodePtr Attribute::cloneNode(bool deep) const 
 	{
 		return std::make_shared<Attribute>(*this, deep);
@@ -529,7 +703,7 @@ namespace dom
 
 	Element::Element(const std::string& tagname, std::weak_ptr<Document> owner)
 		: Node(NodeType::ELEMENT_NODE, tagname, owner),
-		  attributes_(),
+		  attributes_(getOwnerDocument()),
 		  prefix_(),
 		  local_name_(),
 		  namespace_uri_()
@@ -556,7 +730,8 @@ namespace dom
 		if(attr != nullptr) {
 			return attr->getNodeValue();
 		}
-		return "";
+		static std::string null_str;
+		return null_str;
 	}
 
 	void Element::setAttribute(const std::string& name, const std::string& value)
@@ -579,8 +754,8 @@ namespace dom
 
 	AttributePtr Element::setAttributeNode(AttributePtr attr)
 	{
-		auto attr = attributes_.setNamedItem(attr);
-		return std::dynamic_pointer_cast<Attribute>(attr);
+		auto attr_node = attributes_.setNamedItem(attr);
+		return std::dynamic_pointer_cast<Attribute>(attr_node);
 	}
 
 	AttributePtr Element::removeAttributeNode(AttributePtr attr)
@@ -590,7 +765,7 @@ namespace dom
 		return std::dynamic_pointer_cast<Attribute>(res);
 	}
 
-	NodeList Element::getElementsByTagName(const std::string& tagname) const
+	NodeList Element::getElementsByTagName(const std::string& tagname)
 	{
 		NodeList node_list;
 		Node::getElementsByTagName(&node_list, tagname);
@@ -599,34 +774,291 @@ namespace dom
 
 	const std::string& Element::getAttributeNS(const std::string& namespaceuri, const std::string& localname) const
 	{
+		auto res = attributes_.getNamedItemNS(namespaceuri, localname);
+		if(res) {
+			return res->getNodeValue();
+		}
+		// return a default value if any
+		return null_str;
 	}
 
 	void Element::setAttributeNS(const std::string& namespaceuri, const std::string& qualifiedname, const std::string& value)
 	{
+		if((qualifiedname == "xml" && namespaceuri != "http://www.w3.org/XML/1998/namespace") 
+			|| (qualifiedname == "xmlns" && namespaceuri != "http://www.w3.org/2000/xmlns/")
+			|| (!qualifiedname.empty() && namespaceuri.empty())) {
+			throw Exception(ExceptionCode::NAMESPACE_ERR);
+		}
+		auto attr = getOwnerDocument()->createAttributeNS(namespaceuri, qualifiedname);
+		attr->setNodeValue(value);
+		attributes_.setNamedItemNS(attr);
 	}
 
 	void Element::removeAttributeNS(const std::string& namespaceuri, const std::string& localname)
 	{
+		attributes_.removeNamedItemNS(namespaceuri, localname);
 	}
 
 	AttributePtr Element::getAttributeNodeNS(const std::string& namespaceuri, const std::string& localname) const
 	{
+		auto res = attributes_.getNamedItemNS(namespaceuri, localname);
+		return std::dynamic_pointer_cast<Attribute>(res);
 	}
 
 	AttributePtr Element::setAttributeNodeNS(AttributePtr attr)
 	{
+		attributes_.setNamedItemNS(attr);
+		return attr;
 	}
 
-	NodeList Element::getElementsByTagNameNS(const std::string& namespaceuri, const std::string& localname) const
+	NodeList Element::getElementsByTagNameNS(const std::string& namespaceuri, const std::string& localname)
 	{
+		NodeList node_list;
+		Node::getElementsByTagNameNS(&node_list, namespaceuri, localname);
+		return node_list;
 	}
 
 	bool Element::hasAttribute(const std::string& name)
 	{
+		auto res = attributes_.getNamedItem(name);
+		return res != nullptr ? true : false;
 	}
 
 	bool Element::hasAttributeNS(const std::string& namespaceuri, const std::string& localname)
 	{
+		auto res = attributes_.getNamedItemNS(namespaceuri, localname);
+		return res != nullptr ? true : false;
+	}
+
+	CharacterData::CharacterData(const std::string& data)
+		: data_(data)
+	{
+	}
+
+	CharacterData::CharacterData(const CharacterData& cd, bool deep)
+		: data_(cd.data_)
+	{
+	}
+
+	std::string CharacterData::substring(int offset, int count)
+	{
+		if(offset < 0 || offset >= static_cast<int>(data_.size()) || count < 0) {
+			throw Exception(ExceptionCode::INDEX_SIZE_ERR);
+		}
+		return data_.substr(offset, count);
+	}
+
+	void CharacterData::append(const std::string& arg)
+	{
+		data_ += arg;
+	}
+
+	void CharacterData::insert(int offset, const std::string& arg)
+	{
+		if(offset < 0 || offset >= static_cast<int>(data_.size())) {
+			throw Exception(ExceptionCode::INDEX_SIZE_ERR);
+		}
+		data_.insert(offset, arg);
+	}
+
+	void CharacterData::replace(int offset, int count, const std::string& arg)
+	{
+		if(offset < 0 || offset >= static_cast<int>(data_.size()) || count < 0) {
+			throw Exception(ExceptionCode::INDEX_SIZE_ERR);
+		}
+		if(offset + count >= static_cast<int>(data_.size())) {
+			data_ = arg;
+		} else {
+			data_ = data_.substr(0, offset) + arg + data_.substr(offset + count);
+		}
+	}
+
+	Text::Text(const std::string& data, std::weak_ptr<Document> owner)
+		: Node(NodeType::TEXT_NODE, "#text", owner),
+		  CharacterData(data)
+	{
+	}
+
+	Text::Text(NodeType type, const std::string& name, const std::string& data, std::weak_ptr<Document> owner)
+		: Node(type, name, owner),
+		  CharacterData(data)
+	{
+	}
+
+	Text::Text(const Text& node, bool deep)
+		: Node(node, deep),
+		  CharacterData(node, deep)
+	{
+	}
+
+	NodePtr Text::cloneNode(bool deep) const
+	{
+		return std::make_shared<Text>(*this, deep);
+	}
+
+	TextPtr Text::splitText(int offset)
+	{
+		auto s = substring(offset, getData().size()-offset);
+		setData(substring(0, offset));
+		auto new_text_node = std::make_shared<Text>(s, getOwnerDocument());
+		auto parent = getParentNode();
+		if(parent) {
+			parent->insertAfter(shared_from_this(), new_text_node);
+		}
+		return new_text_node;
+	}
+
+	Comment::Comment(const std::string& data, std::weak_ptr<Document> owner)
+		: Node(NodeType::COMMENT_NODE, "#comment", owner),
+		  CharacterData(data)
+	{
+	}
+
+	Comment::Comment(const Comment& node, bool deep)
+		: Node(node, deep),
+		  CharacterData(node, deep)
+	{
+	}
+
+	NodePtr Comment::cloneNode(bool deep) const
+	{
+		return std::make_shared<Comment>(*this, deep);
+	}
+
+	CDATASection::CDATASection(const std::string& data, std::weak_ptr<Document> owner)
+		: Text(NodeType::CDATA_SECTION_NODE, "#cdata-section", data, owner)
+	{
+	}
+
+	CDATASection::CDATASection(const CDATASection& node, bool deep)
+		: Text(node, deep)
+	{
+	}
+
+	NodePtr CDATASection::cloneNode(bool deep) const
+	{
+		return std::make_shared<CDATASection>(*this, deep);
+	}
+
+	DocumentType::DocumentType(const std::string& name, const std::string& public_id, const std::string& system_id)
+		: name_(name),
+		  entities_(),
+		  notations_(),
+		  public_id_(public_id),
+		  system_id_(system_id),
+		  internal_subset_()
+	{
+	}
+
+	Implementation::Implementation()
+	{
+	}
+
+	bool Implementation::hasFeature(const std::string& feature, const std::string& version) const
+	{
+		// XXX
+		return false;
+	}
+
+	DocumentTypePtr Implementation::createDocumentType(const std::string& qualified_name, const std::string& public_id, const std::string& system_id)
+	{
+		return std::unique_ptr<DocumentType>(new DocumentType(qualified_name, public_id, system_id));
+	}
+
+	DocumentPtr Implementation::createDocument(const std::string& namespace_uri, const std::string& qualified_name, DocumentTypePtr doctype)
+	{
+		return nullptr;
+	}
+
+	Document::Document()
+		: Node(NodeType::DOCUMENT_NODE, "#document", std::weak_ptr<Document>()),
+		  doctype_(),
+		  implementation_(),
+		  element_()
+	{
+	}
+
+	ElementPtr Document::createElement(const std::string& tagname)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	NodePtr Document::createDocumentFragment()
+	{
+		// XXX
+		return nullptr;
+	}
+
+	TextPtr Document::createTextNode(const std::string& data)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	CommentPtr Document::createComment(const std::string& data)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	CDATASectionPtr Document::createCDATASection(const std::string& data)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	ProcessingInstructionPtr Document::createProcessingInstruction(const std::string& target, const std::string& data)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	AttributePtr Document::createAttribute(const std::string& name)
+	{
+		return std::make_shared<Attribute>(name, "", get_this_ptr());
+	}
+
+	NodePtr Document::createEntityReference(const std::string& name)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	NodeList Document::getElementsByTagName(const std::string& tagname)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	NodePtr Document::importNode(NodePtr imported_node, bool deep)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	ElementPtr Document::createElementNS(const std::string& namespaceuri, const std::string& qualified_name)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	AttributePtr Document::createAttributeNS(const std::string& namespaceuri, const std::string& qualified_name)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	NodeList Document::getElementsByTagNameNS(const std::string& namespaceuri, const std::string& localname)
+	{
+		// XXX
+		return nullptr;
+	}
+
+	ElementPtr Document::getElementById(const std::string& id)
+	{
+		// XXX
+		return nullptr;
 	}
 
 }
