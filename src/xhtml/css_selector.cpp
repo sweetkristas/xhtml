@@ -263,7 +263,7 @@ namespace css
 						}
 						auto next_selector = parseSelector();
 						if(next_selector != nullptr) {
-							simple_selector->setCombinator(Combinator::SIBLING);
+							next_selector->setCombinator(Combinator::SIBLING);
 							simple_selector = next_selector;
 						}
 					} else if(isTokenDelimiter(">")) {
@@ -273,13 +273,13 @@ namespace css
 						}
 						auto next_selector = parseSelector();
 						if(next_selector != nullptr) {
-							simple_selector->setCombinator(Combinator::CHILD);
+							next_selector->setCombinator(Combinator::CHILD);
 							simple_selector = next_selector;
 						}
 					} else if(was_ws) {
 						auto next_selector = parseSelector();
 						if(next_selector != nullptr) {
-							simple_selector->setCombinator(Combinator::DESCENDENT);
+							next_selector->setCombinator(Combinator::DESCENDENT);
 							simple_selector = next_selector;
 						}
 					} else {
@@ -422,7 +422,9 @@ namespace css
 
 	bool Selector::match(xhtml::ElementPtr element) const
 	{
-		for(auto& simple : selector_chain_) {
+		// we try and match the selector chain in reverse, since it's the last element that is most important.
+		for(auto it = selector_chain_.rbegin(); it != selector_chain_.rend(); ++it) {
+			auto simple = *it;
 			if(simple->match(element)) {
 			}
 		}
