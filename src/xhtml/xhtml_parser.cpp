@@ -21,6 +21,8 @@
 	   distribution.
 */
 
+#include <map>
+
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "asserts.hpp"
@@ -37,6 +39,49 @@ namespace xhtml
 	}
 
 	using namespace boost::property_tree;
+
+	class ParserNode;
+	typedef std::shared_ptr<ParserNode> ParserNodePtr;
+
+	class ParserAttribute;
+	typedef std::shared_ptr<ParserAttribute> ParserAttributePtr;
+
+	class ParserAttribute
+	{
+	public:
+		ParserAttribute(const std::string& name, const std::string& value) 
+			: name_(name),
+			  value_(value)
+		{
+		}
+		const std::string& getName() const { return name_; }
+		const std::string& getValue() const { return value_; }
+	private:
+		std::string name_;
+		std::string value_;
+	};
+
+	class ParserNode
+	{
+	public:
+		ParserNode(const std::string& name, ptree& pt)
+			: name_(name)
+		{
+			for(auto& element : pt) {
+				if(element.first == XmlAttr) {
+					for(auto& attr : element.second) {
+						attributes_[attr.first] = std::make_shared<ParserAttribute>(attr.first, attr.second.data());
+					}
+				} else {
+					children_.emplace_back(std::make_shared<ParserNode>(element.first, element.second));
+				}
+			}
+		}
+	private:
+		std::string name_;
+		std::vector<ParserNodePtr> children_;
+		std::map<std::string, ParserAttributePtr> attributes_;
+	};
 
 	DocPtr Parser::parseFromFile(const std::string& filename)
 	{
