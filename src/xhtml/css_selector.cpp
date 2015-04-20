@@ -25,6 +25,9 @@
 #include "css_selector.hpp"
 #include "css_lexer.hpp"
 #include "unit_test.hpp"
+#include "xhtml_doc.hpp"
+#include "xhtml_element.hpp"
+#include "xhtml_parser.hpp"
 
 namespace css
 {
@@ -60,6 +63,19 @@ namespace css
 			const std::string& getName() const { return name_; }
 			bool hasParameter() const { return has_param_; }
 			xhtml::ElementId getParameter() const { return param_; }
+			std::array<int,3> calculateSpecificity() override {
+				std::array<int,3> specificity;
+				for(int n = 0; n != 3; ++n) {
+					specificity[n] = 0;
+				}
+				if(has_param_) {
+					specificity[2] = 1;
+				}
+				if(name_ != "not") {
+					specificity[1] = 1;
+				}
+				return specificity;
+			}
 		private:
 			std::string name_;
 			bool has_param_;
@@ -79,6 +95,14 @@ namespace css
 			{
 				return "." + class_name_;
 			}
+			std::array<int,3> calculateSpecificity() override {
+				std::array<int,3> specificity;
+				for(int n = 0; n != 3; ++n) {
+					specificity[n] = 0;
+				}
+				specificity[1] = 1;
+				return specificity;
+			}
 		private:
 			std::string class_name_;
 		};
@@ -95,6 +119,14 @@ namespace css
 			std::string toString() const override 
 			{
 				return "#" + id_;
+			}
+			std::array<int,3> calculateSpecificity() override {
+				std::array<int,3> specificity;
+				for(int n = 0; n != 3; ++n) {
+					specificity[n] = 0;
+				}
+				specificity[0] = 1;
+				return specificity;
 			}
 		private:
 			std::string id_;
@@ -141,6 +173,14 @@ namespace css
 				}
 				ss << value_ << "]";
 				return ss.str();
+			}
+			std::array<int,3> calculateSpecificity() override {
+				std::array<int,3> specificity;
+				for(int n = 0; n != 3; ++n) {
+					specificity[n] = 0;
+				}
+				specificity[1] = 1;
+				return specificity;
 			}
 		private:
 			std::string attr_;
@@ -390,13 +430,13 @@ namespace css
 	}
 	
 	void Selector::calculateSpecificity()
-	{
-		
+	{		
 		for(auto& s : selector_chain_) {
-			specificity_[0] += s->getFilterCount(FilterId::ID);
-			specificity_[1] += s->getFilterCount(FilterId::CLASS) + s->getFilterCount(FilterId::ATTRIBUTE) + s->getFilterCount(FilterId::PSEUDO);
-			// XXX add the pseudo element counts.
-			specificity_[2] += s->getElementId() != xhtml::ElementId::ANY ? 1 : 0 /*+ s->getFilterCount(FilterId::PSEUDO_ELEMENT)*/;
+			auto specs = s->getSpecificity();
+
+			for(int n = 0; n != 3; ++n) {
+				specificity_[n] += specs[n];
+			}
 		}
 	}
 
@@ -406,7 +446,7 @@ namespace css
 		for(auto& selector : selector_chain_) {
 			ss << selector->toString();
 		}
-		ss << " specifity(" << specificity_[0] << "," << specificity_[1] << "," << specificity_[2] << ")";
+		ss << " specificity(" << specificity_[0] << "," << specificity_[1] << "," << specificity_[2] << ")";
 		return ss.str();
 	}
 
@@ -415,31 +455,16 @@ namespace css
 		  filters_(),
 		  combinator_(Combinator::NONE)
 	{
-		for(int n = 0; n != 4; ++n) {
-			filter_counts_[n] = 0;
+		for(int n = 0; n != 3; ++n) {
+			specificity_[n] = 0;
 		}
 	}
 
 	void SimpleSelector::addFilter(FilterSelectorPtr f) 
 	{
-		int id = static_cast<int>(f->id());
-		bool do_add = true;
-		// XXX change this to get the counts from the filter element -- better future proofing
-		if(f->id() == FilterId::PSEUDO) {
-			auto ptr = std::dynamic_pointer_cast<PseudoClassSelector>(f);
-			ASSERT_LOG(ptr != nullptr, "FilterSelector of type PSEUDO couldn't be cast to that type.");
-			// Selectors inside the negation pseudo-class are counted like any other, 
-			// but the negation itself does not count as a pseudo-class. 
-			if(ptr->getName() == "not") {
-				do_add = false;
-			}
-			if(ptr->hasParameter()) {
-				// the parameter is an Element selector and counts as such.
-				++filter_counts_[2];
-			}
-		}
-		if(do_add) {
-			++filter_counts_[id];
+		auto s = f->calculateSpecificity();
+		for(int n = 0; n != 3; ++n) {
+			specificity_[n] += s[n];
 		}
 		filters_.emplace_back(f); 
 	}
@@ -466,6 +491,12 @@ namespace css
 		return false;
 	}
 
+	void SimpleSelector::setElementId(xhtml::ElementId id) 
+	{ 
+		element_ = id; 
+		specificity_[2] = 1;
+	}
+
 	FilterSelector::FilterSelector(FilterId id)
 		: id_(id)
 	{
@@ -479,6 +510,16 @@ bool check_selector(const std::string& selector, const std::string& string_to_ma
 	for(auto& s : selectors) {
 		LOG_DEBUG(s->toString());
 	}
+
+	xhtml::DocPtr doc = xhtml::Parser::parseFromString(string_to_match);
+	bool failed_match = false;
+	for(auto& s : selectors) {
+		doc->getRootElement()->preOrderTraverse([s](xhtml::ElementPtr e){ 
+			if(s->match(e)) {
+				LOG_DEBUG("Matched element was: " << e->getName());
+			}
+		});
+	}
 	// XXX actual tests should go here.
 	//xhtml::Element::factory(xhtml::parse(string_to_match))
 	return true;
@@ -490,14 +531,14 @@ UNIT_TEST(css_selectors)
 	CHECK_EQ(check_selector("em", "<em><p>Some text</p></em>"), true);
 	CHECK_EQ(check_selector("p#xx123", "<em><p id=\"xx123\">Some text</p></em>"), true);
 	CHECK_EQ(check_selector("em > p", "<em><p>Some text</p></em>"), true);
-	CHECK_EQ(check_selector("em + p", "<em><p>Some text</p></em>"), true);
-	CHECK_EQ(check_selector("em p", "<em><p>Some text</p></em>"), true);
+	CHECK_EQ(check_selector("em + p", "<body><em><p>Some text</p></em><p>A new paragraph.</p></body>"), true);
+	CHECK_EQ(check_selector("em p", "<em><b><p>Some text</p></b></em>"), true);
 	CHECK_EQ(check_selector("em[foo]", "<em foo=\"xxx\"><p>Some text</p></em>"), true);
 	CHECK_EQ(check_selector("em[foo=\"xxx\"]", "<em foo=\"xxx\"><p>Some text</p></em>"), true);
 	CHECK_EQ(check_selector("em[foo^=x]", "<em foo=\"xxx\"><p>Some text</p></em>"), true);
 	CHECK_EQ(check_selector("em[foo^=x][bar=x]", "<em foo=\"xxx\" bar=\"x\"><p>Some text</p></em>"), true);
 	CHECK_EQ(check_selector("h1, h2, h3", "<h1>Now is the time.</h1>"), true);
-	CHECK_EQ(check_selector("#s12:not(FOO)", ""), true);
+	CHECK_EQ(check_selector("#s12:not(FOO)", "<html><head></head><body><h1 id=\"s12\">Now is the time.</h1><FOO id=\"s12\"></FOO></body></html>"), true);
 
 	// XXX actual tests should go here.
 	//xhtml::Element::factory(xhtml::parse("<em><p>Some text</p></em>"))

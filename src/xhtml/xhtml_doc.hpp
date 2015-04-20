@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <vector>
+
 #include "xhtml_fwd.hpp"
 
 namespace xhtml
@@ -32,8 +34,13 @@ namespace xhtml
 	public:
 		static DocPtr create();
 		virtual ~Doc();
+		void addElement(ElementPtr e) { elements_.emplace_back(e); }
+		void setRootElement(ElementPtr e) { root_ = e; }
+		ElementPtr getRootElement() const { return root_; }
 	protected:
 		Doc();
 	private:
+		std::vector<ElementPtr> elements_;
+		ElementPtr root_;
 	};
 }

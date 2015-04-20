@@ -54,6 +54,10 @@ namespace xhtml
 
 	DocPtr Parser::parseFromString(const std::string& str)
 	{
+		if(str.empty()) {
+			LOG_ERROR("Parser::parseFromString() No string data to parse.");
+			return nullptr;
+		}
 		auto doc = Doc::create();
 		Parser parser(doc);
 		std::istringstream markup(str);
@@ -74,20 +78,26 @@ namespace xhtml
 
 	void Parser::parse(const boost::property_tree::ptree& pt)
 	{
-		auto element = pt.get_child_optional("html");
-		if(element) {
-			auto ele = Element::factory("html", *element);
-			ele->parse(*element);
+		//auto element = pt.get_child_optional("html");
+		//if(element) {
+			//auto ele = Element::factory("html", *element);
+			//ele->parse(*element);
 			//doc_->root = ele;
 
 
 			// XXX for testing
-			ele->preOrderTraverse([](ElementPtr e) { std::cerr << "  Element: " << e->getName() << "\n"; });
-		}
-		//for(auto& element : pt) {
-		//	auto ele = Element::factory(element.first, element.second);
-		//	ele->parse(element.second);
+			//ele->preOrderTraverse([](ElementPtr e) { std::cerr << "  Element: " << e->getName() << "\n"; });
 		//}
+		bool is_first = true;
+		for(auto& element : pt) {
+			auto ele = Element::factory(element.first, element.second);
+			ele->parse(element.second);
+			doc_->addElement(ele);
+			if(is_first) {
+				is_first = false;
+				doc_->setRootElement(ele);
+			}
+		}
 	}
 }
 

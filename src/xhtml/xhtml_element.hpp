@@ -46,6 +46,7 @@ namespace xhtml
 		void render(RenderContext* ctx) const;
 		static void registerFactoryFunction(ElementId id, const std::string& type, ElementFactoryFnType fn);
 		void preOrderTraverse(std::function<void(ElementPtr)> fn);
+		static void addCustomElement(const std::string& e);
 	protected:
 		explicit Element(ElementId id, const std::string& name, const boost::property_tree::ptree& pt);
 		bool parseWithText(const boost::property_tree::ptree& pt);

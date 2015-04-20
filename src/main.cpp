@@ -53,6 +53,15 @@ int main(int argc, char* argv[])
 		exit(1);
 	}
 
+#if defined(__linux__)
+	const std::string test_doc = "data/test1.xhtml";
+#else
+	const std::string test_doc = "../data/test1.xhtml";
+#endif
+
+	auto doc = xhtml::Parser::parseFromFile(test_doc);
+
+#if 0
 	WindowManager wm("SDL");
 
 	variant_builder hints;
@@ -90,12 +99,6 @@ int main(int argc, char* argv[])
 	auto rman = std::make_shared<RenderManager>();
 	auto rq = rman->addQueue(0, "opaques");
 
-#if defined(__linux__)
-	const std::string test_doc = "data/test1.xhtml";
-#else
-	const std::string test_doc = "../data/test1.xhtml";
-#endif
-
 	auto doc = xhtml::Parser::parseFromFile(test_doc);
 	//auto doc_node = doc->render(scene, variant());
 	//root->attachNode(doc_node);
@@ -127,6 +130,7 @@ int main(int argc, char* argv[])
 
 		main_wnd->swap();
 	}
+#endif
 
 	return 0;
 }

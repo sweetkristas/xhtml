@@ -36,6 +36,9 @@ namespace xhtml
 		const std::string XmlAttr = "<xmlattr>";
 		const std::string XmlText = "<xmltext>";
 
+		// Used to track what custom element value we should next allocate.
+		int custom_element_counter = -1;
+
 		struct ElementFunctionAndId
 		{
 			ElementFunctionAndId() : id(ElementId::ANY), fn() {}
@@ -302,16 +305,6 @@ namespace xhtml
 		ElementRegistrarInt<HeadingElement> h4_element(ElementId::H4, "h4", 4);
 		ElementRegistrarInt<HeadingElement> h5_element(ElementId::H5, "h5", 5);
 		ElementRegistrarInt<HeadingElement> h6_element(ElementId::H6, "h6", 6);
-		ElementRegistrarInt<HeadingElement> h7_element(ElementId::H7, "h7", 7);
-		ElementRegistrarInt<HeadingElement> h8_element(ElementId::H8, "h8", 8);
-		ElementRegistrarInt<HeadingElement> h9_element(ElementId::H9, "h9", 9);
-		ElementRegistrarInt<HeadingElement> h10_element(ElementId::H10, "h10", 10);
-		ElementRegistrarInt<HeadingElement> h11_element(ElementId::H11, "h11", 11);
-		ElementRegistrarInt<HeadingElement> h12_element(ElementId::H12, "h12", 12);
-		ElementRegistrarInt<HeadingElement> h13_element(ElementId::H13, "h13", 13);
-		ElementRegistrarInt<HeadingElement> h14_element(ElementId::H14, "h14", 14);
-		ElementRegistrarInt<HeadingElement> h15_element(ElementId::H15, "h15", 15);
-		ElementRegistrarInt<HeadingElement> h16_element(ElementId::H16, "h16", 16);
 
 		struct QuoteElement : public Element
 		{
@@ -434,6 +427,179 @@ namespace xhtml
 			explicit IFrameElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
 		ElementRegistrar<IFrameElement> i_frame_element(ElementId::IFRAME, "iframe");
+
+		struct SpanElement : public Element
+		{
+			explicit SpanElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<SpanElement> span_element(ElementId::SPAN, "span");
+
+		struct AcronymElement : public Element
+		{
+			explicit AcronymElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<AcronymElement> acronym_element(ElementId::ACRONYM, "acronym");
+		
+		struct AddressElement : public Element
+		{
+			explicit AddressElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<AddressElement> address_element(ElementId::ADDRESS, "address");
+		
+		struct BoldElement : public Element
+		{
+			explicit BoldElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<SpanElement> bold_element(ElementId::B, "b");
+		
+		struct BDOElement : public Element
+		{
+			explicit BDOElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<SpanElement> bdo_element(ElementId::BDO, "bdo");
+		
+		struct BigElement : public Element
+		{
+			explicit BigElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<BigElement> big_element(ElementId::BIG, "big");
+		
+		struct CitationElement : public Element
+		{
+			explicit CitationElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<CitationElement> cite_element(ElementId::CITE, "cite");
+		
+		struct CodeElement : public Element
+		{
+			explicit CodeElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<CodeElement> code_element(ElementId::CODE, "code");
+		
+		struct DefinitionDescriptionElement : public Element
+		{
+			explicit DefinitionDescriptionElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<DefinitionDescriptionElement> dd_element(ElementId::DD, "dd");
+		
+		struct InsertedContentElement : public Element
+		{
+			explicit InsertedContentElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<InsertedContentElement> ins_element(ElementId::INS, "ins");
+		
+		struct DeletedContentElement : public Element
+		{
+			explicit DeletedContentElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<DeletedContentElement> del_element(ElementId::DEL, "del");
+		
+		struct DefiningInstanceElement : public Element
+		{
+			explicit DefiningInstanceElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<DefiningInstanceElement> dfn_element(ElementId::DFN, "dfn");
+		
+		struct DefinitionTermElement : public Element
+		{
+			explicit DefinitionTermElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<DefinitionTermElement> dt_element(ElementId::DT, "dt");
+		
+		struct ItalicsElement : public Element
+		{
+			explicit ItalicsElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<ItalicsElement> italics_element(ElementId::I, "i");
+		
+		struct KbdElement : public Element
+		{
+			explicit KbdElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<KbdElement> kbd_element(ElementId::KBD, "kbd");
+		
+		struct NoScriptElement : public Element
+		{
+			explicit NoScriptElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<NoScriptElement> noscript_element(ElementId::NOSCRIPT, "noscript");
+		
+		struct RubyBaseTextElement : public Element
+		{
+			explicit RubyBaseTextElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<RubyBaseTextElement> rb_element(ElementId::RB, "rb");
+		
+		struct RubyBaseContainerElement : public Element
+		{
+			explicit RubyBaseContainerElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<RubyBaseContainerElement> rbc_element(ElementId::RBC, "rbc");
+		
+		struct RubyAnnotationTextElement : public Element
+		{
+			explicit RubyAnnotationTextElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<RubyAnnotationTextElement> rt_element(ElementId::RT, "rt");
+		
+		struct RubyTextContainerElement : public Element
+		{
+			explicit RubyTextContainerElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<RubyTextContainerElement> rtc_element(ElementId::RTC, "rtc");
+		
+		struct RubyAnnotaionElement : public Element
+		{
+			explicit RubyAnnotaionElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<RubyAnnotaionElement> ruby_element(ElementId::RUBY, "ruby");
+		
+		struct SampleOutputElement : public Element
+		{
+			explicit SampleOutputElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<SpanElement> samp_element(ElementId::SAMP, "samp");
+		
+		struct SmallElement : public Element
+		{
+			explicit SmallElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<SmallElement> small_element(ElementId::SMALL, "small");
+		
+		struct StrongElement : public Element
+		{
+			explicit StrongElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<StrongElement> strong_element(ElementId::STRONG, "strong");
+		
+		struct SubscriptElement : public Element
+		{
+			explicit SubscriptElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<SubscriptElement> subscript_element(ElementId::SUB, "sub");
+		
+		struct SuperscriptElement : public Element
+		{
+			explicit SuperscriptElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<SuperscriptElement> superscript_element(ElementId::SUP, "sup");
+		
+		struct TeleTypeElement : public Element
+		{
+			explicit TeleTypeElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<TeleTypeElement> teletype_element(ElementId::TT, "tt");
+		
+		struct VariableElement : public Element
+		{
+			explicit VariableElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
+		ElementRegistrar<VariableElement> var_element(ElementId::VAR, "var");
+
+		struct CustomElement : public Element
+		{
+			explicit CustomElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
+		};
 	}
 
 	Element::Element(ElementId id, const std::string& name, const ptree& pt)
@@ -510,12 +676,24 @@ namespace xhtml
 		get_id_registry()[id] = type;
 	}
 
+	void Element::addCustomElement(const std::string& e)
+	{
+		LOG_INFO("Creating custom element '" << e << "' with id: " << custom_element_counter);
+
+		registerFactoryFunction(static_cast<ElementId>(custom_element_counter), 
+			e, 
+			[](ElementId id, const std::string& name, const ptree& pt) -> ElementPtr { return std::make_shared<CustomElement>(id, name, pt); });
+
+		--custom_element_counter;
+	}
+
 	ElementPtr Element::factory(const std::string& name, const ptree& pt)
 	{
 		auto it = get_element_registry().find(name);
 		if(it == get_element_registry().end()) {
-			LOG_ERROR("Ignoring creating node for element: " << name << " no handler for that type.");
-			return nullptr;
+			addCustomElement(name);
+			it = get_element_registry().find(name);
+			ASSERT_LOG(it != get_element_registry().end(), "Couldn't find factory function for '" << name << "' though one was recently added.");
 		}
 		return it->second.fn(it->second.id, name, pt);
 	}
@@ -523,6 +701,10 @@ namespace xhtml
 	ElementId string_to_element_id(const std::string& e)
 	{
 		auto it = get_element_registry().find(e);
+		if(it == get_element_registry().end()) {
+			Element::addCustomElement(e);
+			it = get_element_registry().find(e);
+		}
 		ASSERT_LOG(it != get_element_registry().end(), "No element with type '" << e << "' was found.");
 		return it->second.id;
 	}

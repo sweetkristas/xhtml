@@ -69,6 +69,7 @@ namespace css
 		FilterId id() const { return id_; }
 		virtual bool match(xhtml::ElementPtr element) const = 0;
 		virtual std::string toString() const = 0;
+		virtual std::array<int,3> calculateSpecificity() = 0;
 	private:
 		FilterId id_;
 	};
@@ -82,15 +83,15 @@ namespace css
 		Combinator getCombinator() const { return combinator_; }
 		bool match(xhtml::ElementPtr element) const;
 		void addFilter(FilterSelectorPtr f);
-		void setElementId(xhtml::ElementId id) { element_ = id; }
+		void setElementId(xhtml::ElementId id);
 		xhtml::ElementId getElementId() const { return element_; }
 		std::string toString() const;
-		int getFilterCount(FilterId id) const { return filter_counts_[static_cast<int>(id)]; }
+		const std::array<int, 3>& getSpecificity() const { return specificity_; }
 	private:
 		xhtml::ElementId element_;
 		std::vector<FilterSelectorPtr> filters_;
 		Combinator combinator_;
-		std::array<int, 4> filter_counts_;
+		std::array<int, 3> specificity_;
 	};
 	typedef std::shared_ptr<SimpleSelector> SimpleSelectorPtr;
 
