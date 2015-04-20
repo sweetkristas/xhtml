@@ -36,92 +36,109 @@ namespace xhtml
 		const std::string XmlAttr = "<xmlattr>";
 		const std::string XmlText = "<xmltext>";
 
-		typedef std::map<std::string, ElementFactoryFnType> ElementRegistry;
+		struct ElementFunctionAndId
+		{
+			ElementFunctionAndId() : id(ElementId::ANY), fn() {}
+			ElementFunctionAndId(ElementId i, ElementFactoryFnType f) : id(i), fn(f) {}
+			ElementId id;
+			ElementFactoryFnType fn;
+		};
+
+		typedef std::map<std::string, ElementFunctionAndId> ElementRegistry;
 		ElementRegistry& get_element_registry()
 		{
 			static ElementRegistry res;
+			return res;
+		}
+		
+		std::map<ElementId, std::string>& get_id_registry()
+		{
+			static std::map<ElementId, std::string> res;
+			if(res.empty()) {
+				res[ElementId::ANY] = "*";
+			}
 			return res;
 		}
 
 		// Start of elements.
 		struct HtmlElement : public Element
 		{
-			explicit HtmlElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit HtmlElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<HtmlElement> html_element("html");
+		ElementRegistrar<HtmlElement> html_element(ElementId::HTML, "html");
 
 		struct HeadElement : public Element
 		{
-			explicit HeadElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit HeadElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<HeadElement> head_element("head");
+		ElementRegistrar<HeadElement> head_element(ElementId::HEAD, "head");
 
 		struct BodyElement : public Element
 		{
-			explicit BodyElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit BodyElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<BodyElement> body_element("body");
+		ElementRegistrar<BodyElement> body_element(ElementId::BODY, "body");
 
 		struct ScriptElement : public Element
 		{
-			explicit ScriptElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit ScriptElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<ScriptElement> script_element("script");
+		ElementRegistrar<ScriptElement> script_element(ElementId::SCRIPT, "script");
 
 		struct ParagraphElement : public Element
 		{
-			explicit ParagraphElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit ParagraphElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 			bool handleParse(const boost::property_tree::ptree& pt) override {
 				return parseWithText(pt);
 			}
 		};
-		ElementRegistrar<ParagraphElement> paragraph_element("p");
+		ElementRegistrar<ParagraphElement> paragraph_element(ElementId::P, "p");
 
 		struct AbbreviationElement : public Element
 		{
-			explicit AbbreviationElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit AbbreviationElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 			bool handleParse(const boost::property_tree::ptree& pt) override {
 				return parseWithText(pt);
 			}
 		};
-		ElementRegistrar<AbbreviationElement> abbreviation_element("abbr");
+		ElementRegistrar<AbbreviationElement> abbreviation_element(ElementId::ABBR, "abbr");
 
 		struct EmphasisElement : public Element
 		{
-			explicit EmphasisElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit EmphasisElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 			bool handleParse(const boost::property_tree::ptree& pt) override {
 				return parseWithText(pt);
 			}
 		};
-		ElementRegistrar<EmphasisElement> emphasis_element("em");
+		ElementRegistrar<EmphasisElement> emphasis_element(ElementId::EM, "em");
 
 		struct BreakElement : public Element
 		{
-			explicit BreakElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit BreakElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<BreakElement> break_element("br");
+		ElementRegistrar<BreakElement> break_element(ElementId::BR, "br");
 
 		struct ImageElement : public Element
 		{
-			explicit ImageElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit ImageElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<ImageElement> img_element("img");
+		ElementRegistrar<ImageElement> img_element(ElementId::IMG, "img");
 
 		struct ObjectElement : public Element
 		{
-			explicit ObjectElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit ObjectElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<ObjectElement> object_element("object");
+		ElementRegistrar<ObjectElement> object_element(ElementId::OBJECT, "object");
 
 		struct TextElement : public Element
 		{
-			explicit TextElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TextElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<TextElement> text_element(XmlText);
+		ElementRegistrar<TextElement> text_element(ElementId::XMLTEXT, XmlText);
 
 		struct StyleElement : public Element
 		{
-			explicit StyleElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit StyleElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 			bool handleParse(const boost::property_tree::ptree& pt) override {
 				auto styles = pt.get_child_optional(XmlText);
 				if(styles) {
@@ -135,12 +152,12 @@ namespace xhtml
 				return false;
 			}
 		};
-		ElementRegistrar<StyleElement> style_element("style");
+		ElementRegistrar<StyleElement> style_element(ElementId::STYLE, "style");
 
 		// Start of elements.
 		struct TitleElement : public Element
 		{
-			explicit TitleElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TitleElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 			bool handleParse(const boost::property_tree::ptree& pt) override {
 				auto txt = pt.get_child_optional(XmlText);
 				if(txt) {
@@ -151,276 +168,277 @@ namespace xhtml
 		private:
 			std::string title_;
 		};
-		ElementRegistrar<TitleElement> title_element("title");
+		ElementRegistrar<TitleElement> title_element(ElementId::TITLE, "title");
 
 		struct LinkElement : public Element
 		{
-			explicit LinkElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit LinkElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<LinkElement> link_element("link");
+		ElementRegistrar<LinkElement> link_element(ElementId::LINK, "link");
 
 		struct MetaElement : public Element
 		{
-			explicit MetaElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit MetaElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<MetaElement> meta_element("meta");
+		ElementRegistrar<MetaElement> meta_element(ElementId::META, "meta");
 
 		struct BaseElement : public Element
 		{
-			explicit BaseElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit BaseElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<BaseElement> base_element("base");
+		ElementRegistrar<BaseElement> base_element(ElementId::BASE, "base");
 
 		struct FormElement : public Element
 		{
-			explicit FormElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit FormElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<FormElement> form_element("form");
+		ElementRegistrar<FormElement> form_element(ElementId::FORM, "form");
 
 		struct SelectElement : public Element
 		{
-			explicit SelectElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit SelectElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<SelectElement> select_element("select");
+		ElementRegistrar<SelectElement> select_element(ElementId::SELECT, "select");
 
 		struct OptionGroupElement : public Element
 		{
-			explicit OptionGroupElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit OptionGroupElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<OptionGroupElement> option_group_element("optgroup");
+		ElementRegistrar<OptionGroupElement> option_group_element(ElementId::OPTGROUP, "optgroup");
 
 		struct OptionElement : public Element
 		{
-			explicit OptionElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit OptionElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<OptionElement> option_element("option");
+		ElementRegistrar<OptionElement> option_element(ElementId::OPTION, "option");
 
 		struct InputElement : public Element
 		{
-			explicit InputElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit InputElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<InputElement> input_element("input");
+		ElementRegistrar<InputElement> input_element(ElementId::INPUT, "input");
 
 		struct TextAreaElement : public Element
 		{
-			explicit TextAreaElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TextAreaElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<TextAreaElement> text_area_element("textarea");
+		ElementRegistrar<TextAreaElement> text_area_element(ElementId::TEXTAREA, "textarea");
 
 		struct ButtonElement : public Element
 		{
-			explicit ButtonElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit ButtonElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<ButtonElement> button_element("button");
+		ElementRegistrar<ButtonElement> button_element(ElementId::BUTTON, "button");
 
 		struct LabelElement : public Element
 		{
-			explicit LabelElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit LabelElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<LabelElement> label_element("label");
+		ElementRegistrar<LabelElement> label_element(ElementId::LABEL, "label");
 
 		struct FieldSetElement : public Element
 		{
-			explicit FieldSetElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit FieldSetElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<FieldSetElement> field_set_element("fieldset");
+		ElementRegistrar<FieldSetElement> field_set_element(ElementId::FIELDSET, "fieldset");
 
 		struct LegendElement : public Element
 		{
-			explicit LegendElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit LegendElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<LegendElement> legend_element("legend");
+		ElementRegistrar<LegendElement> legend_element(ElementId::LEGEND, "legend");
 
 		struct UnorderedListElement : public Element
 		{
-			explicit UnorderedListElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit UnorderedListElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<UnorderedListElement> unordered_list_element("ul");
+		ElementRegistrar<UnorderedListElement> unordered_list_element(ElementId::UL, "ul");
 
 		struct OrderedListElement : public Element
 		{
-			explicit OrderedListElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit OrderedListElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<OrderedListElement> ordered_list_element("ol");
+		ElementRegistrar<OrderedListElement> ordered_list_element(ElementId::OL, "ol");
 
 		struct DefinitionListElement : public Element
 		{
-			explicit DefinitionListElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit DefinitionListElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<DefinitionListElement> definition_list_element("dl");
+		ElementRegistrar<DefinitionListElement> definition_list_element(ElementId::DL, "dl");
 
 		struct DirectoryElement : public Element
 		{
-			explicit DirectoryElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit DirectoryElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<DirectoryElement> directory_element("dir");
+		ElementRegistrar<DirectoryElement> directory_element(ElementId::DIR, "dir");
 
 		struct MenuElement : public Element
 		{
-			explicit MenuElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit MenuElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<MenuElement> menu_element("menu");
+		ElementRegistrar<MenuElement> menu_element(ElementId::MENU, "menu");
 
 		struct ListItemElement : public Element
 		{
-			explicit ListItemElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit ListItemElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<ListItemElement> list_item_element("li");
+		ElementRegistrar<ListItemElement> list_item_element(ElementId::LI, "li");
 
 		struct DivElement : public Element
 		{
-			explicit DivElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit DivElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<DivElement> div_element("div");
+		ElementRegistrar<DivElement> div_element(ElementId::DIV, "div");
 
 		struct HeadingElement : public Element
 		{
-			explicit HeadingElement(const std::string& name, const ptree& pt, int level) : Element(name, pt), level_(level) {}
+			explicit HeadingElement(ElementId id, const std::string& name, const ptree& pt, int level) : Element(id, name, pt), level_(level) {}
 		private:
 			int level_;
 		};
-		ElementRegistrarInt<HeadingElement> h1_element("h1", 1);
-		ElementRegistrarInt<HeadingElement> h2_element("h2", 2);
-		ElementRegistrarInt<HeadingElement> h3_element("h3", 3);
-		ElementRegistrarInt<HeadingElement> h4_element("h4", 4);
-		ElementRegistrarInt<HeadingElement> h5_element("h5", 5);
-		ElementRegistrarInt<HeadingElement> h6_element("h6", 6);
-		ElementRegistrarInt<HeadingElement> h7_element("h7", 7);
-		ElementRegistrarInt<HeadingElement> h8_element("h8", 8);
-		ElementRegistrarInt<HeadingElement> h9_element("h9", 9);
-		ElementRegistrarInt<HeadingElement> h10_element("h10", 10);
-		ElementRegistrarInt<HeadingElement> h11_element("h11", 11);
-		ElementRegistrarInt<HeadingElement> h12_element("h12", 12);
-		ElementRegistrarInt<HeadingElement> h13_element("h13", 13);
-		ElementRegistrarInt<HeadingElement> h14_element("h14", 14);
-		ElementRegistrarInt<HeadingElement> h15_element("h15", 15);
-		ElementRegistrarInt<HeadingElement> h16_element("h16", 16);
+		ElementRegistrarInt<HeadingElement> h1_element(ElementId::H1, "h1", 1);
+		ElementRegistrarInt<HeadingElement> h2_element(ElementId::H2, "h2", 2);
+		ElementRegistrarInt<HeadingElement> h3_element(ElementId::H3, "h3", 3);
+		ElementRegistrarInt<HeadingElement> h4_element(ElementId::H4, "h4", 4);
+		ElementRegistrarInt<HeadingElement> h5_element(ElementId::H5, "h5", 5);
+		ElementRegistrarInt<HeadingElement> h6_element(ElementId::H6, "h6", 6);
+		ElementRegistrarInt<HeadingElement> h7_element(ElementId::H7, "h7", 7);
+		ElementRegistrarInt<HeadingElement> h8_element(ElementId::H8, "h8", 8);
+		ElementRegistrarInt<HeadingElement> h9_element(ElementId::H9, "h9", 9);
+		ElementRegistrarInt<HeadingElement> h10_element(ElementId::H10, "h10", 10);
+		ElementRegistrarInt<HeadingElement> h11_element(ElementId::H11, "h11", 11);
+		ElementRegistrarInt<HeadingElement> h12_element(ElementId::H12, "h12", 12);
+		ElementRegistrarInt<HeadingElement> h13_element(ElementId::H13, "h13", 13);
+		ElementRegistrarInt<HeadingElement> h14_element(ElementId::H14, "h14", 14);
+		ElementRegistrarInt<HeadingElement> h15_element(ElementId::H15, "h15", 15);
+		ElementRegistrarInt<HeadingElement> h16_element(ElementId::H16, "h16", 16);
 
 		struct QuoteElement : public Element
 		{
-			explicit QuoteElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit QuoteElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<QuoteElement> quote_element("q");
+		ElementRegistrar<QuoteElement> quote_element(ElementId::Q, "q");
 
 		struct BlockQuoteElement : public Element
 		{
-			explicit BlockQuoteElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit BlockQuoteElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<BlockQuoteElement> block_quote_element("blockquote");
+		ElementRegistrar<BlockQuoteElement> block_quote_element(ElementId::BLOCKQUOTE, "blockquote");
 
 		struct PreformattedElement : public Element
 		{
-			explicit PreformattedElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit PreformattedElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<PreformattedElement> preformatted_element("pre");
+		ElementRegistrar<PreformattedElement> preformatted_element(ElementId::PRE, "pre");
 
 		struct HorizontalRuleElement : public Element
 		{
-			explicit HorizontalRuleElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit HorizontalRuleElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<HorizontalRuleElement> horizontal_rule_element("hr");
+		ElementRegistrar<HorizontalRuleElement> horizontal_rule_element(ElementId::HR, "hr");
 
 		struct ModElement : public Element
 		{
-			explicit ModElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit ModElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<ModElement> mod_element("mod");
+		ElementRegistrar<ModElement> mod_element(ElementId::MOD, "mod");
 
 		struct AnchorElement : public Element
 		{
-			explicit AnchorElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit AnchorElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<AnchorElement> anchor_element("a");
+		ElementRegistrar<AnchorElement> anchor_element(ElementId::A, "a");
 
 		struct ParamElement : public Element
 		{
-			explicit ParamElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit ParamElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<ParamElement> param_element("param");
+		ElementRegistrar<ParamElement> param_element(ElementId::PARAM, "param");
 
 		struct AppletElement : public Element
 		{
-			explicit AppletElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit AppletElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<AppletElement> applet_element("applet");
+		ElementRegistrar<AppletElement> applet_element(ElementId::APPLET, "applet");
 
 		struct MapElement : public Element
 		{
-			explicit MapElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit MapElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<MapElement> map_element("map");
+		ElementRegistrar<MapElement> map_element(ElementId::MAP, "map");
 
 		struct AreaElement : public Element
 		{
-			explicit AreaElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit AreaElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<AreaElement> area_element("area");
+		ElementRegistrar<AreaElement> area_element(ElementId::AREA, "area");
 
 		struct TableElement : public Element
 		{
-			explicit TableElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TableElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<TableElement> table_element("table");
+		ElementRegistrar<TableElement> table_element(ElementId::TABLE, "table");
 
 		struct TableCaptionElement : public Element
 		{
-			explicit TableCaptionElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TableCaptionElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<TableCaptionElement> table_caption_element("caption");
+		ElementRegistrar<TableCaptionElement> table_caption_element(ElementId::CAPTION, "caption");
 
 		struct TableColElement : public Element
 		{
-			explicit TableColElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TableColElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<TableColElement> table_col_element("col");
+		ElementRegistrar<TableColElement> table_col_element(ElementId::COL, "col");
 
 		struct TableColGroupElement : public Element
 		{
-			explicit TableColGroupElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TableColGroupElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<TableColGroupElement> table_col_group_element("colgroup");
+		ElementRegistrar<TableColGroupElement> table_col_group_element(ElementId::COLGROUP, "colgroup");
 
 		struct TableSectionElement : public Element
 		{
-			explicit TableSectionElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TableSectionElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<TableSectionElement> table_head_element("thead");
-		ElementRegistrar<TableSectionElement> table_foot_element("tfoot");
-		ElementRegistrar<TableSectionElement> table_body_element("tbody");
+		ElementRegistrar<TableSectionElement> table_head_element(ElementId::THEAD, "thead");
+		ElementRegistrar<TableSectionElement> table_foot_element(ElementId::TFOOT, "tfoot");
+		ElementRegistrar<TableSectionElement> table_body_element(ElementId::TBODY, "tbody");
 
 		struct TableRowElement : public Element
 		{
-			explicit TableRowElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TableRowElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<TableRowElement> table_row_element("tr");
+		ElementRegistrar<TableRowElement> table_row_element(ElementId::TR, "tr");
 
 		struct TableCellElement : public Element
 		{
-			explicit TableCellElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit TableCellElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<TableCellElement> table_cell_element("td");
+		ElementRegistrar<TableCellElement> table_cell_element(ElementId::TD, "td");
 
 		struct FrameSetElement : public Element
 		{
-			explicit FrameSetElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit FrameSetElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<FrameSetElement> frame_set_element("frameset");
+		ElementRegistrar<FrameSetElement> frame_set_element(ElementId::FRAMESET, "frameset");
 
 		struct FrameElement : public Element
 		{
-			explicit FrameElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit FrameElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<FrameElement> frame_element("frame");
+		ElementRegistrar<FrameElement> frame_element(ElementId::FRAME, "frame");
 
 		struct IFrameElement : public Element
 		{
-			explicit IFrameElement(const std::string& name, const ptree& pt) : Element(name, pt) {}
+			explicit IFrameElement(ElementId id, const std::string& name, const ptree& pt) : Element(id, name, pt) {}
 		};
-		ElementRegistrar<IFrameElement> i_frame_element("iframe");
+		ElementRegistrar<IFrameElement> i_frame_element(ElementId::IFRAME, "iframe");
 	}
 
-	Element::Element(const std::string& name, const ptree& pt)
-		: name_(name),
+	Element::Element(ElementId id, const std::string& name, const ptree& pt)
+		: id_(id),
+		  name_(name),
 		  attrs_(pt),
 		  children_()
 	{
@@ -486,9 +504,10 @@ namespace xhtml
 		}
 	}
 
-	void Element::registerFactoryFunction(const std::string& type, ElementFactoryFnType fn)
+	void Element::registerFactoryFunction(ElementId id, const std::string& type, ElementFactoryFnType fn)
 	{
-		get_element_registry()[type] = fn;
+		get_element_registry()[type] = ElementFunctionAndId(id, fn);
+		get_id_registry()[id] = type;
 	}
 
 	ElementPtr Element::factory(const std::string& name, const ptree& pt)
@@ -498,6 +517,20 @@ namespace xhtml
 			LOG_ERROR("Ignoring creating node for element: " << name << " no handler for that type.");
 			return nullptr;
 		}
-		return it->second(name, pt);
+		return it->second.fn(it->second.id, name, pt);
+	}
+
+	ElementId string_to_element_id(const std::string& e)
+	{
+		auto it = get_element_registry().find(e);
+		ASSERT_LOG(it != get_element_registry().end(), "No element with type '" << e << "' was found.");
+		return it->second.id;
+	}
+
+	const std::string& element_id_to_string(ElementId id)
+	{
+		auto it = get_id_registry().find(id);
+		ASSERT_LOG(it != get_id_registry().end(), "Couldn't find an element with id of: " << static_cast<int>(id));
+		return it->second;
 	}
 }

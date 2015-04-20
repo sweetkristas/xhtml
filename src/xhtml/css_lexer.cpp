@@ -92,6 +92,7 @@ namespace css
 				return formatter() << "StringToken(" << str_ << ")";
 			}
 			variant value() override { return variant(str_); }
+			std::string getStringValue() const override { return str_; }
 		private:
 			std::string str_;
 		};
@@ -104,6 +105,7 @@ namespace css
 				return formatter() << "AtToken(" << ident_ << ")";
 			}
 			variant value() override { return variant(ident_); }
+			std::string getStringValue() const override { return ident_; }
 		private:
 			std::string ident_;
 		};
@@ -146,6 +148,7 @@ namespace css
 				return formatter() << "IdentToken(" << ident_ << ")";
 			}
 			variant value() override { return variant(ident_); }
+			std::string getStringValue() const override { return ident_; }
 		private:
 			std::string ident_;
 		};
@@ -171,6 +174,7 @@ namespace css
 				return formatter() << "FunctionToken(" << fn_ << ")";
 			}
 			variant value() override { return variant(fn_); }
+			std::string getStringValue() const override { return fn_; }
 		private:
 			std::string fn_;
 		};
@@ -195,7 +199,7 @@ namespace css
 				return formatter() << "DelimiterToken(" << delim_ << ")";
 			}
 			variant value() override { return variant(delim_); }
-			const std::string& getValue() const { return delim_; }
+			std::string getStringValue() const override { return delim_; }
 		private:
 			std::string delim_;
 		};
@@ -213,6 +217,7 @@ namespace css
 				res.add("unrestricted", unrestricted_);
 				return res.build();
 			}
+			std::string getStringValue() const override { return name_; }
 		private:
 			std::string name_;
 			bool unrestricted_;
@@ -273,6 +278,7 @@ namespace css
 				tokens_.emplace_back(consumeString(la0_));
 			} else if(la0_ == '#') {
 				if(namechar(next()) || is_valid_escape(next(1), next(2))) {
+					advance();
 					tokens_.emplace_back(std::make_shared<HashToken>(woud_start_an_identifier(next(1), next(2), next(3)), consumeName()));
 				} else {
 					tokens_.emplace_back(std::make_shared<DelimiterToken>(utils::codepoint_to_utf8(la0_)));
@@ -305,6 +311,9 @@ namespace css
 			} else if(la0_ == '+') {
 				if(would_start_a_number(la0_, next(1), next(2))) {
 					tokens_.emplace_back(consumeNumericToken());
+				} else {
+					tokens_.emplace_back(std::make_shared<DelimiterToken>(utils::codepoint_to_utf8(la0_)));
+					advance();
 				}
 			} else if(la0_ == ',') {
 				advance();
@@ -482,6 +491,7 @@ namespace css
 			res += utils::codepoint_to_utf8(la0_);
 			advance();
 		}
+		advance();
 		return std::make_shared<StringToken>(res);
 	}
 

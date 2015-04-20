@@ -30,6 +30,7 @@
 #include "SDLWrapper.hpp"
 #include "WindowManager.hpp"
 #include "variant_utils.hpp"
+#include "unit_test.hpp"
 
 #include "xhtml.hpp"
 
@@ -46,6 +47,11 @@ int main(int argc, char* argv[])
 	using namespace KRE;
 	SDL::SDL_ptr manager(new SDL::SDL());
 	SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_DEBUG);
+
+	if(!test::run_tests()) {
+		// Just exit if some tests failed.
+		exit(1);
+	}
 
 	WindowManager wm("SDL");
 

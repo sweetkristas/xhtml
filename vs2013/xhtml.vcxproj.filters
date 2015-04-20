@@ -246,6 +246,12 @@
     <ClCompile Include="..\src\xhtml\dom_exception.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\xhtml\css_selector.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\unit_test.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -529,6 +535,15 @@
     </ClInclude>
     <ClInclude Include="..\src\xhtml\dom_exception.hpp">
       <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\css_selector.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_element_id.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\unit_test.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
