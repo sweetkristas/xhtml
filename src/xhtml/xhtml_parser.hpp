@@ -25,22 +25,10 @@
 
 #include <string>
 
-#include <boost/property_tree/ptree.hpp>
-
 #include "xhtml_fwd.hpp"
 
 namespace xhtml
 {
-	class Parser
-	{
-	public:
-		static DocPtr parseFromFile(const std::string& filename);
-		static DocPtr parseFromString(const std::string& str);
-	private:
-		Parser(DocPtr doc);
-		void parse(const boost::property_tree::ptree& pt);
-		void parseHead(const boost::property_tree::ptree& pt);
-
-		DocPtr doc_;
-	};
+	DocumentFragmentPtr parse_from_file(const std::string& filename);
+	DocumentFragmentPtr parse_from_string(const std::string& str);
 }

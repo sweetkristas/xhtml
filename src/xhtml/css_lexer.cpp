@@ -260,7 +260,7 @@ namespace css
 			for(auto ch : cp_string_) {
 				ss << static_cast<char>(ch);
 			}
-			LOG_DEBUG("cp_string: " << ss.str());
+			//LOG_DEBUG("cp_string: " << ss.str());
 		}
 		
 
@@ -416,10 +416,10 @@ namespace css
 			}
 		}
 		// deubgging to print list of tokens.
-		LOG_DEBUG("Token list: ");
-		for(auto& tok : tokens_) {
-			LOG_DEBUG("    " << tok->toString());
-		}
+		//LOG_DEBUG("Token list: ");
+		//for(auto& tok : tokens_) {
+		//	LOG_DEBUG("    " << tok->toString());
+		//}
 	}
 
 	void Tokenizer::advance(int n)

@@ -48,6 +48,8 @@ namespace css
 		SelectorParseError(const char* msg) : std::runtime_error(msg) {}
 	};
 
+	typedef std::array<int,3> Specificity;
+
 	enum class Combinator {
 		NONE,
 		CHILD,					// '>'
@@ -67,7 +69,7 @@ namespace css
 	public:
 		explicit FilterSelector(FilterId id);
 		FilterId id() const { return id_; }
-		virtual bool match(xhtml::ElementPtr element) const = 0;
+		virtual bool match(xhtml::NodePtr element) const = 0;
 		virtual std::string toString() const = 0;
 		virtual std::array<int,3> calculateSpecificity() = 0;
 	private:
@@ -81,7 +83,7 @@ namespace css
 		bool hasCombinator() const { return combinator_ != Combinator::NONE; }
 		void setCombinator(Combinator c) { combinator_ = c; }
 		Combinator getCombinator() const { return combinator_; }
-		bool match(xhtml::ElementPtr element) const;
+		bool match(xhtml::NodePtr element) const;
 		void addFilter(FilterSelectorPtr f);
 		void setElementId(xhtml::ElementId id);
 		xhtml::ElementId getElementId() const { return element_; }
@@ -100,12 +102,18 @@ namespace css
 	public:
 		Selector();
 		static std::vector<SelectorPtr> factory(const std::vector<TokenPtr>& tokens);
-		bool match(xhtml::ElementPtr element) const;
+		bool match(xhtml::NodePtr element) const;
 		void addSimpleSelector(SimpleSelectorPtr s) { selector_chain_.emplace_back(s); }
 		std::string toString() const;
 		void calculateSpecificity();
+		const Specificity& getSpecificity() const { return specificity_; }
 	private:
 		std::vector<SimpleSelectorPtr> selector_chain_;
-		std::array<int,3> specificity_;
+		Specificity specificity_;
+	};
+
+	struct SpecificityOrdering
+	{
+		bool operator()(const Specificity& lhs, const Specificity& rhs) const;
 	};
 }

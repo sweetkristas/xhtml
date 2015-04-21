@@ -33,6 +33,7 @@
 #include "unit_test.hpp"
 
 #include "xhtml.hpp"
+#include "xhtml_node.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -59,8 +60,11 @@ int main(int argc, char* argv[])
 	const std::string test_doc = "../data/test1.xhtml";
 #endif
 
-	auto doc = xhtml::Parser::parseFromFile(test_doc);
-
+	auto doc = xhtml::parse_from_file(test_doc);
+	doc->preOrderTraversal([](xhtml::NodePtr n) {
+		LOG_DEBUG(n->toString());
+		return true;
+	});
 #if 0
 	WindowManager wm("SDL");
 

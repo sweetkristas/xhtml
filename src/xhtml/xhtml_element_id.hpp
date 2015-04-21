@@ -30,8 +30,6 @@ namespace xhtml
 	enum class ElementId {
 		// special element id to match anything "*"
 		ANY,
-		// special element for text
-		XMLTEXT,
 		// Normal tokens
 		HTML,
 		HEAD,

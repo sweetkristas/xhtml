@@ -21,11 +21,12 @@
 	   distribution.
 */
 
+#include <boost/algorithm/string.hpp>
+
 #include "asserts.hpp"
 #include "css_selector.hpp"
 #include "css_lexer.hpp"
 #include "unit_test.hpp"
-#include "xhtml_doc.hpp"
 #include "xhtml_element.hpp"
 #include "xhtml_parser.hpp"
 
@@ -46,9 +47,44 @@ namespace css
 					param_ = xhtml::string_to_element_id(param);
 				}
 			}
-			bool match(xhtml::ElementPtr element) const override
+			bool match(xhtml::NodePtr element) const override
 			{
-				// XXX
+				if(name_ == "first-child") {
+					auto parent = element->getParent();
+					if(parent != nullptr) {
+						auto& children = parent->getChildren();
+						if(!children.empty() && children.front() == element) {
+							return true;
+						}
+					}
+				} else if(name_ == "last-child") {
+					auto parent = element->getParent();
+					if(parent != nullptr) {
+						auto& children = parent->getChildren();
+						if(!children.empty() && children.back() == element) {
+							return true;
+						}
+					}
+				} else if(name_ == "link") {
+					// Basically won't handle these
+					return false;
+				} else if(name_ == "visited") {
+					// Basically won't handle these
+					return false;
+				} else if(name_ == "hover") {
+					ASSERT_LOG(false, "Handle :hover pseudo class.");
+				} else if(name_ == "active") {
+					ASSERT_LOG(false, "Handle :active pseudo class.");
+				} else if(name_ == "focus") {
+					ASSERT_LOG(false, "Handle :focus pseudo class.");
+				} else if(name_ == "lang") {
+					ASSERT_LOG(false, "Handle :lang pseudo class.");
+				} else if(name_ == "not") {
+					if(has_param_) {
+						return !element->hasTag(param_);
+					}
+					return true;
+				}
 				return false;
 			}
 			std::string toString() const override 
@@ -86,9 +122,18 @@ namespace css
 		{
 		public:
 			ClassSelector(const std::string& class_name) : FilterSelector(FilterId::CLASS), class_name_(class_name) {}
-			bool match(xhtml::ElementPtr element) const override
+			bool match(xhtml::NodePtr element) const override
 			{
-				// XXX
+				auto class_attr = element->getAttribute("class");
+				if(class_attr) {
+					std::vector<std::string> strs;
+					boost::split(strs, class_attr->getValue(), boost::is_any_of(" \n\r\t\f"), boost::token_compress_on);
+					for(auto& cn : strs) {
+						if(class_name_ == cn) {
+							return true;
+						}
+					}
+				}
 				return false;
 			}
 			std::string toString() const override 
@@ -111,10 +156,10 @@ namespace css
 		{
 		public:
 			IdSelector(const std::string& id) : FilterSelector(FilterId::ID), id_(id) {}
-			bool match(xhtml::ElementPtr element) const override
+			bool match(xhtml::NodePtr element) const override
 			{
-				// XXX
-				return false;
+				auto id_attr = element->getAttribute("id");
+				return id_attr != nullptr ? id_attr->getValue() == id_ : false;
 			}
 			std::string toString() const override 
 			{
@@ -152,9 +197,41 @@ namespace css
 				  value_(value)
 			{
 			}
-			bool match(xhtml::ElementPtr element) const override
+			bool match(xhtml::NodePtr element) const override
 			{
-				// XXX
+				auto id_attr = element->getAttribute(attr_);
+				if(id_attr == nullptr) {
+					return false;
+				}
+				const auto& id_str = id_attr->getValue();
+
+				switch(matching_) {
+					case AttributeMatching::NONE:		
+						return true;
+					case AttributeMatching::PREFIX:
+						return id_str.find(value_) == 0;
+					case AttributeMatching::SUFFIX: {						
+						auto pos = id_str.find(value_);
+						return pos != std::string::npos && pos == id_str.size() - value_.size();
+					}
+					case AttributeMatching::SUBSTRING:
+						return id_str.find(value_) != std::string::npos;
+					case AttributeMatching::EXACT:
+						return id_str == value_;
+					case AttributeMatching::INCLUDE: {
+						std::vector<std::string> strs;
+						boost::split(strs, id_str, boost::is_any_of(" \n\r\t\f"), boost::token_compress_on);
+						for(auto& attr : strs) {
+							if(attr == value_) {
+								return true;
+							}
+						}
+						return false;
+					}
+					case AttributeMatching::DASH:
+						return id_str == value_ || id_str.find(value_ + "-") == 0;
+					default: break;
+				}
 				return false;
 			}
 			std::string toString() const override 
@@ -420,17 +497,6 @@ namespace css
 		return parser.getSelectors();
 	}
 
-	bool Selector::match(xhtml::ElementPtr element) const
-	{
-		// we try and match the selector chain in reverse, since it's the last element that is most important.
-		for(auto it = selector_chain_.rbegin(); it != selector_chain_.rend(); ++it) {
-			auto simple = *it;
-			if(simple->match(element)) {
-			}
-		}
-		return false;
-	}
-	
 	void Selector::calculateSpecificity()
 	{		
 		for(auto& s : selector_chain_) {
@@ -474,10 +540,6 @@ namespace css
 	std::string SimpleSelector::toString() const
 	{
 		std::ostringstream ss;
-		ss << xhtml::element_id_to_string(element_);
-		for(auto& f : filters_) {
-			ss << f->toString();
-		}
 		switch(combinator_) {
 			case Combinator::CHILD:			ss << " > "; break;
 			case Combinator::DESCENDENT:	ss << " ";	 break;
@@ -485,11 +547,69 @@ namespace css
 			case Combinator::NONE: // fallthrough
 			default: break;
 		}
+		ss << xhtml::element_id_to_string(element_);
+		for(auto& f : filters_) {
+			ss << f->toString();
+		}
 		return ss.str();
 	}
 
-	bool SimpleSelector::match(xhtml::ElementPtr element) const
+	bool Selector::match(xhtml::NodePtr element) const
 	{
+		// we try and match the selector chain in reverse, since it's the last element that is most important.
+		auto it = selector_chain_.rbegin();
+
+		while(it != selector_chain_.rend()) {
+			auto simple = *it++;
+			if(!simple->match(element)) {
+				return false;
+			}
+			switch(simple->getCombinator()) {
+				case Combinator::DESCENDENT: {
+					simple = *it++;
+					element = element->getParent();
+					bool found_match = false;
+					while(element != nullptr && !found_match) {
+						if(simple->match(element)) {
+							found_match = true;
+						} else {
+							element = element->getParent();
+						}
+					}
+					if(!found_match) {
+						return false;
+					}
+					break;
+				}
+				case Combinator::SIBLING:
+					element = element->getLeft();
+					if(element == nullptr) {
+						return false;
+					}		
+					break;
+				case Combinator::CHILD:
+					element = element->getParent();
+					if(element == nullptr) {
+						return false;
+					}
+					break;
+				case Combinator::NONE:
+				default: break;
+			}
+		}
+		return true;
+	}
+	
+	bool SimpleSelector::match(xhtml::NodePtr element) const
+	{
+		if((element_ == xhtml::ElementId::ANY && element->id() == xhtml::NodeId::ELEMENT) || element->hasTag(element_)) {
+			for(auto& f : filters_) {
+				if(!f->match(element)) {
+					return false;
+				}
+			}
+			return true;
+		}
 		return false;
 	}
 
@@ -503,28 +623,37 @@ namespace css
 		: id_(id)
 	{
 	}
+
+	bool SpecificityOrdering::operator()(const Specificity& lhs, const Specificity& rhs) const
+	{
+		return lhs[0] == rhs[0] 
+			? lhs[0] < rhs[0] 
+			: lhs[1] == rhs[1] 
+				? lhs[1] < rhs[1] 
+				: lhs[2] < rhs[2];
+	}
 }
 
 bool check_selector(const std::string& selector, const std::string& string_to_match)
 {
 	css::Tokenizer tokens(selector);
 	auto selectors = css::Selector::factory(tokens.getTokens());
-	for(auto& s : selectors) {
-		LOG_DEBUG(s->toString());
-	}
+	//for(auto& s : selectors) {
+	//	LOG_DEBUG(s->toString());
+	//}
 
-	xhtml::DocPtr doc = xhtml::Parser::parseFromString(string_to_match);
-	bool failed_match = false;
+	xhtml::DocumentFragmentPtr doc = xhtml::parse_from_string(string_to_match);
+	bool successful_match = false;
 	for(auto& s : selectors) {
-		doc->getRootElement()->preOrderTraverse([s](xhtml::ElementPtr e){ 
+		doc->preOrderTraversal([&successful_match, s](xhtml::NodePtr e) {
 			if(s->match(e)) {
-				LOG_DEBUG("Matched element was: " << e->getName());
+				//LOG_DEBUG("Matched element was: " << e->toString());
+				successful_match = true;
 			}
+			return true;
 		});
 	}
-	// XXX actual tests should go here.
-	//xhtml::Element::factory(xhtml::parse(string_to_match))
-	return true;
+	return successful_match;
 }
 
 UNIT_TEST(css_selectors)
@@ -541,7 +670,4 @@ UNIT_TEST(css_selectors)
 	CHECK_EQ(check_selector("em[foo^=x][bar=x]", "<em foo=\"xxx\" bar=\"x\"><p>Some text</p></em>"), true);
 	CHECK_EQ(check_selector("h1, h2, h3", "<h1>Now is the time.</h1>"), true);
 	CHECK_EQ(check_selector("#s12:not(FOO)", "<html><head></head><body><h1 id=\"s12\">Now is the time.</h1><FOO id=\"s12\"></FOO></body></html>"), true);
-
-	// XXX actual tests should go here.
-	//xhtml::Element::factory(xhtml::parse("<em><p>Some text</p></em>"))
 }

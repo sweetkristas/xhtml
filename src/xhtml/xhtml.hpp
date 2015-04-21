@@ -23,5 +23,5 @@
 
 #pragma once
 
-#include "xhtml_doc.hpp"
+#include "xhtml_fwd.hpp"
 #include "xhtml_parser.hpp"

@@ -80,9 +80,8 @@
     <ClCompile Include="..\src\xhtml\css_selector.cpp" />
     <ClCompile Include="..\src\xhtml\document_object_model.cpp" />
     <ClCompile Include="..\src\xhtml\dom_exception.cpp" />
-    <ClCompile Include="..\src\xhtml\xhtml_attributes.cpp" />
-    <ClCompile Include="..\src\xhtml\xhtml_doc.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_element.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_node.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_parser.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_render_ctx.cpp" />
   </ItemGroup>
@@ -177,11 +176,10 @@
     <ClInclude Include="..\src\xhtml\document_object_model.hpp" />
     <ClInclude Include="..\src\xhtml\dom_exception.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
-    <ClInclude Include="..\src\xhtml\xhtml_attributes.hpp" />
-    <ClInclude Include="..\src\xhtml\xhtml_doc.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_element.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_element_id.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_fwd.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_node.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_parser.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_render_ctx.hpp" />
   </ItemGroup>
@@ -230,7 +228,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\src\xhtml;..\src\kre;..\src;..\external\include;..\external\include\SDL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>

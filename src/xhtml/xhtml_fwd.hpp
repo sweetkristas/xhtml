@@ -27,12 +27,25 @@
 
 namespace xhtml
 {
-	class Parser;
 	class RenderContext;
 
-	class Doc;
-	typedef std::shared_ptr<Doc> DocPtr;
+	class Node;
+	typedef std::shared_ptr<Node> NodePtr;
+	typedef std::weak_ptr<Node> WeakNodePtr;
+
+	class Document;
+	typedef std::shared_ptr<Document> DocumentPtr;
+	typedef std::weak_ptr<Document> WeakDocumentPtr;
+
+	class DocumentFragment;
+	typedef std::shared_ptr<DocumentFragment> DocumentFragmentPtr;
 
 	class Element;
 	typedef std::shared_ptr<Element> ElementPtr;
+
+	class Text;
+	typedef std::shared_ptr<Text> TextPtr;
+
+	class Attribute;
+	typedef std::shared_ptr<Attribute> AttributePtr;
 }

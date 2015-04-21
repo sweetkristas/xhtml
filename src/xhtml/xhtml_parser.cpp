@@ -26,8 +26,8 @@
 #include <boost/property_tree/xml_parser.hpp>
 
 #include "asserts.hpp"
-#include "xhtml_doc.hpp"
 #include "xhtml_element.hpp"
+#include "xhtml_node.hpp"
 #include "xhtml_parser.hpp"
 
 namespace xhtml
@@ -54,8 +54,9 @@ namespace xhtml
 			  value_(value)
 		{
 		}
-		const std::string& getName() const { return name_; }
-		const std::string& getValue() const { return value_; }
+		AttributePtr createAttribute() {
+			return Attribute::create(name_, value_);
+		}
 	private:
 		std::string name_;
 		std::string value_;
@@ -67,6 +68,9 @@ namespace xhtml
 		ParserNode(const std::string& name, ptree& pt)
 			: name_(name)
 		{
+			if(name_ == XmlText) {
+				value_ = pt.data();
+			}
 			for(auto& element : pt) {
 				if(element.first == XmlAttr) {
 					for(auto& attr : element.second) {
@@ -77,72 +81,69 @@ namespace xhtml
 				}
 			}
 		}
+		NodePtr createNode() {
+			NodePtr node;
+			if(name_ == XmlText) {
+				node = Text::create(value_);
+			} else {
+				node = Element::create(name_);
+			}
+			for(auto& a : attributes_) {
+				node->addAttribute(a.second->createAttribute());
+			}
+			for(auto& c : children_) {
+				node->addChild(c->createNode());
+			}
+			return node;
+		}
 	private:
 		std::string name_;
+		std::string value_;
 		std::vector<ParserNodePtr> children_;
 		std::map<std::string, ParserAttributePtr> attributes_;
 	};
 
-	DocPtr Parser::parseFromFile(const std::string& filename)
+	DocumentFragmentPtr parse_from_file(const std::string& filename)
 	{
-		auto doc = Doc::create();
-		Parser parser(doc);
+		std::vector<ParserNodePtr> nodes;
 		try {
 			ptree pt;
 			read_xml(filename, pt, xml_parser::no_concat_text);
-			parser.parse(pt);
+			for(auto& element : pt) {
+				nodes.emplace_back(std::make_shared<ParserNode>(element.first, element.second));
+			}
 		} catch(ptree_error& e) {
 			ASSERT_LOG(false, "Error parsing XHTML: " << e.what() << " : " << filename);
 		}
-		return doc;
+		auto frag = DocumentFragment::create();
+		for(auto& pn : nodes) {
+			frag->addChild(pn->createNode());
+		}
+		return frag;
 	}
 
-	DocPtr Parser::parseFromString(const std::string& str)
+	DocumentFragmentPtr parse_from_string(const std::string& str)
 	{
 		if(str.empty()) {
-			LOG_ERROR("Parser::parseFromString() No string data to parse.");
+			LOG_ERROR("parse_from_string No string data to parse.");
 			return nullptr;
 		}
-		auto doc = Doc::create();
-		Parser parser(doc);
+		std::vector<ParserNodePtr> nodes;
 		std::istringstream markup(str);
 		try {
 			ptree pt;
 			read_xml(markup, pt, xml_parser::no_concat_text);
-			parser.parse(pt);
+			for(auto& element : pt) {
+				nodes.emplace_back(std::make_shared<ParserNode>(element.first, element.second));
+			}
 		} catch(ptree_error& e) {
 			ASSERT_LOG(false, "Error parsing XHTML: " << e.what() << " : " << str);
 		}
-		return doc;
-	}
-
-	Parser::Parser(DocPtr doc)
-		: doc_(doc)
-	{
-	}
-
-	void Parser::parse(const boost::property_tree::ptree& pt)
-	{
-		//auto element = pt.get_child_optional("html");
-		//if(element) {
-			//auto ele = Element::factory("html", *element);
-			//ele->parse(*element);
-			//doc_->root = ele;
-
-
-			// XXX for testing
-			//ele->preOrderTraverse([](ElementPtr e) { std::cerr << "  Element: " << e->getName() << "\n"; });
-		//}
-		bool is_first = true;
-		for(auto& element : pt) {
-			auto ele = Element::factory(element.first, element.second);
-			ele->parse(element.second);
-			doc_->addElement(ele);
-			if(is_first) {
-				is_first = false;
-				doc_->setRootElement(ele);
-			}
-		}
+		auto frag = DocumentFragment::create();
+		for(auto& pn : nodes) {
+			frag->addChild(pn->createNode());
+		}		
+		return frag;
 	}
 }
 

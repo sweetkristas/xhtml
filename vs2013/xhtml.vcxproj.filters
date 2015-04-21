@@ -222,16 +222,10 @@
     <ClCompile Include="..\src\xhtml\xhtml_parser.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\xhtml\xhtml_doc.cpp">
-      <Filter>Source Files\xhtml</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\xhtml\xhtml_element.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
     <ClCompile Include="..\src\xhtml\xhtml_render_ctx.cpp">
-      <Filter>Source Files\xhtml</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\xhtml\xhtml_attributes.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
     <ClCompile Include="..\src\xhtml\css_parser.cpp">
@@ -251,6 +245,9 @@
     </ClCompile>
     <ClCompile Include="..\src\unit_test.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_node.cpp">
+      <Filter>Source Files\xhtml</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -509,9 +506,6 @@
     <ClInclude Include="..\src\xhtml\xhtml_parser.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\xhtml\xhtml_doc.hpp">
-      <Filter>Header Files\xhtml</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\xhtml\xhtml_fwd.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
@@ -519,9 +513,6 @@
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
     <ClInclude Include="..\src\xhtml\xhtml_render_ctx.hpp">
-      <Filter>Header Files\xhtml</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\xhtml\xhtml_attributes.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
     <ClInclude Include="..\src\xhtml\css_parser.hpp">
@@ -544,6 +535,9 @@
     </ClInclude>
     <ClInclude Include="..\src\unit_test.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_node.hpp">
+      <Filter>Header Files\xhtml</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
