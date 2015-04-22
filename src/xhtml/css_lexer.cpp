@@ -118,6 +118,7 @@ namespace css
 				return formatter() << "NumberToken(" << value_ << ")";
 			}
 			variant value() override { return variant(value_); }
+			double getNumericValue() const override { return value_; }
 		private:
 			double value_;
 		};
@@ -135,6 +136,8 @@ namespace css
 				res.add("units", units_);
 				return res.build();
 			}
+			double getNumericValue() const override { return value_; }
+			std::string getStringValue() const override { return units_; }
 		private:
 			double value_;
 			std::string units_;
@@ -187,6 +190,7 @@ namespace css
 				return formatter() << "PercentToken(" << value_ << "%%)";
 			}
 			variant value() override { return variant(value_); }
+			double getNumericValue() const override { return value_; }
 		private:
 			double value_;
 		};

@@ -75,8 +75,10 @@
     <ClCompile Include="..\src\unit_test.cpp" />
     <ClCompile Include="..\src\variant.cpp" />
     <ClCompile Include="..\src\variant_utils.cpp" />
+    <ClCompile Include="..\src\xhtml\css_attributes.cpp" />
     <ClCompile Include="..\src\xhtml\css_lexer.cpp" />
     <ClCompile Include="..\src\xhtml\css_parser.cpp" />
+    <ClCompile Include="..\src\xhtml\css_properties.cpp" />
     <ClCompile Include="..\src\xhtml\css_selector.cpp" />
     <ClCompile Include="..\src\xhtml\document_object_model.cpp" />
     <ClCompile Include="..\src\xhtml\dom_exception.cpp" />
@@ -170,11 +172,14 @@
     <ClInclude Include="..\src\utf8_to_codepoint.hpp" />
     <ClInclude Include="..\src\variant.hpp" />
     <ClInclude Include="..\src\variant_utils.hpp" />
+    <ClInclude Include="..\src\xhtml\css_attributes.hpp" />
     <ClInclude Include="..\src\xhtml\css_lexer.hpp" />
     <ClInclude Include="..\src\xhtml\css_parser.hpp" />
+    <ClInclude Include="..\src\xhtml\css_properties.hpp" />
     <ClInclude Include="..\src\xhtml\css_selector.hpp" />
     <ClInclude Include="..\src\xhtml\document_object_model.hpp" />
     <ClInclude Include="..\src\xhtml\dom_exception.hpp" />
+    <ClInclude Include="..\src\xhtml\variant_object.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_element.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_element_id.hpp" />

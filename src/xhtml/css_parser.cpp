@@ -23,6 +23,8 @@
 
 #include "asserts.hpp"
 #include "css_parser.hpp"
+#include "css_properties.hpp"
+#include "unit_test.hpp"
 
 namespace css
 {
@@ -292,7 +294,8 @@ namespace css
 			//}
 			ASSERT_LOG(false, "fix @ rules.");
 		} else {
-			SelectorParser selectors(prelude, rule->getParameters().end());
+			auto selectors = Selector::parseTokens(rule->getParameters());
+			//auto declarations = Declaration::parseTokens(rule->getValue()->getParameters());
 		}
 	}
 
@@ -307,194 +310,91 @@ namespace css
 		rules_.swap(*rules);
 	}
 
-	SelectorParser::SelectorParser(std::vector<TokenPtr>::const_iterator it, std::vector<TokenPtr>::const_iterator end)
-		: it_(it),
-		  end_(end)
+	class DeclarationParser
 	{
-		parseSelectorGroup();
-	}
-
-	bool SelectorParser::isCurrentToken(TokenId value)
-	{
-		if(it_ == end_) {
-			return false;
-		}
-		return (*it_)->id() == value;
-	}
-
-	void SelectorParser::advance(int n)
-	{
-		std::advance(it_, n);
-	}
-
-	std::vector<SelectorPtr> SelectorParser::parseSelectorGroup()
-	{
-		parseSelector();
-		while(isCurrentToken(TokenId::COMMA)) {
-			advance();
-			whitespace();
-			parseSelector();
-		}
-		std::vector<SelectorPtr> res;
-		return res;
-	}
-
-	void SelectorParser::parseSelector()
-	{
-		parseSimpleSelectorSeq();
-		while(isCombinator()) {
-			parseCombinator();
-			parseSimpleSelectorSeq();
-		}
-	}
-
-	void SelectorParser::parseCombinator()
-	{
-		if(isCurrentTokenDelim("+") || isCurrentTokenDelim(">") || isCurrentTokenDelim("~")) {
-			// XXX store combinator here.
-			advance();
-			whitespace();
-		}
-	}
-
-	bool SelectorParser::isCurrentTokenDelim(const std::string& ch)
-	{
-		return isCurrentToken(TokenId::DELIM) && (*it_)->value().as_string() == ch;
-	}
-
-	bool SelectorParser::parseSeqModifiers()
-	{
-		bool res = true;
-		// [ HASH | class | attrib | pseudo | negation ]
-		if(isCurrentToken(TokenId::HASH)) {
-			// XXX Store token attributes.
-			advance();
-		} else if(isCurrentTokenDelim(".")) {
-			advance();
-			if(!isCurrentToken(TokenId::IDENT)) {
-				LOG_ERROR("did not find identifier after matching class selector");
+	public:
+		DeclarationParser(std::vector<TokenPtr>::const_iterator begin, std::vector<TokenPtr>::const_iterator end) 
+			: it_(begin),
+			  end_(end)
+		{
+			if(isToken(TokenId::IDENT)) {
+				parseDeclaration();
+			} else if(isToken(TokenId::BLOCK_TOKEN)) {
+				//parseDeclarationList();
+			} else if(isToken(TokenId::LBRACE)) {
+				// parse brace block
 			}
-			// XXX Store class identifier.
+
+		}
+		static void parseTokens(const std::vector<TokenPtr>& tokens) {
+			DeclarationParser p(tokens.begin(), tokens.end());
+		}
+	private:
+		void advance(int n = 1) {
+			if(it_ == end_) {
+				return;
+			}
+			it_ += n;
+		}
+
+		bool isToken(TokenId value) {
+			if(it_ == end_) {
+				return false;
+			}
+			return (*it_)->id() == value;
+		}
+			
+		bool isNextToken(TokenId value) {
+			auto next = it_+1;
+			if(next == end_) {
+				return false;
+			}
+			return (*next)->id() == value;
+		}
+
+		void parseDeclaration() {
+			// assume first token is ident
+			std::string property = (*it_)->getStringValue();
 			advance();
-		} else if(isCurrentTokenDelim("[")) {
-			advance();
-			parseAttribute();
-		} else if(isCurrentTokenDelim(":")) {
-			advance();
-			if(isCurrentTokenDelim(":")) {
-				// XXX is pseudo-element
+			while(isToken(TokenId::WHITESPACE)) {
 				advance();
+			}
+			if(!isToken(TokenId::COLON)) {
+				throw ParserError("Expected ':' in declaration");
+			}
+			advance();
+			
+			while(isToken(TokenId::WHITESPACE)) {
+				advance();
+			}
+			
+			auto property_fn = find_property_handler(property);
+			if(property_fn == nullptr) {
+				// no handler found
+				LOG_ERROR("No property handler for " << property << " dropping it.");
+				while(!isToken(TokenId::COLON) && !isToken(TokenId::RBRACE) && !isToken(TokenId::EOF_TOKEN)) {
+					advance();
+				}
 			} else {
-				// XXX is pseudo-class
+				property_list plist;
+				property_fn(it_, end_, &plist);
 			}
-			if(isCurrentToken(TokenId::IDENT)) {
-				// XXX store identifier
-				advance();
-			} else if(isCurrentToken(TokenId::FUNCTION)) {
-				// XXX store function name and parameters.
-				// may need to parse parameters with
-				//  [ [ PLUS | '-' | DIMENSION | NUMBER | STRING | IDENT ] S* ]+
-				advance();
-			}
-		//} else if(isCurrentToken(TokenId::NOT) {
-		} else {
-			res = false;
 		}
-		return res;
+
+		bool isTokenDelimiter(const std::string& ch) {
+			return isToken(TokenId::DELIM) && (*it_)->getStringValue() == ch;
+		}
+		std::vector<TokenPtr>::const_iterator it_;
+		std::vector<TokenPtr>::const_iterator end_;
+	};
+}
+
+UNIT_TEST(css_declarations)
+{
+	//css::Tokenizer tokens("color: rgb(100%,0,0);");
+	css::Tokenizer tokens("color: #ff0; font-family: 'Arial'; color: hsl(360,0,0)");
+	for(auto& tok : tokens.getTokens()) {
+		LOG_DEBUG("  TOKEN: " << tok->toString());
 	}
-
-	void SelectorParser::parseSimpleSelectorSeq()
-	{
-		// [ type_selector | universal ]
-		if((isCurrentToken(TokenId::IDENT) || isCurrentTokenDelim("*")) && isNextTokenDelim("|")) {
-			// XXX parse namespace selector
-			advance(2);
-		}
-
-		if(isCurrentToken(TokenId::IDENT)) {
-			// XXX element name;
-			advance();
-		} else if(isCurrentTokenDelim("*")) {
-			// XXX universal element
-			advance();
-		} else {
-			parseSeqModifiers();
-		}
-
-		while(parseSeqModifiers()) {
-		}
-	}
-
-	bool SelectorParser::isCombinator()
-	{
-		bool res = false;
-		while(isCurrentToken(TokenId::WHITESPACE)) {
-			advance();
-			res = true;
-		}
-		if(isCurrentTokenDelim("+") || isCurrentTokenDelim(">") || isCurrentTokenDelim("~")) {
-			res = true;
-		}
-		return res;
-	}
-
-	void SelectorParser::parseAttribute()
-	{
-		// assume first '[' already removed.
-		// remove whitespace.
-		whitespace();
-		// [ namespace_prefix ]?
-		if((isCurrentToken(TokenId::IDENT) || isCurrentTokenDelim("*")) || isNextTokenDelim("|")) {
-			advance(2);
-			// XXX Set namespace prefix.
-		}
-		if(!isCurrentToken(TokenId::IDENT)) {
-			LOG_ERROR("error no identifier found in selector production.");
-			// XXX recovery			
-		}
-		// XXX store selector identifier
-		if(isCurrentToken(TokenId::PREFIX_MATCH) 
-			|| isCurrentToken(TokenId::SUFFIX_MATCH) 
-			|| isCurrentToken(TokenId::SUBSTRING_MATCH) 
-			|| isCurrentTokenDelim("=") 
-			|| isCurrentToken(TokenId::INCLUDE_MATCH)
-			|| isCurrentToken(TokenId::DASH_MATCH)) {
-			// XXX store match type
-			advance();
-			whitespace();
-			if(isCurrentToken(TokenId::STRING)) {
-				// XXX add string to attribute
-			} else if (!isCurrentToken(TokenId::IDENT)) {
-				// XXX add ident to attribute
-			} else {
-				LOG_ERROR("Didn't match right bracket in production.");
-				// XXX throw error and re-sync to next rule
-			}
-			whitespace();
-		}
-
-		if(!isCurrentTokenDelim("]")) {
-			advance();
-			LOG_ERROR("Didn't match right bracket in production.");
-			// XXX throw error and re-sync to next rule
-		}
-		advance();
-	}
-
-	bool SelectorParser::isNextTokenDelim(const std::string& ch)
-	{
-		auto next = it_ + 1;
-		if(next == end_) {
-			return false;
-		}
-		return (*next)->id() == TokenId::DELIM && (*next)->value().as_string() == ch;
-	}
-
-	void SelectorParser::whitespace()
-	{
-		// S*
-		while(isCurrentToken(TokenId::WHITESPACE)) {
-			advance();
-		}
-	}
+	//css::Declaration::parseTokens(tokens.getTokens();
 }

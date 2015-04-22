@@ -486,7 +486,7 @@ namespace css
 		specificity_[0] = specificity_[1] = specificity_[2] = 0;
 	}
 
-	std::vector<SelectorPtr> Selector::factory(const std::vector<TokenPtr>& tokens)
+	std::vector<SelectorPtr> Selector::parseTokens(const std::vector<TokenPtr>& tokens)
 	{
 		SelectorParser parser(tokens.begin(), tokens.end());
 
@@ -637,7 +637,7 @@ namespace css
 bool check_selector(const std::string& selector, const std::string& string_to_match)
 {
 	css::Tokenizer tokens(selector);
-	auto selectors = css::Selector::factory(tokens.getTokens());
+	auto selectors = css::Selector::parseTokens(tokens.getTokens());
 	//for(auto& s : selectors) {
 	//	LOG_DEBUG(s->toString());
 	//}

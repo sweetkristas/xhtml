@@ -22,9 +22,17 @@
 */
 
 #include "css_lexer.hpp"
+#include "css_selector.hpp"
 
 namespace css
 {
+	struct ParserError : public std::runtime_error
+	{
+		ParserError(const char* msg) : std::runtime_error(msg) {}
+		ParserError(const std::string& str) : str_(str), std::runtime_error(str_) {}
+		std::string str_;
+	};
+
 	class StyleSheet
 	{
 	public:
@@ -36,14 +44,6 @@ namespace css
 		std::vector<TokenPtr> rules_;
 	};
 	typedef std::shared_ptr<StyleSheet> StyleSheetPtr;
-
-	class Selector
-	{
-	public:
-		Selector();
-	private:
-	};
-	typedef std::shared_ptr<Selector> SelectorPtr;
 
 	class Parser
 	{
@@ -70,30 +70,5 @@ namespace css
 		StyleSheetPtr style_sheet_;
 		std::vector<TokenPtr>::const_iterator token_;
 		std::vector<TokenPtr>::const_iterator end_;
-	};
-
-	class SelectorParser
-	{
-	public:
-		SelectorParser(std::vector<TokenPtr>::const_iterator it, std::vector<TokenPtr>::const_iterator end);
-	private:
-		void advance(int n=1);
-		bool isCurrentToken(TokenId value);
-		bool isCurrentTokenDelim(const std::string& ch);
-		bool isNextTokenDelim(const std::string& ch);
-
-		std::vector<SelectorPtr> parseSelectorGroup();
-		bool isCombinator();
-		void parseSelector();
-		void parseCombinator();
-		void parseSimpleSelectorSeq();
-		void parseAttribute();
-		bool parseSeqModifiers();
-		
-		void whitespace();
-
-		std::vector<TokenPtr>::const_iterator it_;
-		std::vector<TokenPtr>::const_iterator end_;
-
 	};
 }

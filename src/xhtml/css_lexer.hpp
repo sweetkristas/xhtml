@@ -94,6 +94,7 @@ namespace css
 		virtual std::string toString() const;
 		virtual variant value() { return variant(toString()); }
 		virtual std::string getStringValue() const { return ""; }
+		virtual double getNumericValue() const { return 0; }
 
 		void addParameters(std::vector<TokenPtr> tok) { params_.insert(params_.end(), tok.begin(), tok.end()); }
 		void addParameter(TokenPtr tok) { params_.emplace_back(tok); }

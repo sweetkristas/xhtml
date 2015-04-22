@@ -101,7 +101,7 @@ namespace css
 	{
 	public:
 		Selector();
-		static std::vector<SelectorPtr> factory(const std::vector<TokenPtr>& tokens);
+		static std::vector<SelectorPtr> parseTokens(const std::vector<TokenPtr>& tokens);
 		bool match(xhtml::NodePtr element) const;
 		void addSimpleSelector(SimpleSelectorPtr s) { selector_chain_.emplace_back(s); }
 		std::string toString() const;
