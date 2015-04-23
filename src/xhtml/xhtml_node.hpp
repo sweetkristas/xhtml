@@ -60,7 +60,10 @@ namespace xhtml
 		virtual std::string toString() const = 0;
 		const AttributeMap& getAttributes() const { return attributes_; }
 		const NodeList& getChildren() const { return children_; }
+		// top-down scanning of the tree
 		void preOrderTraversal(std::function<bool(NodePtr)> fn);
+		// bottom-up scanning of the tree
+		void postOrderTraversal(std::function<bool(NodePtr)> fn);
 		virtual bool hasTag(const std::string& tag) const { return false; }
 		virtual bool hasTag(ElementId tag) const { return false; }
 		AttributePtr getAttribute(const std::string& name);

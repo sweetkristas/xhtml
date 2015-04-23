@@ -113,6 +113,17 @@ namespace xhtml
 		}
 	}
 
+	void Node::postOrderTraversal(std::function<bool(NodePtr)> fn)
+	{
+		// Visit children, then this process node.
+		for(auto& c : children_) {
+			c->preOrderTraversal(fn);
+		}
+		if(!fn(shared_from_this())) {
+			return;
+		}
+	}
+
 	AttributePtr Node::getAttribute(const std::string& name)
 	{
 		auto it = attributes_.find(name);
