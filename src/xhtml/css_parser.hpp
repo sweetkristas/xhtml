@@ -22,47 +22,34 @@
 */
 
 #include "css_lexer.hpp"
-#include "css_selector.hpp"
+#include "css_properties.hpp"
+#include "css_stylesheet.hpp"
 
 namespace css
 {
 	struct ParserError : public std::runtime_error
 	{
 		ParserError(const char* msg) : std::runtime_error(msg) {}
-		ParserError(const std::string& str) : str_(str), std::runtime_error(str_) {}
-		std::string str_;
+		ParserError(const std::string& str) : std::runtime_error(str) {}
 	};
-
-	class StyleSheet
-	{
-	public:
-		StyleSheet();
-		void addRules(std::vector<TokenPtr>* rule);
-
-		const std::vector<TokenPtr>& getRules() const { return rules_; }
-	private:
-		std::vector<TokenPtr> rules_;
-	};
-	typedef std::shared_ptr<StyleSheet> StyleSheetPtr;
 
 	class Parser
 	{
 	public:
-		Parser(const std::vector<TokenPtr>& tokens);
 		const StyleSheetPtr& getStyleSheet() const { return style_sheet_; }
-		static void parseRule(TokenPtr);
+		static void parse(StyleSheetPtr ss, const std::string& str);
+		static PropertyList parseDeclarationList(const std::string& str);
 	private:
+		Parser(StyleSheetPtr ss, const std::vector<TokenPtr>& tokens);
 		std::vector<TokenPtr> pasrseRuleList(int level);
 		TokenPtr parseAtRule();
 		TokenPtr parseQualifiedRule();
-		TokenPtr parseDeclarationList();
-		TokenPtr parseDeclaration();
-		TokenPtr parseImportant();
 		TokenPtr parseComponentValue();
 		std::vector<TokenPtr> parseBraceBlock();
 		std::vector<TokenPtr> parseParenBlock();
 		std::vector<TokenPtr> parseBracketBlock();
 		TokenPtr parseFunction();
+		void parseRule(TokenPtr);
 
 		TokenId currentTokenType();
 		void advance(int n=1);

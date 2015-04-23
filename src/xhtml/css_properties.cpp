@@ -73,9 +73,17 @@ namespace css
 
 		void skip_whitespace(std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end)
 		{
-			while((*it)->id() == TokenId::WHITESPACE && it != end) {
+			while(it != end && (*it)->id() == TokenId::WHITESPACE) {
 				++it;
 			}
+		}
+
+		TokenId get_token_id(std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end)
+		{
+			if(it == end) {
+				return TokenId::EOF_TOKEN;
+			}
+			return (*it)->id();
 		}
 
 		std::vector<TokenPtr> parse_csv_list(std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, TokenId end_token)
@@ -84,11 +92,15 @@ namespace css
 			while(it != end && (*it)->id() != end_token) {
 				skip_whitespace(it, end);
 				res.emplace_back(*it++);
-				if((*it)->id() != TokenId::COMMA) {
+				skip_whitespace(it, end);
+				if((*it)->id() == TokenId::COMMA) {
+					++it;
+				} else if((*it)->id() != end_token && it != end) {
 					throw ParserError("Expected ',' (COMMA) while parsing color value.");
 				}
+			}
+			if((*it)->id() == end_token) {
 				++it;
-				skip_whitespace(it, end);
 			}
 			return res;
 		}
@@ -118,6 +130,7 @@ namespace css
 			CssColor color;
 			if((*it)->id() == TokenId::IDENT) {
 				const std::string& ref = (*it)->getStringValue();
+				++it;
 				if(ref == "transparent") {
 					color.setParam(ColorParam::TRANSPARENT);
 				} else if(ref == "inherit") {
@@ -179,17 +192,18 @@ namespace css
 				const std::string& ref = (*it)->getStringValue();
 				// is #fff or #ff00ff representation
 				color.setColor(KRE::Color(ref));
+				++it;
 			}
 			return color;
 		}
 
-		void parse_background_color(std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist)
+		void parse_background_color(std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist)
 		{
 			(*plist)[CssProperty::BACKGROUND_COLOR] = Object(parse_a_color_value(it, end));			
 		}
 		PropertyRegistrar background_color("background-color", parse_background_color);
 
-		void parse_color(std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist)
+		void parse_color(std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist)
 		{
 			(*plist)[CssProperty::COLOR] = Object(parse_a_color_value(it, end));
 		}
@@ -214,30 +228,32 @@ namespace css
 				return Object(CssLength(value, units));
 			} else if((*it)->id() == TokenId::PERCENT) {
 				return Object(CssLength((*it++)->getNumericValue(), true));
+			} else if((*it)->id() == TokenId::NUMBER) {
+				return Object(CssLength((*it++)->getNumericValue()));
 			}
 			return Object();
 		}
 		PropertyRegistrar margin_top("margin-top", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::MARGIN_TOP] = parse_width(it, end); 
 		});
 		PropertyRegistrar margin_bottom("margin-bottom", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::MARGIN_BOTTOM] = parse_width(it, end); 
 		});
 		PropertyRegistrar margin_left("margin-left", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::MARGIN_LEFT] = parse_width(it, end); 
 		});
 		PropertyRegistrar margin_right("margin-right", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::MARGIN_RIGHT] = parse_width(it, end); 
 		});
 		PropertyRegistrar margin_all("margin", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				Object w1(parse_width(it, end));
 				skip_whitespace(it, end);
-				TokenId id = (*it)->id();
+				TokenId id = get_token_id(it, end);
 				if(id == TokenId::SEMICOLON || id == TokenId::RBRACE || it == end) {
 					// one value, apply to all elements.
 					(*plist)[CssProperty::MARGIN_TOP] = (*plist)[CssProperty::MARGIN_BOTTOM] = w1;
@@ -246,7 +262,7 @@ namespace css
 				}
 				Object w2(parse_width(it, end));
 				skip_whitespace(it, end);
-				id = (*it)->id();
+				id = get_token_id(it, end);
 				if(id == TokenId::SEMICOLON || id == TokenId::RBRACE || it == end) {
 					// two values, apply to pairs of elements.
 					(*plist)[CssProperty::MARGIN_TOP] = (*plist)[CssProperty::MARGIN_BOTTOM] = w1;
@@ -255,7 +271,7 @@ namespace css
 				}
 				Object w3(parse_width(it, end));
 				skip_whitespace(it, end);
-				id = (*it)->id();
+				id = get_token_id(it, end);
 				if(id == TokenId::SEMICOLON || id == TokenId::RBRACE || it == end) {
 					// three values, apply to top, left/right, bottom
 					(*plist)[CssProperty::MARGIN_TOP] = w1;
@@ -265,7 +281,6 @@ namespace css
 				}
 				Object w4(parse_width(it, end));
 				skip_whitespace(it, end);
-				id = (*it)->id();
 
 				// four values, apply to individual elements.
 				(*plist)[CssProperty::MARGIN_TOP] = w1;
@@ -277,23 +292,23 @@ namespace css
 		});
 
 		PropertyRegistrar padding_top("padding-top", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::PADDING_TOP] = parse_width(it, end); 
 		});
 		PropertyRegistrar padding_bottom("padding-bottom", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::PADDING_BOTTOM] = parse_width(it, end); 
 		});
 		PropertyRegistrar padding_left("padding-left", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::PADDING_LEFT] = parse_width(it, end); 
 		});
 		PropertyRegistrar padding_right("padding-right", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::PADDING_RIGHT] = parse_width(it, end); 
 		});
 		PropertyRegistrar padding_all("padding", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				Object w1(parse_width(it, end));
 				skip_whitespace(it, end);
 				TokenId id = (*it)->id();
@@ -336,19 +351,19 @@ namespace css
 		});
 
 		PropertyRegistrar border_top_color("border-top-color", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::BORDER_TOP_COLOR] = Object(parse_a_color_value(it, end));
 		});
 		PropertyRegistrar border_left_color("border-left-color", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::BORDER_LEFT_COLOR] = Object(parse_a_color_value(it, end));
 		});
 		PropertyRegistrar border_right_color("border-right-color", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::BORDER_RIGHT_COLOR] = Object(parse_a_color_value(it, end));
 		});
 		PropertyRegistrar border_bottom_color("border-bottom-color", 
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) { 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::BORDER_BOTTOM_COLOR] = Object(parse_a_color_value(it, end));
 		});
 
@@ -389,19 +404,19 @@ namespace css
 		}
 
 		PropertyRegistrar border_top_style("border-top-style",
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) {
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_TOP_STYLE] = Object(parse_border_style(it, end));
 		});
 		PropertyRegistrar border_left_style("border-left-style",
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) {
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_LEFT_STYLE] = Object(parse_border_style(it, end));
 		});
 		PropertyRegistrar border_right_style("border-right-style",
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) {
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_RIGHT_STYLE] = Object(parse_border_style(it, end));
 		});
 		PropertyRegistrar border_bottom_style("border-bottom-style",
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) {
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_BOTTOM_STYLE] = Object(parse_border_style(it, end));
 		});
 
@@ -425,24 +440,24 @@ namespace css
 		}
 
 		PropertyRegistrar border_top_width("border-top-width",
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) {
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_TOP_WIDTH] = border_width_parse(it, end);
 		});
 		PropertyRegistrar border_left_width("border-left-width",
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) {
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_LEFT_WIDTH] = border_width_parse(it, end);
 		});
 		PropertyRegistrar border_right_width("border-right-width",
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) {
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_RIGHT_WIDTH] = border_width_parse(it, end);
 		});
 		PropertyRegistrar border_bottom_width("border-bottom-width",
-			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, property_list* plist) {
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_BOTTOM_WIDTH] = border_width_parse(it, end);
 		});
 	}
 
-	void apply_properties_to_css(CssAttributes* attr, property_list plist) 
+	void apply_properties_to_css(CssStyles* attr, const PropertyList& plist) 
 	{
 		for(auto& p : plist) {
 			switch(p.first) {

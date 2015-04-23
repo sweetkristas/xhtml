@@ -25,7 +25,7 @@
 
 #include <functional>
 
-#include "css_attributes.hpp"
+#include "css_styles.hpp"
 #include "css_lexer.hpp"
 #include "variant_object.hpp"
 
@@ -58,10 +58,10 @@ namespace css
 		PADDING_LEFT,
 		PADDING_RIGHT,
 	};
-	typedef std::map<CssProperty, Object> property_list;
+	typedef std::map<CssProperty, Object> PropertyList;
 
-	typedef std::function<void(std::vector<TokenPtr>::const_iterator&, std::vector<TokenPtr>::const_iterator, property_list*)> property_parse_function;
+	typedef std::function<void(std::vector<TokenPtr>::const_iterator&, std::vector<TokenPtr>::const_iterator, PropertyList*)> property_parse_function;
 	property_parse_function find_property_handler(const std::string& name);
 
-	void apply_properties_to_css(CssAttributes* attr, property_list plist);
+	void apply_properties_to_css(CssStyles* attr, const PropertyList& plist);
 }

@@ -23,33 +23,30 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
-
 #include "xhtml_fwd.hpp"
-#include "xhtml_node.hpp"
-#include "css_styles.hpp"
+#include "css_selector.hpp"
+#include "css_properties.hpp"
 
-namespace xhtml
+namespace css
 {
-	class Element : public Node
+	struct CssRule
+	{
+		std::vector<SelectorPtr> selectors;
+		PropertyList declaractions;
+	};
+	typedef std::shared_ptr<CssRule> CssRulePtr;
+
+	class StyleSheet
 	{
 	public:
-		virtual ~Element();
-		static ElementPtr create(const std::string& name, WeakDocumentPtr owner=WeakDocumentPtr());
-		std::string toString() const override;
-		ElementId getElementId() const { return tag_; }
-		const std::string& getTag() const { return name_; }
-		const std::string& getName() const { return name_; }
-		bool hasTag(const std::string& tag) const { return tag == name_; }
-		bool hasTag(ElementId tag) const { return tag == tag_; }
-		css::CssStyles* getStyle() override { return &css_style_; }
-	protected:
-		explicit Element(ElementId id, const std::string& name, WeakDocumentPtr owner);
-		std::string name_;
-		ElementId tag_; 
-		css::CssStyles css_style_;
-	};
+		StyleSheet();
+		void addRule(const CssRulePtr& rule);
+		std::string toString() const;
 
-	void add_custom_element(const std::string& e);
+		const std::vector<CssRulePtr>& getRules() const { return rules_; }
+		void applyRulesToElement(xhtml::NodePtr n);
+	private:
+		std::vector<CssRulePtr> rules_;
+	};
+	typedef std::shared_ptr<StyleSheet> StyleSheetPtr;
 }

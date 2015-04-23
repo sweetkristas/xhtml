@@ -72,13 +72,13 @@ namespace css
 					// Basically won't handle these
 					return false;
 				} else if(name_ == "hover") {
-					ASSERT_LOG(false, "Handle :hover pseudo class.");
+					//ASSERT_LOG(false, "Handle :hover pseudo class.");
 				} else if(name_ == "active") {
-					ASSERT_LOG(false, "Handle :active pseudo class.");
+					//ASSERT_LOG(false, "Handle :active pseudo class.");
 				} else if(name_ == "focus") {
-					ASSERT_LOG(false, "Handle :focus pseudo class.");
+					//ASSERT_LOG(false, "Handle :focus pseudo class.");
 				} else if(name_ == "lang") {
-					ASSERT_LOG(false, "Handle :lang pseudo class.");
+					//ASSERT_LOG(false, "Handle :lang pseudo class.");
 				} else if(name_ == "not") {
 					if(has_param_) {
 						return !element->hasTag(param_);
@@ -354,10 +354,12 @@ namespace css
 							simple_selector = next_selector;
 						}
 					} else if(was_ws) {
-						auto next_selector = parseSelector();
-						if(next_selector != nullptr) {
-							next_selector->setCombinator(Combinator::DESCENDENT);
-							simple_selector = next_selector;
+						if(isToken(TokenId::IDENT)) {
+							auto next_selector = parseSelector();
+							if(next_selector != nullptr) {
+								next_selector->setCombinator(Combinator::DESCENDENT);
+								simple_selector = next_selector;
+							}
 						}
 					} else {
 						return simple_selector;
@@ -638,9 +640,9 @@ bool check_selector(const std::string& selector, const std::string& string_to_ma
 {
 	css::Tokenizer tokens(selector);
 	auto selectors = css::Selector::parseTokens(tokens.getTokens());
-	//for(auto& s : selectors) {
-	//	LOG_DEBUG(s->toString());
-	//}
+	for(auto& s : selectors) {
+		LOG_DEBUG(s->toString());
+	}
 
 	xhtml::DocumentFragmentPtr doc = xhtml::parse_from_string(string_to_match);
 	bool successful_match = false;
@@ -670,4 +672,5 @@ UNIT_TEST(css_selectors)
 	CHECK_EQ(check_selector("em[foo^=x][bar=x]", "<em foo=\"xxx\" bar=\"x\"><p>Some text</p></em>"), true);
 	CHECK_EQ(check_selector("h1, h2, h3", "<h1>Now is the time.</h1>"), true);
 	CHECK_EQ(check_selector("#s12:not(FOO)", "<html><head></head><body><h1 id=\"s12\">Now is the time.</h1><FOO id=\"s12\"></FOO></body></html>"), true);
+	CHECK_EQ(check_selector("body ", "<body></body>"), true);
 }

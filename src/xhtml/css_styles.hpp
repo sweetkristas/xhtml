@@ -41,6 +41,8 @@ namespace css
 		explicit CssColor(ColorParam param, const KRE::Color& color=KRE::Color::colorWhite());
 		void setParam(ColorParam param);
 		void setColor(const KRE::Color& color);
+		ColorParam getParam() const { return param_; }
+		const KRE::Color& getColor() const { return color_; }		
 	private:
 		ColorParam param_;
 		KRE::Color color_;
@@ -199,9 +201,9 @@ namespace css
 		TABLE_CAPTION,
 	};
 
-	struct CssAttributes
+	struct CssStyles
 	{
-		CssAttributes();
+		CssStyles();
 		CssLength margin_left_;
 		CssLength margin_top_;
 		CssLength margin_right_;

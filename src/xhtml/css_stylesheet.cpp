@@ -21,35 +21,48 @@
 	   distribution.
 */
 
-#pragma once
-
-#include <string>
-#include <vector>
-
-#include "xhtml_fwd.hpp"
+#include "css_stylesheet.hpp"
 #include "xhtml_node.hpp"
-#include "css_styles.hpp"
 
-namespace xhtml
+namespace css
 {
-	class Element : public Node
+	// StyleSheet functions
+	StyleSheet::StyleSheet()
+		: rules_()
 	{
-	public:
-		virtual ~Element();
-		static ElementPtr create(const std::string& name, WeakDocumentPtr owner=WeakDocumentPtr());
-		std::string toString() const override;
-		ElementId getElementId() const { return tag_; }
-		const std::string& getTag() const { return name_; }
-		const std::string& getName() const { return name_; }
-		bool hasTag(const std::string& tag) const { return tag == name_; }
-		bool hasTag(ElementId tag) const { return tag == tag_; }
-		css::CssStyles* getStyle() override { return &css_style_; }
-	protected:
-		explicit Element(ElementId id, const std::string& name, WeakDocumentPtr owner);
-		std::string name_;
-		ElementId tag_; 
-		css::CssStyles css_style_;
-	};
+	}
 
-	void add_custom_element(const std::string& e);
+	void StyleSheet::addRule(const CssRulePtr& rule)
+	{
+		rules_.emplace_back(rule);
+	}
+
+	std::string StyleSheet::toString() const
+	{
+		std::ostringstream ss;
+		for(auto& r : rules_) {
+			for(auto& s : r->selectors) {
+				ss << s->toString() << ", ";
+			}
+			ss << "\n";
+			for(auto& d : r->declaractions) {
+				ss << "    " << d.first << " : " /*<< d.second*/ << "\n";
+			}
+		}
+		return ss.str();
+	}
+
+	void StyleSheet::applyRulesToElement(xhtml::NodePtr n)
+	{
+		if(n->id() == xhtml::NodeId::ELEMENT && n->getStyle() != nullptr) {
+			for(auto& r : rules_) {
+				for(auto& s : r->selectors) {
+					if(s->match(n)) {
+						apply_properties_to_css(n->getStyle(), r->declaractions);
+						break;
+					}
+				}				
+			}
+		}
+	}
 }

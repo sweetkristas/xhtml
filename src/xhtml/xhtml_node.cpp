@@ -23,12 +23,17 @@
 
 #include <sstream>
 
+#include "asserts.hpp"
+#include "css_parser.hpp"
 #include "xhtml_node.hpp"
 
 namespace xhtml
 {
 	namespace {
-		struct DocumentImpl : public Document {};
+		struct DocumentImpl : public Document 
+		{
+			DocumentImpl(css::StyleSheetPtr ss) : Document(ss) {}
+		};
 
 		struct DocumentFragmentImpl : public DocumentFragment
 		{
@@ -67,6 +72,9 @@ namespace xhtml
 			// we add the children of a document fragment rather than the node itself.
 			if(children_.empty()) {
 				children_ = child->children_;
+				for(auto& c : children_) {
+					c->setParent(shared_from_this());
+				}
 			} else {
 				if(!child->children_.empty()) {
 					children_.back()->right_ = child->children_.front();
@@ -120,10 +128,80 @@ namespace xhtml
 		return ss.str();
 	}
 
-	// Documents do not have an owner document.
-	Document::Document()
-		: Node(NodeId::DOCUMENT, WeakDocumentPtr())
+	const std::string& Node::getValue() const
 	{
+		static std::string null_str;
+		return null_str;
+	}
+
+	void Node::normalize()
+	{
+		std::vector<NodePtr> new_child_list;
+		TextPtr new_text_node;
+		for(auto& c : children_) {
+			if(c->id() == NodeId::TEXT) {
+				if(!c->getValue().empty()) {
+					if(new_text_node) {
+						new_text_node->addText(c->getValue());
+					} else {
+						new_text_node = Text::create(c->getValue(), owner_document_);
+					}
+				}
+			} else {
+				if(new_text_node) {
+					new_child_list.emplace_back(new_text_node);
+					new_text_node.reset();
+				}
+				new_child_list.emplace_back(c);
+			}
+		}
+		if(new_text_node != nullptr) {
+			new_child_list.emplace_back(new_text_node);
+		}
+		children_ = new_child_list;
+		for(auto& c : children_) {
+			c->normalize();
+		}
+	}
+
+	// Documents do not have an owner document.
+	Document::Document(css::StyleSheetPtr ss)
+		: Node(NodeId::DOCUMENT, WeakDocumentPtr()),
+		  style_sheet_(ss == nullptr ? std::make_shared<css::StyleSheet>() : ss)
+	{
+	}
+
+	void Document::processStyles()
+	{
+		// parse all the style nodes into the style sheet.
+		auto ss = style_sheet_;
+		preOrderTraversal([&ss](NodePtr n) {
+			if(n->hasTag(ElementId::STYLE)) {
+				for(auto& child : n->getChildren()) {
+					if(child->id() == NodeId::TEXT) {						
+						css::Parser::parse(ss, child->getValue());
+					}
+				}
+			}
+			return true;
+		});
+		
+		preOrderTraversal([&ss](NodePtr n) {
+			ss->applyRulesToElement(n);
+			return true;
+		});
+
+		// XXX Parse and apply specific element style rules from attributes here.
+		preOrderTraversal([](NodePtr n) {
+			if(n->id() == NodeId::ELEMENT) {
+				auto attr = n->getAttribute("style");
+				if(attr) {
+					auto plist = css::Parser::parseDeclarationList(attr->getValue());
+					css::apply_properties_to_css(n->getStyle(), plist);
+				}
+			}
+			return true;
+		});
 	}
 
 	std::string Document::toString() const 
@@ -133,9 +211,9 @@ namespace xhtml
 		return ss.str();
 	}
 
-	DocumentPtr Document::create()
+	DocumentPtr Document::create(css::StyleSheetPtr ss)
 	{
-		return std::make_shared<DocumentImpl>();
+		return std::make_shared<DocumentImpl>(ss);
 	}
 
 	DocumentFragment::DocumentFragment(WeakDocumentPtr owner)

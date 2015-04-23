@@ -67,10 +67,16 @@ public:
 		impl_.reset(new ObjectImpl<typename TypeWrapper<T>::TYPE>(value));
 	}
 
+	void setImportant(bool importance=true) {
+		impl_->important_ = importance;
+	}
+
 private:
 	struct AbstractObjectImpl
 	{
+		AbstractObjectImpl() : important_(false) {}
 		virtual ~AbstractObjectImpl() {}
+		bool important_;
 	};
 
 	template<class T>

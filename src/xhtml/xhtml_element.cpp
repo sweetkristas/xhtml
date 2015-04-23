@@ -595,7 +595,8 @@ namespace xhtml
 	Element::Element(ElementId id, const std::string& name, WeakDocumentPtr owner)
 		: Node(NodeId::ELEMENT, owner),
 		  name_(name),
-		  tag_(id)
+		  tag_(id),
+		  css_style_()
 	{
 	}
 
@@ -617,7 +618,7 @@ namespace xhtml
 	std::string Element::toString() const 
 	{
 		std::ostringstream ss;
-		ss << "Element('" << name_ << "' " << nodeToString() << ")";
+		ss << "Element('" << name_ << "' " << nodeToString() << "color: " << css_style_.color_.getColor() << ")";
 		return ss.str();
 	}
 

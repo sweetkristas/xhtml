@@ -23,7 +23,7 @@
 
 #include "asserts.hpp"
 
-#include "css_attributes.hpp"
+#include "css_styles.hpp"
 
 namespace css
 {
@@ -135,7 +135,7 @@ namespace css
 		fonts_.emplace_back("sans-serif");
 	}
 
-	CssAttributes::CssAttributes() 
+	CssStyles::CssStyles() 
 		: margin_left_(0.0),
 		  margin_top_(0.0),
 		  margin_right_(0.0),

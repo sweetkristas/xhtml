@@ -29,6 +29,7 @@
 
 #include "xhtml.hpp"
 #include "xhtml_element_id.hpp"
+#include "css_stylesheet.hpp"
 
 namespace xhtml
 {
@@ -63,6 +64,9 @@ namespace xhtml
 		virtual bool hasTag(const std::string& tag) const { return false; }
 		virtual bool hasTag(ElementId tag) const { return false; }
 		AttributePtr getAttribute(const std::string& name);
+		virtual const std::string& getValue() const;
+		virtual css::CssStyles* getStyle() { return nullptr; }
+		void normalize();
 	protected:
 		std::string nodeToString() const;
 	private:
@@ -80,10 +84,12 @@ namespace xhtml
 	class Document : public Node
 	{
 	public:
-		static DocumentPtr create();
+		static DocumentPtr create(css::StyleSheetPtr ss=nullptr);
 		std::string toString() const override;
+		void processStyles();
 	protected:
-		Document();
+		Document(css::StyleSheetPtr ss);
+		css::StyleSheetPtr style_sheet_;
 	};
 
 	class DocumentFragment : public Node
@@ -99,9 +105,11 @@ namespace xhtml
 	{
 	public:
 		static TextPtr create(const std::string& txt, WeakDocumentPtr owner=WeakDocumentPtr());
+		void addText(const std::string& txt) { text_ += txt; }
 	protected:
 		explicit Text(const std::string& txt, WeakDocumentPtr owner);
 		std::string toString() const override;
+		const std::string& getValue() const override { return text_; }
 	private:
 		std::string text_;
 	};

@@ -30,6 +30,8 @@
 #include "xhtml_node.hpp"
 #include "xhtml_parser.hpp"
 
+#include "unit_test.hpp"
+
 namespace xhtml
 {
 	namespace 
@@ -147,3 +149,10 @@ namespace xhtml
 	}
 }
 
+UNIT_TEST(xhtml_node_tests)
+{
+	auto frag = xhtml::parse_from_string("<em> \n \n \n <![CDATA[this is some text!!!!]]> \n \n \n</em>");
+	LOG_DEBUG("children in fragment: " << frag->getChildren().size());
+	frag->normalize();
+	LOG_DEBUG("children in fragment (after normalize): " << frag->getChildren().size());
+}

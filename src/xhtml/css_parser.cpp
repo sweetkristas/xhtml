@@ -92,14 +92,166 @@ namespace css
 				return formatter() << "Selector(" << ss.str() << ")";
 			};
 		};
+
+		class DeclarationParser
+		{
+		public:
+			DeclarationParser(std::vector<TokenPtr>::const_iterator begin, std::vector<TokenPtr>::const_iterator end) 
+				: it_(begin),
+				  end_(end),
+				  plist_()
+			{
+				while(isToken(TokenId::WHITESPACE)) {
+					advance();
+				}
+				if(isToken(TokenId::IDENT)) {
+					parseDeclarationList(&plist_);
+				} else if(isToken(TokenId::BLOCK_TOKEN)) {
+					auto old_it = it_;
+					auto old_end = end_;
+					it_ = (*old_it)->getParameters().begin();
+					end_ = (*old_it)->getParameters().end();
+					parseDeclarationList(&plist_);
+					it_ = old_it;
+					end_ = old_end;
+					advance();
+				} else if(isToken(TokenId::LBRACE)) {
+					advance();
+					parseDeclarationList(&plist_);
+				}
+
+			}
+			static PropertyList parseTokens(const std::vector<TokenPtr>& tokens) {
+				DeclarationParser p(tokens.begin(), tokens.end());
+				return p.getProperties();
+			}
+			PropertyList getProperties() { return plist_; }
+		private:
+			PropertyList plist_;
+			void advance(int n = 1) {
+				if(it_ == end_) {
+					return;
+				}
+				it_ += n;
+			}
+
+			bool isToken(TokenId value) {
+				if(it_ == end_ ) {
+					return value == TokenId::EOF_TOKEN ? true : false;
+				}
+				return (*it_)->id() == value;
+			}
+			
+			bool isNextToken(TokenId value) {
+				auto next = it_+1;
+				if(next == end_) {
+					return false;
+				}
+				return (*next)->id() == value;
+			}
+
+			void parseDeclarationList(PropertyList* plist) {
+				while(true) {
+					while(isToken(TokenId::WHITESPACE)) {
+						advance();
+					}
+					if(isToken(TokenId::RBRACE)) {
+						advance();
+						return;
+					}
+					if(isToken(TokenId::EOF_TOKEN) || it_ == end_) {
+						return;
+					}
+					try {
+						parseDeclaration(plist);
+					} catch (ParserError& e) {
+						LOG_ERROR("Dropping declaration: " << e.what());
+						while(!isToken(TokenId::SEMICOLON) && !isToken(TokenId::RBRACE) && !isToken(TokenId::EOF_TOKEN)) {
+							advance();
+						}
+					}
+					while(isToken(TokenId::WHITESPACE)) {
+						advance();
+					}
+					if(isToken(TokenId::SEMICOLON)) {
+						advance();
+					} else if(!isToken(TokenId::RBRACE) && !isToken(TokenId::EOF_TOKEN)) {
+						throw ParserError("Expected semicolon.");
+					}
+				}
+			}
+
+			void parseDeclaration(PropertyList* plist) {
+				// assume first token is ident
+				std::string property = (*it_)->getStringValue();
+				advance();
+				while(isToken(TokenId::WHITESPACE)) {
+					advance();
+				}
+				if(!isToken(TokenId::COLON)) {
+					throw ParserError("Expected ':' in declaration");
+				}
+				advance();
+			
+				while(isToken(TokenId::WHITESPACE)) {
+					advance();
+				}
+			
+				auto property_fn = find_property_handler(property);
+				if(property_fn == nullptr) {
+					// no handler found
+					throw ParserError(formatter() << "No property handler for " << property);
+				} else {
+					PropertyList new_plist;
+					property_fn(it_, end_, &new_plist);
+					while(isToken(TokenId::WHITESPACE)) {
+						advance();
+					}
+					if(isTokenDelimiter("!")) {
+						advance();
+						while(isToken(TokenId::WHITESPACE)) {
+							advance();
+						}
+						if(isToken(TokenId::IDENT)) {
+							const std::string ref = (*it_)->getStringValue();
+							advance();
+							if(ref == "important") {
+								// add important tag to the rule in plist.
+								for(auto& pl : new_plist) {
+									pl.second.setImportant(true);
+								}
+							}
+						}
+					}
+					for(auto& pl : new_plist) {
+						(*plist)[pl.first] = pl.second;
+					}
+				}
+			}
+
+			bool isTokenDelimiter(const std::string& ch) {
+				return isToken(TokenId::DELIM) && (*it_)->getStringValue() == ch;
+			}
+			std::vector<TokenPtr>::const_iterator it_;
+			std::vector<TokenPtr>::const_iterator end_;
+		};
+
 	}
 
-	Parser::Parser(const std::vector<TokenPtr>& tokens)
-		: style_sheet_(std::make_shared<StyleSheet>()),
+	Parser::Parser(StyleSheetPtr ss, const std::vector<TokenPtr>& tokens)
+		: style_sheet_(ss),
 		  token_(tokens.begin()),
 		  end_(tokens.end())
 	{
-		style_sheet_->addRules(&pasrseRuleList(0));
+		for(auto& token : pasrseRuleList(0)) {
+			parseRule(token);
+		}
+	}
+
+	void Parser::parse(StyleSheetPtr ss, const std::string& str)
+	{
+		css::Tokenizer tokens(str);
+		Parser p(ss, tokens.getTokens());
 	}
 
 	TokenId Parser::currentTokenType()
@@ -179,22 +331,10 @@ namespace css
 		return nullptr;
 	}
 
-	TokenPtr Parser::parseDeclarationList()
+	PropertyList Parser::parseDeclarationList(const std::string& str)
 	{
-		// XXX
-		return nullptr;
-	}
-
-	TokenPtr Parser::parseDeclaration()
-	{
-		// XXX
-		return nullptr;
-	}
-
-	TokenPtr Parser::parseImportant()
-	{
-		// XXX
-		return nullptr;
+		css::Tokenizer tokens(str);
+		return DeclarationParser::parseTokens(tokens.getTokens());		
 	}
 
 	TokenPtr Parser::parseComponentValue()
@@ -294,107 +434,20 @@ namespace css
 			//}
 			ASSERT_LOG(false, "fix @ rules.");
 		} else {
-			auto selectors = Selector::parseTokens(rule->getParameters());
-			//auto declarations = Declaration::parseTokens(rule->getValue()->getParameters());
+			CssRulePtr css_rule = std::make_shared<CssRule>();
+			css_rule->selectors = Selector::parseTokens(rule->getParameters());
+			css_rule->declaractions = DeclarationParser::parseTokens(rule->getValue()->getParameters());
+			style_sheet_->addRule(css_rule);
 		}
 	}
-
-	// StyleSheet functions
-	StyleSheet::StyleSheet()
-		: rules_()
-	{
-	}
-
-	void StyleSheet::addRules(std::vector<TokenPtr>* rules)
-	{
-		rules_.swap(*rules);
-	}
-
-	class DeclarationParser
-	{
-	public:
-		DeclarationParser(std::vector<TokenPtr>::const_iterator begin, std::vector<TokenPtr>::const_iterator end) 
-			: it_(begin),
-			  end_(end)
-		{
-			if(isToken(TokenId::IDENT)) {
-				parseDeclaration();
-			} else if(isToken(TokenId::BLOCK_TOKEN)) {
-				//parseDeclarationList();
-			} else if(isToken(TokenId::LBRACE)) {
-				// parse brace block
-			}
-
-		}
-		static void parseTokens(const std::vector<TokenPtr>& tokens) {
-			DeclarationParser p(tokens.begin(), tokens.end());
-		}
-	private:
-		void advance(int n = 1) {
-			if(it_ == end_) {
-				return;
-			}
-			it_ += n;
-		}
-
-		bool isToken(TokenId value) {
-			if(it_ == end_) {
-				return false;
-			}
-			return (*it_)->id() == value;
-		}
-			
-		bool isNextToken(TokenId value) {
-			auto next = it_+1;
-			if(next == end_) {
-				return false;
-			}
-			return (*next)->id() == value;
-		}
-
-		void parseDeclaration() {
-			// assume first token is ident
-			std::string property = (*it_)->getStringValue();
-			advance();
-			while(isToken(TokenId::WHITESPACE)) {
-				advance();
-			}
-			if(!isToken(TokenId::COLON)) {
-				throw ParserError("Expected ':' in declaration");
-			}
-			advance();
-			
-			while(isToken(TokenId::WHITESPACE)) {
-				advance();
-			}
-			
-			auto property_fn = find_property_handler(property);
-			if(property_fn == nullptr) {
-				// no handler found
-				LOG_ERROR("No property handler for " << property << " dropping it.");
-				while(!isToken(TokenId::COLON) && !isToken(TokenId::RBRACE) && !isToken(TokenId::EOF_TOKEN)) {
-					advance();
-				}
-			} else {
-				property_list plist;
-				property_fn(it_, end_, &plist);
-			}
-		}
-
-		bool isTokenDelimiter(const std::string& ch) {
-			return isToken(TokenId::DELIM) && (*it_)->getStringValue() == ch;
-		}
-		std::vector<TokenPtr>::const_iterator it_;
-		std::vector<TokenPtr>::const_iterator end_;
-	};
 }
 
 UNIT_TEST(css_declarations)
 {
 	//css::Tokenizer tokens("color: rgb(100%,0,0);");
-	css::Tokenizer tokens("color: #ff0; font-family: 'Arial'; color: hsl(360,0,0)");
+	css::Tokenizer tokens("{ color: #ff0 !important; font-family: 'Arial'; color: hsl(360,0,0) }");
 	for(auto& tok : tokens.getTokens()) {
 		LOG_DEBUG("  TOKEN: " << tok->toString());
 	}
-	//css::Declaration::parseTokens(tokens.getTokens();
+	css::DeclarationParser::parseTokens(tokens.getTokens());
 }

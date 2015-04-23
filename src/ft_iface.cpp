@@ -41,8 +41,8 @@ namespace KRE
 
 			FT_Library& get_freetype_library()
 			{
-				static FT_Library library = NULL;
-				if(library == NULL) {
+				static FT_Library library = nullptr;
+				if(library == nullptr) {
 					FT_Error error = FT_Init_FreeType(&library);
 					ASSERT_LOG(error == 0, "Error initialising freetype library: " << error);
 				}
@@ -69,7 +69,10 @@ namespace KRE
 						}
 					}
 				}
-				ASSERT_LOG(error == 0, "Could not load font face: " << font_file << " error: " << error);
+				if(error != 0) {
+					return nullptr;
+				}
+				//ASSERT_LOG(error == 0, "Could not load font face: " << font_file << " error: " << error);
 				font_map[font_file] = face;
 				return face;
 			} 

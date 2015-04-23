@@ -22,6 +22,7 @@
 */
 
 #include "asserts.hpp"
+#include "filesystem.hpp"
 #include "CameraObject.hpp"
 #include "Font.hpp"
 #include "RenderManager.hpp"
@@ -32,6 +33,7 @@
 #include "variant_utils.hpp"
 #include "unit_test.hpp"
 
+#include "css_parser.hpp"
 #include "xhtml.hpp"
 #include "xhtml_node.hpp"
 
@@ -56,15 +58,26 @@ int main(int argc, char* argv[])
 
 #if defined(__linux__)
 	const std::string test_doc = "data/test1.xhtml";
+	const std::string ua_ss = "data/user_agent.css";
 #else
 	const std::string test_doc = "../data/test1.xhtml";
+	const std::string ua_ss = "../data/user_agent.css";
 #endif
 
-	auto doc = xhtml::parse_from_file(test_doc);
+	auto user_agent_style_sheet = std::make_shared<css::StyleSheet>();
+	css::Parser::parse(user_agent_style_sheet, sys::read_file(ua_ss));
+
+	auto doc_frag = xhtml::parse_from_file(test_doc);
+	auto doc = xhtml::Document::create(user_agent_style_sheet);
+	doc->addChild(doc_frag);
+	doc->normalize();
+	doc->processStyles();
+
 	doc->preOrderTraversal([](xhtml::NodePtr n) {
 		LOG_DEBUG(n->toString());
 		return true;
 	});
+
 #if 0
 	WindowManager wm("SDL");
 

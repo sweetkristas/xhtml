@@ -252,7 +252,10 @@
     <ClCompile Include="..\src\xhtml\css_properties.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\xhtml\css_attributes.cpp">
+    <ClCompile Include="..\src\xhtml\css_styles.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\css_stylesheet.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
   </ItemGroup>
@@ -548,10 +551,13 @@
     <ClInclude Include="..\src\xhtml\css_properties.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\xhtml\css_attributes.hpp">
+    <ClInclude Include="..\src\xhtml\variant_object.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\xhtml\variant_object.hpp">
+    <ClInclude Include="..\src\xhtml\css_styles.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\css_stylesheet.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
   </ItemGroup>
@@ -560,6 +566,9 @@
       <Filter>Header Files\kre</Filter>
     </None>
     <None Include="..\data\test1.xhtml">
+      <Filter>Test Files</Filter>
+    </None>
+    <None Include="..\data\user_agent.css">
       <Filter>Test Files</Filter>
     </None>
   </ItemGroup>
