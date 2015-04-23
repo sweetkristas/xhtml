@@ -31,7 +31,7 @@
 
 namespace css
 {
-	enum CssProperty {
+	enum class CssProperty {
 		BACKGROUND_COLOR,
 		BACKGROUND_ATTACHMENT,
 		COLOR,
@@ -57,6 +57,8 @@ namespace css
 		PADDING_BOTTOM,
 		PADDING_LEFT,
 		PADDING_RIGHT,
+
+		DISPLAY,
 	};
 	typedef std::map<CssProperty, Object> PropertyList;
 
@@ -64,4 +66,6 @@ namespace css
 	property_parse_function find_property_handler(const std::string& name);
 
 	void apply_properties_to_css(CssStyles* attr, const PropertyList& plist);
+
+	const std::string& get_property_name_from_id(CssProperty prop);
 }

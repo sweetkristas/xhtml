@@ -202,6 +202,8 @@ namespace xhtml
 			}
 			return true;
 		});
+
+		LOG_DEBUG("STYLESHEET: " << ss->toString());
 	}
 
 	std::string Document::toString() const 

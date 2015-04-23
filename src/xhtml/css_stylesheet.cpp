@@ -35,6 +35,7 @@ namespace css
 	void StyleSheet::addRule(const CssRulePtr& rule)
 	{
 		rules_.emplace_back(rule);
+		//std::stable_sort(rules_.begin(), rules_.end(), sort_fn);
 	}
 
 	std::string StyleSheet::toString() const
@@ -46,7 +47,14 @@ namespace css
 			}
 			ss << "\n";
 			for(auto& d : r->declaractions) {
-				ss << "    " << d.first << " : " /*<< d.second*/ << "\n";
+				const std::string& prop_name = get_property_name_from_id(d.first);
+				ss << "    ";
+				if(prop_name.empty()) {
+					ss << static_cast<int>(d.first);
+				} else {
+					ss << prop_name;
+				}
+				ss << " : " /*<< d.second*/ << "\n";
 			}
 		}
 		return ss.str();

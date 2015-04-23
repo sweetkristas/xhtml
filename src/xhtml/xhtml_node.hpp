@@ -67,6 +67,7 @@ namespace xhtml
 		virtual const std::string& getValue() const;
 		virtual css::CssStyles* getStyle() { return nullptr; }
 		void normalize();
+		//virtual rect getBoundingBox() const = 0;
 	protected:
 		std::string nodeToString() const;
 	private:

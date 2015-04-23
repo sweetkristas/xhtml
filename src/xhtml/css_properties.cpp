@@ -41,6 +41,13 @@ namespace css
 			return res;
 		}
 
+		typedef std::map<CssProperty, std::string> property_name_map;
+		property_name_map& get_property_name_map()
+		{
+			static property_name_map res;
+			return res;
+		}
+
 		KRE::Color hsla_to_color(double h, double s, double l, double a)
 		{
 			const float hue_upper_limit = 360.0;
@@ -68,6 +75,10 @@ namespace css
 		{
 			PropertyRegistrar(const std::string& name, property_parse_function fn) {
 				get_property_table()[name] = fn;
+			}
+			PropertyRegistrar(const std::string& name, CssProperty index, property_parse_function fn) {
+				get_property_table()[name] = fn;
+				get_property_name_map()[index] = name;
 			}
 		};
 
@@ -201,13 +212,13 @@ namespace css
 		{
 			(*plist)[CssProperty::BACKGROUND_COLOR] = Object(parse_a_color_value(it, end));			
 		}
-		PropertyRegistrar background_color("background-color", parse_background_color);
+		PropertyRegistrar background_color("background-color", CssProperty::BACKGROUND_COLOR, parse_background_color);
 
 		void parse_color(std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist)
 		{
 			(*plist)[CssProperty::COLOR] = Object(parse_a_color_value(it, end));
 		}
-		PropertyRegistrar color("color", parse_color);
+		PropertyRegistrar color("color", CssProperty::COLOR, parse_color);
 
 		Object parse_width(std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end)
 		{
@@ -233,19 +244,19 @@ namespace css
 			}
 			return Object();
 		}
-		PropertyRegistrar margin_top("margin-top", 
+		PropertyRegistrar margin_top("margin-top", CssProperty::MARGIN_TOP,
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::MARGIN_TOP] = parse_width(it, end); 
 		});
-		PropertyRegistrar margin_bottom("margin-bottom", 
+		PropertyRegistrar margin_bottom("margin-bottom", CssProperty::MARGIN_BOTTOM,
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::MARGIN_BOTTOM] = parse_width(it, end); 
 		});
-		PropertyRegistrar margin_left("margin-left", 
+		PropertyRegistrar margin_left("margin-left", CssProperty::MARGIN_LEFT,
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::MARGIN_LEFT] = parse_width(it, end); 
 		});
-		PropertyRegistrar margin_right("margin-right", 
+		PropertyRegistrar margin_right("margin-right", CssProperty::MARGIN_RIGHT, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::MARGIN_RIGHT] = parse_width(it, end); 
 		});
@@ -291,19 +302,19 @@ namespace css
 				skip_whitespace(it, end);
 		});
 
-		PropertyRegistrar padding_top("padding-top", 
+		PropertyRegistrar padding_top("padding-top", CssProperty::PADDING_TOP,
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::PADDING_TOP] = parse_width(it, end); 
 		});
-		PropertyRegistrar padding_bottom("padding-bottom", 
+		PropertyRegistrar padding_bottom("padding-bottom", CssProperty::PADDING_BOTTOM, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::PADDING_BOTTOM] = parse_width(it, end); 
 		});
-		PropertyRegistrar padding_left("padding-left", 
+		PropertyRegistrar padding_left("padding-left", CssProperty::PADDING_LEFT, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::PADDING_LEFT] = parse_width(it, end); 
 		});
-		PropertyRegistrar padding_right("padding-right", 
+		PropertyRegistrar padding_right("padding-right", CssProperty::PADDING_RIGHT, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::PADDING_RIGHT] = parse_width(it, end); 
 		});
@@ -350,19 +361,19 @@ namespace css
 				skip_whitespace(it, end);
 		});
 
-		PropertyRegistrar border_top_color("border-top-color", 
+		PropertyRegistrar border_top_color("border-top-color", CssProperty::BORDER_TOP_COLOR, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::BORDER_TOP_COLOR] = Object(parse_a_color_value(it, end));
 		});
-		PropertyRegistrar border_left_color("border-left-color", 
+		PropertyRegistrar border_left_color("border-left-color", CssProperty::BORDER_LEFT_COLOR, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::BORDER_LEFT_COLOR] = Object(parse_a_color_value(it, end));
 		});
-		PropertyRegistrar border_right_color("border-right-color", 
+		PropertyRegistrar border_right_color("border-right-color", CssProperty::BORDER_RIGHT_COLOR, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::BORDER_RIGHT_COLOR] = Object(parse_a_color_value(it, end));
 		});
-		PropertyRegistrar border_bottom_color("border-bottom-color", 
+		PropertyRegistrar border_bottom_color("border-bottom-color", CssProperty::BORDER_BOTTOM_COLOR, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) { 
 				(*plist)[CssProperty::BORDER_BOTTOM_COLOR] = Object(parse_a_color_value(it, end));
 		});
@@ -403,19 +414,19 @@ namespace css
 			return BorderStyle::NONE;
 		}
 
-		PropertyRegistrar border_top_style("border-top-style",
+		PropertyRegistrar border_top_style("border-top-style", CssProperty::BORDER_TOP_STYLE, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_TOP_STYLE] = Object(parse_border_style(it, end));
 		});
-		PropertyRegistrar border_left_style("border-left-style",
+		PropertyRegistrar border_left_style("border-left-style", CssProperty::BORDER_LEFT_STYLE, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_LEFT_STYLE] = Object(parse_border_style(it, end));
 		});
-		PropertyRegistrar border_right_style("border-right-style",
+		PropertyRegistrar border_right_style("border-right-style", CssProperty::BORDER_RIGHT_STYLE, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_RIGHT_STYLE] = Object(parse_border_style(it, end));
 		});
-		PropertyRegistrar border_bottom_style("border-bottom-style",
+		PropertyRegistrar border_bottom_style("border-bottom-style", CssProperty::BORDER_BOTTOM_STYLE, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_BOTTOM_STYLE] = Object(parse_border_style(it, end));
 		});
@@ -439,22 +450,68 @@ namespace css
 			return parse_width(it, end);
 		}
 
-		PropertyRegistrar border_top_width("border-top-width",
+		PropertyRegistrar border_top_width("border-top-width", CssProperty::BORDER_TOP_WIDTH, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_TOP_WIDTH] = border_width_parse(it, end);
 		});
-		PropertyRegistrar border_left_width("border-left-width",
+		PropertyRegistrar border_left_width("border-left-width", CssProperty::BORDER_LEFT_WIDTH, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_LEFT_WIDTH] = border_width_parse(it, end);
 		});
-		PropertyRegistrar border_right_width("border-right-width",
+		PropertyRegistrar border_right_width("border-right-width", CssProperty::BORDER_RIGHT_WIDTH, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_RIGHT_WIDTH] = border_width_parse(it, end);
 		});
-		PropertyRegistrar border_bottom_width("border-bottom-width",
+		PropertyRegistrar border_bottom_width("border-bottom-width", CssProperty::BORDER_BOTTOM_WIDTH, 
 			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
 				(*plist)[CssProperty::BORDER_BOTTOM_WIDTH] = border_width_parse(it, end);
 		});
+
+		PropertyRegistrar display("display", CssProperty::DISPLAY, 
+			[](std::vector<TokenPtr>::const_iterator& it, std::vector<TokenPtr>::const_iterator end, PropertyList* plist) {
+				CssDisplay display = CssDisplay::INLINE;
+				skip_whitespace(it, end);
+				if(get_token_id(it, end) == TokenId::IDENT) {
+					std::string ref = (*it++)->getStringValue();
+					if(ref == "inline") {
+						display = CssDisplay::INLINE;
+					} else if(ref == "none") {
+						display = CssDisplay::NONE;
+					} else if(ref == "block") {
+						display = CssDisplay::BLOCK;
+					} else if(ref == "list-item") {
+						display = CssDisplay::LIST_ITEM;
+					} else if(ref == "inline-block") {
+						display = CssDisplay::INLINE_BLOCK;
+					} else if(ref == "table") {
+						display = CssDisplay::TABLE;
+					} else if(ref == "inline-table") {
+						display = CssDisplay::INLINE_TABLE;
+					} else if(ref == "table-row-group") {
+						display = CssDisplay::TABLE_ROW_GROUP;
+					} else if(ref == "table-header-group") {
+						display = CssDisplay::TABLE_HEADER_GROUP;
+					} else if(ref == "table-footer-group") {
+						display = CssDisplay::TABLE_FOOTER_GROUP;
+					} else if(ref == "table-row") {
+						display = CssDisplay::TABLE_ROW;
+					} else if(ref == "table-column-group") {
+						display = CssDisplay::TABLE_COLUMN_GROUP;
+					} else if(ref == "table-column") {
+						display = CssDisplay::TABLE_COLUMN;
+					} else if(ref == "table-cell") {
+						display = CssDisplay::TABLE_CELL;
+					} else if(ref == "table-caption") {
+						display = CssDisplay::TABLE_CAPTION;
+					} else if(ref == "inherit") {
+						display = CssDisplay::INHERIT;
+					} else {
+						throw ParserError(formatter() << "Unrecognised token for display property: " << ref);
+					}
+				}
+				(*plist)[CssProperty::DISPLAY] = Object(display);
+		});
+
 	}
 
 	void apply_properties_to_css(CssStyles* attr, const PropertyList& plist) 
@@ -510,30 +567,33 @@ namespace css
 					attr->border_bottom_.setWidth(p.second.getValue<CssLength>());
 					break;
 
-				case MARGIN_TOP:
+				case CssProperty::MARGIN_TOP:
 					attr->margin_top_ = p.second.getValue<CssLength>();
 					break;
-				case MARGIN_BOTTOM:
+				case CssProperty::MARGIN_BOTTOM:
 					attr->margin_bottom_ = p.second.getValue<CssLength>();
 					break;
-				case MARGIN_LEFT:
+				case CssProperty::MARGIN_LEFT:
 					attr->margin_left_ = p.second.getValue<CssLength>();
 					break;
-				case MARGIN_RIGHT:
+				case CssProperty::MARGIN_RIGHT:
 					attr->margin_right_ = p.second.getValue<CssLength>();
 					break;
 
-				case PADDING_TOP:
+				case CssProperty::PADDING_TOP:
 					attr->padding_top_ = p.second.getValue<CssLength>();
 					break;
-				case PADDING_BOTTOM:
+				case CssProperty::PADDING_BOTTOM:
 					attr->padding_bottom_ = p.second.getValue<CssLength>();
 					break;
-				case PADDING_LEFT:
+				case CssProperty::PADDING_LEFT:
 					attr->padding_left_ = p.second.getValue<CssLength>();
 					break;
-				case PADDING_RIGHT:
+				case CssProperty::PADDING_RIGHT:
 					attr->padding_right_ = p.second.getValue<CssLength>();
+					break;
+				case CssProperty::DISPLAY:
+					attr->display_ = p.second.getValue<CssDisplay>();
 					break;
 
 				default: break;
@@ -546,6 +606,16 @@ namespace css
 		auto it = get_property_table().find(name);
 		if(it == get_property_table().end()) {
 			return nullptr;
+		}
+		return it->second;
+	}
+
+	const std::string& get_property_name_from_id(CssProperty prop)
+	{
+		const static std::string null_str;
+		auto it = get_property_name_map().find(prop);
+		if(it == get_property_name_map().end()) {
+			return null_str;
 		}
 		return it->second;
 	}
