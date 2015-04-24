@@ -24,12 +24,12 @@
 #pragma once
 
 #include "Color.hpp"
+#include "xhtml_render_ctx.hpp"
 
 namespace css
 {
 	enum class ColorParam {
 		NONE,
-		INHERIT,
 		TRANSPARENT,
 		VALUE,
 	};
@@ -64,7 +64,6 @@ namespace css
 	enum class CssLengthParam {
 		VALUE,
 		AUTO,
-		INHERIT,
 	};
 
 	class CssLength
@@ -75,6 +74,10 @@ namespace css
 		explicit CssLength(double value, CssLengthUnits units) : param_(CssLengthParam::VALUE), value_(value), units_(units) {}
 		explicit CssLength(double value, const std::string& units);
 		explicit CssLength(CssLengthParam param);
+		// evaluate the current length value given the context, in px.
+		// XXX we should replace "font_size" with some sort of render context, which has the current font/font-size, width/length etc
+		double evaluate(double length, const xhtml::RenderContext* ctx) const;
+		bool isAuto() const { return param_ == CssLengthParam::AUTO; }
 	private:
 		CssLengthParam param_;
 		double value_;
@@ -82,7 +85,6 @@ namespace css
 	};
 
 	enum class BorderStyle {
-		INHERIT,
 		NONE,
 		HIDDEN,
 		DOTTED,
@@ -140,8 +142,7 @@ namespace css
 	{
 	public:
 		FontSize() 
-			: inherit_(true), 
-			  is_absolute_(false), 
+			: is_absolute_(false), 
 			  absolute_(FontSizeAbsolute::NONE), 
 			  is_relative_(false), 
 			  relative_(FontSizeRelative::NONE), 
@@ -165,25 +166,22 @@ namespace css
 			is_length_ = true;
 		}
 	private:
-		bool inherit_;
 		bool is_absolute_;
 		FontSizeAbsolute absolute_;
 		bool is_relative_;
 		FontSizeRelative relative_;
 		bool is_length_;
 		CssLength length_;
-		void disableAll() { inherit_ = false; is_absolute_= false; is_relative_ = false; is_length_ = false; }
+		void disableAll() { is_absolute_= false; is_relative_ = false; is_length_ = false; }
 	};
 
 	enum class CssFloat {
-		INHERIT,
 		NONE,
 		LEFT,
 		RIGHT,
 	};
 
 	enum class CssDisplay {
-		INHERIT,
 		NONE,
 		INLINE,
 		BLOCK,
@@ -199,28 +197,5 @@ namespace css
 		TABLE_COLUMN,
 		TABLE_CELL,
 		TABLE_CAPTION,
-	};
-
-	struct CssStyles
-	{
-		CssStyles();
-		CssLength margin_left_;
-		CssLength margin_top_;
-		CssLength margin_right_;
-		CssLength margin_bottom_;
-		CssLength padding_left_;
-		CssLength padding_top_;
-		CssLength padding_right_;
-		CssLength padding_bottom_;
-		Border border_left_;
-		Border border_top_;
-		Border border_right_;
-		Border border_bottom_;
-		CssColor background_color_;
-		CssColor color_;
-		FontFamily font_family_;
-		FontSize font_size_;
-		CssFloat float_;
-		CssDisplay display_;
 	};
 }

@@ -27,7 +27,10 @@
 
 namespace xhtml
 {
-	RenderContext::RenderContext()
+	RenderContext::RenderContext(const std::string& font_name, double font_size)
+		: font_name_(font_name),
+		  font_size_(font_size),
+		  font_xheight_(font_size/2.0)
 	{
 	}
 }

@@ -99,25 +99,25 @@ namespace css
 			DeclarationParser(std::vector<TokenPtr>::const_iterator begin, std::vector<TokenPtr>::const_iterator end) 
 				: it_(begin),
 				  end_(end),
-				  plist_()
+				  pp_()
 			{
 				while(isToken(TokenId::WHITESPACE)) {
 					advance();
 				}
 				if(isToken(TokenId::IDENT)) {
-					parseDeclarationList(&plist_);
+					parseDeclarationList(&pp_);
 				} else if(isToken(TokenId::BLOCK_TOKEN)) {
 					auto old_it = it_;
 					auto old_end = end_;
 					it_ = (*old_it)->getParameters().begin();
 					end_ = (*old_it)->getParameters().end();
-					parseDeclarationList(&plist_);
+					parseDeclarationList(&pp_);
 					it_ = old_it;
 					end_ = old_end;
 					advance();
 				} else if(isToken(TokenId::LBRACE)) {
 					advance();
-					parseDeclarationList(&plist_);
+					parseDeclarationList(&pp_);
 				}
 
 			}
@@ -125,9 +125,9 @@ namespace css
 				DeclarationParser p(tokens.begin(), tokens.end());
 				return p.getProperties();
 			}
-			PropertyList getProperties() { return plist_; }
+			PropertyList getProperties() { return pp_.getPropertyList(); }
 		private:
-			PropertyList plist_;
+			PropertyParser pp_;
 			void advance(int n = 1) {
 				if(it_ == end_) {
 					return;
@@ -150,7 +150,7 @@ namespace css
 				return (*next)->id() == value;
 			}
 
-			void parseDeclarationList(PropertyList* plist) {
+			void parseDeclarationList(PropertyParser* pp) {
 				while(true) {
 					while(isToken(TokenId::WHITESPACE)) {
 						advance();
@@ -163,7 +163,7 @@ namespace css
 						return;
 					}
 					try {
-						parseDeclaration(plist);
+						parseDeclaration(pp);
 					} catch (ParserError& e) {
 						LOG_ERROR("Dropping declaration: " << e.what());
 						while(!isToken(TokenId::SEMICOLON) && !isToken(TokenId::RBRACE) && !isToken(TokenId::EOF_TOKEN)) {
@@ -181,7 +181,7 @@ namespace css
 				}
 			}
 
-			void parseDeclaration(PropertyList* plist) {
+			void parseDeclaration(PropertyParser* pp) {
 				// assume first token is ident
 				std::string property = (*it_)->getStringValue();
 				advance();
@@ -197,34 +197,24 @@ namespace css
 					advance();
 				}
 			
-				auto property_fn = find_property_handler(property);
-				if(property_fn == nullptr) {
-					// no handler found
-					throw ParserError(formatter() << "No property handler for " << property);
-				} else {
-					PropertyList new_plist;
-					property_fn(it_, end_, &new_plist);
+				it_ = pp->parse(property, it_, end_);
+				while(isToken(TokenId::WHITESPACE)) {
+					advance();
+				}
+				if(isTokenDelimiter("!")) {
+					advance();
 					while(isToken(TokenId::WHITESPACE)) {
 						advance();
 					}
-					if(isTokenDelimiter("!")) {
+					if(isToken(TokenId::IDENT)) {
+						const std::string ref = (*it_)->getStringValue();
 						advance();
-						while(isToken(TokenId::WHITESPACE)) {
-							advance();
-						}
-						if(isToken(TokenId::IDENT)) {
-							const std::string ref = (*it_)->getStringValue();
-							advance();
-							if(ref == "important") {
-								// add important tag to the rule in plist.
-								for(auto& pl : new_plist) {
-									pl.second.setImportant(true);
-								}
+						if(ref == "important") {
+							// add important tag to the rule in plist.
+							for(auto& pl : pp->getPropertyList()) {
+								pl.second.setImportant(true);
 							}
 						}
-					}
-					for(auto& pl : new_plist) {
-						(*plist)[pl.first] = pl.second;
 					}
 				}
 			}

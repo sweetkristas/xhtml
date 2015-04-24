@@ -45,10 +45,13 @@ struct TypeWrapper<T&>
 class Object
 {
 public:
-	Object() {}
+	Object() : inherit_(false) {}
 
 	template<class T>
-	Object(T value) : impl_(new ObjectImpl<typename TypeWrapper<T>::TYPE>(value)) {}
+	explicit Object(T value) : inherit_(false), impl_(new ObjectImpl<typename TypeWrapper<T>::TYPE>(value)) {}
+
+	template<>
+	explicit Object(bool in) : inherit_(in) {}
 
 	template<class T> typename TypeWrapper<T>::REFTYPE getValue() 
 	{ 
@@ -71,7 +74,15 @@ public:
 		impl_->important_ = importance;
 	}
 
+	void setInherit(bool inherit=true) {
+		inherit_ = inherit;
+	}
+
+	bool isImportant() const { return impl_ != nullptr ? impl_->important_ : false; }
+	bool empty() const { return impl_ == nullptr; }
+	bool shouldInherit() const { return inherit_; }
 private:
+	bool inherit_;
 	struct AbstractObjectImpl
 	{
 		AbstractObjectImpl() : important_(false) {}
@@ -83,9 +94,7 @@ private:
 	struct ObjectImpl : public AbstractObjectImpl
 	{
 		ObjectImpl(T value) : value_(value) { }
-
 		~ObjectImpl() {}
-
 		T value_;
 	};
 

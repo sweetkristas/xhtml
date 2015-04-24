@@ -24,17 +24,20 @@
 #include "asserts.hpp"
 #include "filesystem.hpp"
 #include "CameraObject.hpp"
+#include "Canvas.hpp"
 #include "Font.hpp"
 #include "RenderManager.hpp"
 #include "SceneGraph.hpp"
 #include "SceneNode.hpp"
 #include "SDLWrapper.hpp"
 #include "WindowManager.hpp"
+#include "profile_timer.hpp"
 #include "variant_utils.hpp"
 #include "unit_test.hpp"
 
 #include "css_parser.hpp"
 #include "xhtml.hpp"
+#include "xhtml_layout.hpp"
 #include "xhtml_node.hpp"
 
 int main(int argc, char* argv[])
@@ -78,7 +81,17 @@ int main(int argc, char* argv[])
 		return true;
 	});
 
-#if 0
+	auto layout = xhtml::LayoutBox::create(doc);
+	xhtml::RenderContext ctx("arial", 12.0);
+	xhtml::Dimensions root_dimensions;
+	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, height);
+	layout->layout(&ctx, root_dimensions);
+
+	layout->preOrderTraversal([](xhtml::LayoutBoxPtr box) {
+		LOG_DEBUG(box->toString());
+	});
+
+#if 1
 	WindowManager wm("SDL");
 
 	variant_builder hints;
@@ -116,9 +129,7 @@ int main(int argc, char* argv[])
 	auto rman = std::make_shared<RenderManager>();
 	auto rq = rman->addQueue(0, "opaques");
 
-	auto doc = xhtml::Parser::parseFromFile(test_doc);
-	//auto doc_node = doc->render(scene, variant());
-	//root->attachNode(doc_node);
+	auto canvas = Canvas::getInstance();
 
 	SDL_Event e;
 	bool done = false;
@@ -136,6 +147,15 @@ int main(int argc, char* argv[])
 		}
 
 		main_wnd->clear(ClearFlags::ALL);
+
+		layout->preOrderTraversal([canvas](xhtml::LayoutBoxPtr box) {
+			auto css_color = box->getNodeStyle("color");
+			if(!css_color.empty()) {
+				canvas->drawSolidRect(box->getContentDimensions().as_type<int>(), css_color.getValue<css::CssColor>().getColor());
+			} else {
+				canvas->drawSolidRect(box->getContentDimensions().as_type<int>(), Color::colorBlueviolet());
+			}
+		});
 
 		// Called once a cycle before rendering.
 		Uint32 current_tick_time = SDL_GetTicks();

@@ -84,6 +84,7 @@
     <ClCompile Include="..\src\xhtml\document_object_model.cpp" />
     <ClCompile Include="..\src\xhtml\dom_exception.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_element.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_layout.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_node.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_parser.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_render_ctx.cpp" />
@@ -186,6 +187,7 @@
     <ClInclude Include="..\src\xhtml\xhtml_element.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_element_id.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_fwd.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_layout.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_node.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_parser.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_render_ctx.hpp" />

@@ -258,6 +258,9 @@
     <ClCompile Include="..\src\xhtml\css_stylesheet.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_layout.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -558,6 +561,9 @@
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
     <ClInclude Include="..\src\xhtml\css_stylesheet.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_layout.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
   </ItemGroup>

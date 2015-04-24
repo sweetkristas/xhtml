@@ -29,6 +29,8 @@ namespace css
 {
 	namespace 
 	{
+		const double pixels_per_inch = 96.0;
+
 		std::vector<int>& get_font_size_table(int ppi)
 		{
 			static std::vector<int> res;
@@ -93,6 +95,8 @@ namespace css
 			units_ = CssLengthUnits::PX;
 		} else if(units == "%") {
 			units_ = CssLengthUnits::PERCENT;
+			// normalize to range 0.0 -> 1.0
+			value_ /= 100.0;
 		} else {
 			LOG_ERROR("unrecognised units value: '" << units << "'");
 		}
@@ -103,7 +107,39 @@ namespace css
 		  value_(0), 
 		  units_(CssLengthUnits::NUMBER)
 	{
+	}
 
+	double CssLength::evaluate(double length, const xhtml::RenderContext* ctx) const
+	{
+		// auto values evaluate as 0
+		if(isAuto()) {
+			return 0;
+		}
+		switch(units_) {
+			case CssLengthUnits::NUMBER:
+			case CssLengthUnits::PX:
+				return value_ * pixels_per_inch / 72.0 * 0.75;
+			case CssLengthUnits::EM:
+				return ctx->getFontSize() * value_ * pixels_per_inch / 72.0;
+			case CssLengthUnits::EX:
+				// fudge
+				return ctx->getFontXHeight() * value_ * pixels_per_inch / 72.0;
+			case CssLengthUnits::IN:
+				return value_ * pixels_per_inch;
+			case CssLengthUnits::CM:
+				return value_ * pixels_per_inch * 2.54;
+			case CssLengthUnits::MM:
+				return value_ * pixels_per_inch * 25.4;
+			case CssLengthUnits::PT:
+				return value_ * pixels_per_inch / 72.0;
+			case CssLengthUnits::PC:
+				return 12.0 * value_ * pixels_per_inch / 72.0;
+			case CssLengthUnits::PERCENT:
+				return value_* length;
+			default: break;
+		}
+		ASSERT_LOG(false, "Unrecognised units value: " << static_cast<int>(units_));
+		return value_;
 	}
 
 	Border::Border() 
@@ -134,27 +170,4 @@ namespace css
 	{ 
 		fonts_.emplace_back("sans-serif");
 	}
-
-	CssStyles::CssStyles() 
-		: margin_left_(0.0),
-		  margin_top_(0.0),
-		  margin_right_(0.0),
-		  margin_bottom_(0.0),
-		  padding_left_(0.0),
-		  padding_top_(0.0),
-		  padding_right_(0.0),
-		  padding_bottom_(0.0),
-		  border_left_(),
-		  border_top_(),
-		  border_right_(),
-		  border_bottom_(),
-		  background_color_(ColorParam::TRANSPARENT),
-		  color_(),
-		  font_family_(),
-		  font_size_(),
-		  float_(CssFloat::INHERIT),
-		  display_(CssDisplay::INLINE)
-	{
-	}
-
 }

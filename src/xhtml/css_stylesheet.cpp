@@ -46,15 +46,8 @@ namespace css
 				ss << s->toString() << ", ";
 			}
 			ss << "\n";
-			for(auto& d : r->declaractions) {
-				const std::string& prop_name = get_property_name_from_id(d.first);
-				ss << "    ";
-				if(prop_name.empty()) {
-					ss << static_cast<int>(d.first);
-				} else {
-					ss << prop_name;
-				}
-				ss << " : " /*<< d.second*/ << "\n";
+			for(auto& d : r->declaractions) {				
+				ss << "    " << d.first << " : " /*<< d.second*/ << "\n";
 			}
 		}
 		return ss.str();
@@ -62,11 +55,11 @@ namespace css
 
 	void StyleSheet::applyRulesToElement(xhtml::NodePtr n)
 	{
-		if(n->id() == xhtml::NodeId::ELEMENT && n->getStyle() != nullptr) {
+		if(n->id() == xhtml::NodeId::ELEMENT) {
 			for(auto& r : rules_) {
 				for(auto& s : r->selectors) {
 					if(s->match(n)) {
-						apply_properties_to_css(n->getStyle(), r->declaractions);
+						n->mergeProperties(r->declaractions);
 						break;
 					}
 				}				

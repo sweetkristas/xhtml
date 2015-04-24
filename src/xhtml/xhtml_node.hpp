@@ -30,6 +30,7 @@
 #include "xhtml.hpp"
 #include "xhtml_element_id.hpp"
 #include "css_stylesheet.hpp"
+#include "variant_object.hpp"
 
 namespace xhtml
 {
@@ -68,9 +69,10 @@ namespace xhtml
 		virtual bool hasTag(ElementId tag) const { return false; }
 		AttributePtr getAttribute(const std::string& name);
 		virtual const std::string& getValue() const;
-		virtual css::CssStyles* getStyle() { return nullptr; }
+		Object getStyle(const std::string& name) const;
 		void normalize();
-		//virtual rect getBoundingBox() const = 0;
+		void mergeProperties(const css::PropertyList& plist);
+		const css::PropertyList& getProperties() const { return properties_; }
 	protected:
 		std::string nodeToString() const;
 	private:
@@ -83,6 +85,8 @@ namespace xhtml
 		WeakNodePtr parent_;
 
 		WeakDocumentPtr owner_document_;
+
+		css::PropertyList properties_;
 	};
 
 	class Document : public Node

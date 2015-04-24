@@ -23,12 +23,22 @@
 
 #pragma once
 
+#include <string>
+
 namespace xhtml
 {
 	class RenderContext
 	{
 	public:
-		RenderContext();
+		explicit RenderContext(const std::string& font_name, double font_size);
+		void setFont(const std::string& name) { font_name_ = name; }
+		void setFontSize(double fs, double xheight=0) { font_size_ = fs; font_xheight_ = xheight==0 ? 0.5*fs : xheight; }
+		const std::string& getFontName() const { return font_name_; }
+		double getFontSize() const { return font_size_; }
+		double getFontXHeight() const { return font_xheight_; }
 	private:
+		std::string font_name_;
+		double font_size_;
+		double font_xheight_;
 	};
 }

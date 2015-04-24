@@ -58,7 +58,8 @@ namespace xhtml
 		  left_(),
 		  right_(),
 		  parent_(),
-		  owner_document_(owner)
+		  owner_document_(owner),
+		  properties_()
 	{
 	}
 
@@ -208,13 +209,29 @@ namespace xhtml
 				auto attr = n->getAttribute("style");
 				if(attr) {
 					auto plist = css::Parser::parseDeclarationList(attr->getValue());
-					css::apply_properties_to_css(n->getStyle(), plist);
+					n->mergeProperties(plist);
 				}
 			}
 			return true;
 		});
 
 		LOG_DEBUG("STYLESHEET: " << ss->toString());
+	}
+
+	Object Node::getStyle(const std::string& name) const
+	{
+		auto o = properties_.getProperty(name);
+		if(o.shouldInherit()) {
+			auto p = getParent();
+			ASSERT_LOG(p != nullptr, "css property(" << name << ") is set to inherit but the node has no parent.");
+			return p->getStyle(name);
+		}
+		return o;
+	}
+
+	void Node::mergeProperties(const css::PropertyList& plist)
+	{
+		properties_.merge(plist);
 	}
 
 	std::string Document::toString() const 

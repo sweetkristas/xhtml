@@ -31,41 +31,52 @@
 
 namespace css
 {
-	enum class CssProperty {
-		BACKGROUND_COLOR,
-		BACKGROUND_ATTACHMENT,
-		COLOR,
-		BORDER_TOP_COLOR,
-		BORDER_TOP_STYLE,
-		BORDER_TOP_WIDTH,
-		BORDER_BOTTOM_COLOR,
-		BORDER_BOTTOM_STYLE,
-		BORDER_BOTTOM_WIDTH,
-		BORDER_LEFT_COLOR,
-		BORDER_LEFT_STYLE,
-		BORDER_LEFT_WIDTH,
-		BORDER_RIGHT_COLOR,
-		BORDER_RIGHT_STYLE,
-		BORDER_RIGHT_WIDTH,
-
-		MARGIN_TOP,
-		MARGIN_BOTTOM,
-		MARGIN_LEFT,
-		MARGIN_RIGHT,
-
-		PADDING_TOP,
-		PADDING_BOTTOM,
-		PADDING_LEFT,
-		PADDING_RIGHT,
-
-		DISPLAY,
+	class PropertyList
+	{
+	public:
+		typedef std::map<std::string, Object>::iterator iterator;
+		typedef std::map<std::string, Object>::const_iterator const_iterator;
+		PropertyList();
+		void addProperty(const std::string& name, const Object& o);
+		Object getProperty(const std::string& name) const;
+		void merge(const PropertyList& plist);
+		iterator begin() { return properties_.begin(); }
+		iterator end() { return properties_.end(); }
+		const_iterator begin() const { return properties_.cbegin(); }
+		const_iterator end() const { return properties_.cend(); }
+	private:
+		std::map<std::string, Object> properties_;
 	};
-	typedef std::map<CssProperty, Object> PropertyList;
 
-	typedef std::function<void(std::vector<TokenPtr>::const_iterator&, std::vector<TokenPtr>::const_iterator, PropertyList*)> property_parse_function;
-	property_parse_function find_property_handler(const std::string& name);
+	class PropertyParser
+	{
+	public:
+		typedef std::vector<TokenPtr>::const_iterator const_iterator;
+		PropertyParser();
+		const_iterator parse(const std::string& name, const const_iterator& begin, const const_iterator& end);
+		const PropertyList& getPropertyList() const { return plist_; }
+		PropertyList& getPropertyList() { return plist_; }
+		typedef std::vector<TokenPtr>::const_iterator const_iterator;
+		void parseColor(const std::string& name);
+		void parseWidth(const std::string& name);
+		void parseWidthList(const std::string& name);
+		void parseBorderWidth(const std::string& name);
+		void parseBorderStyle(const std::string& name);
+		void parseDisplay(const std::string& name);
+	private:
+		void advance();
+		void skipWhitespace();
+		bool isToken(TokenId tok) const;
+		bool isTokenDelimiter(const std::string& delim);
+		std::vector<TokenPtr> PropertyParser::parseCSVList(TokenId end_token);
+		void parseCSVNumberList(TokenId end_token, std::function<void(int,double,bool)> fn);
+		Object parseColorInternal();
+		Object parseWidthInternal();
+		Object parseBorderWidthInternal();
+		Object parseBorderStyleInternal();
 
-	void apply_properties_to_css(CssStyles* attr, const PropertyList& plist);
-
-	const std::string& get_property_name_from_id(CssProperty prop);
+		const_iterator it_;
+		const_iterator end_;
+		PropertyList plist_;
+	};
 }
