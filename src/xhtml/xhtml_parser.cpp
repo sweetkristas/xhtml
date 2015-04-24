@@ -27,7 +27,7 @@
 
 #include "asserts.hpp"
 #include "xhtml_element.hpp"
-#include "xhtml_node.hpp"
+#include "xhtml_text_node.hpp"
 #include "xhtml_parser.hpp"
 
 #include "unit_test.hpp"

@@ -25,7 +25,7 @@
 
 #include "asserts.hpp"
 #include "css_parser.hpp"
-#include "xhtml_node.hpp"
+#include "xhtml_text_node.hpp"
 
 namespace xhtml
 {
@@ -38,11 +38,6 @@ namespace xhtml
 		struct DocumentFragmentImpl : public DocumentFragment
 		{
 			DocumentFragmentImpl(WeakDocumentPtr owner) : DocumentFragment(owner) {}
-		};
-
-		struct TextImpl : public Text
-		{
-			TextImpl(const std::string& txt, WeakDocumentPtr owner) : Text(txt, owner) {}
 		};
 
 		struct AttributeImpl : public Attribute
@@ -176,6 +171,12 @@ namespace xhtml
 		}
 	}
 
+	void Node::processWhitespace()
+	{
+		css::CssWhitespace ws = getStyle("whitespace").getValue<css::CssWhitespace>();
+		// XXX
+	}
+
 	// Documents do not have an owner document.
 	Document::Document(css::StyleSheetPtr ss)
 		: Node(NodeId::DOCUMENT, WeakDocumentPtr()),
@@ -226,6 +227,9 @@ namespace xhtml
 			ASSERT_LOG(p != nullptr, "css property(" << name << ") is set to inherit but the node has no parent.");
 			return p->getStyle(name);
 		}
+		if(o.empty()) {
+			ASSERT_LOG(false, "Unimplemented style was asked for '" << name <<"'");
+		}
 		return o;
 	}
 
@@ -260,24 +264,6 @@ namespace xhtml
 	{
 		std::ostringstream ss;
 		ss << "DocumentFragment(" << nodeToString() << ")";
-		return ss.str();
-	}
-
-	Text::Text(const std::string& txt, WeakDocumentPtr owner)
-		: Node(NodeId::TEXT, owner),
-		  text_(txt)
-	{
-	}
-
-	TextPtr Text::create(const std::string& txt, WeakDocumentPtr owner)
-	{
-		return std::make_shared<TextImpl>(txt, owner);
-	}
-
-	std::string Text::toString() const 
-	{
-		std::ostringstream ss;
-		ss << "Text('" << text_ << "' " << nodeToString() << ")";
 		return ss.str();
 	}
 

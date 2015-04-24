@@ -58,10 +58,16 @@ namespace xhtml
 		LayoutBox(NodePtr node, css::CssDisplay display);
 		static LayoutBoxPtr create(NodePtr node);
 		void layout(RenderContext* ctx, const Dimensions& containing);
-		void layoutWidth(RenderContext* ctx, const Dimensions& containing);
-		void layoutPosition(RenderContext* ctx, const Dimensions& containing);
-		void layoutChildren(RenderContext* ctx);
-		void layoutHeight(RenderContext* ctx, const Dimensions& containing);
+		
+		void layoutBlock(RenderContext* ctx, const Dimensions& containing);
+		void layoutBlockWidth(RenderContext* ctx, const Dimensions& containing);
+		void layoutBlockPosition(RenderContext* ctx, const Dimensions& containing);
+		void layoutBlockChildren(RenderContext* ctx);
+		void layoutBlockHeight(RenderContext* ctx, const Dimensions& containing);
+
+		void layoutInline(RenderContext* ctx, const Dimensions& containing);
+		void layoutInlineWidth(RenderContext* ctx, const Dimensions& containing);
+
 		void preOrderTraversal(std::function<void(LayoutBoxPtr)> fn);
 		std::string toString() const;
 		const geometry::Rect<double>& getContentDimensions() const { return dimensions_.content_; }

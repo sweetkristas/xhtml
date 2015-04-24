@@ -23,32 +23,21 @@
 
 #pragma once
 
-#include <string>
-#include <vector>
-
-#include "xhtml_fwd.hpp"
 #include "xhtml_node.hpp"
-#include "css_styles.hpp"
 
 namespace xhtml
 {
-	// XXX should cache class, id, xml:id, lang, dir in the class structure.
-	class Element : public Node
+	class Text : public Node
 	{
 	public:
-		virtual ~Element();
-		static ElementPtr create(const std::string& name, WeakDocumentPtr owner=WeakDocumentPtr());
-		std::string toString() const override;
-		ElementId getElementId() const { return tag_; }
-		const std::string& getTag() const { return name_; }
-		const std::string& getName() const { return name_; }
-		bool hasTag(const std::string& tag) const { return tag == name_; }
-		bool hasTag(ElementId tag) const { return tag == tag_; }
+		static TextPtr create(const std::string& txt, WeakDocumentPtr owner=WeakDocumentPtr());
+		void addText(const std::string& txt) { text_ += txt; }
+		const std::string& generateLine(int maximum_line_width, int offset, int* line_width, int* line_offset);
 	protected:
-		explicit Element(ElementId id, const std::string& name, WeakDocumentPtr owner);
-		std::string name_;
-		ElementId tag_; 
+		explicit Text(const std::string& txt, WeakDocumentPtr owner);
+		std::string toString() const override;
+		const std::string& getValue() const override { return text_; }
+	private:
+		std::string text_;
 	};
-
-	void add_custom_element(const std::string& e);
 }

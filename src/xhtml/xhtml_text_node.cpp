@@ -21,34 +21,42 @@
 	   distribution.
 */
 
-#pragma once
-
-#include <string>
-#include <vector>
-
-#include "xhtml_fwd.hpp"
-#include "xhtml_node.hpp"
-#include "css_styles.hpp"
+#include "asserts.hpp"
+#include "xhtml_text_node.hpp"
 
 namespace xhtml
 {
-	// XXX should cache class, id, xml:id, lang, dir in the class structure.
-	class Element : public Node
+	namespace
 	{
-	public:
-		virtual ~Element();
-		static ElementPtr create(const std::string& name, WeakDocumentPtr owner=WeakDocumentPtr());
-		std::string toString() const override;
-		ElementId getElementId() const { return tag_; }
-		const std::string& getTag() const { return name_; }
-		const std::string& getName() const { return name_; }
-		bool hasTag(const std::string& tag) const { return tag == name_; }
-		bool hasTag(ElementId tag) const { return tag == tag_; }
-	protected:
-		explicit Element(ElementId id, const std::string& name, WeakDocumentPtr owner);
-		std::string name_;
-		ElementId tag_; 
-	};
+		struct TextImpl : public Text
+		{
+			TextImpl(const std::string& txt, WeakDocumentPtr owner) : Text(txt, owner) {}
+		};
+	}
 
-	void add_custom_element(const std::string& e);
+	Text::Text(const std::string& txt, WeakDocumentPtr owner)
+		: Node(NodeId::TEXT, owner),
+		  text_(txt)
+	{
+	}
+
+	TextPtr Text::create(const std::string& txt, WeakDocumentPtr owner)
+	{
+		return std::make_shared<TextImpl>(txt, owner);
+	}
+
+	std::string Text::toString() const 
+	{
+		std::ostringstream ss;
+		ss << "Text('" << text_ << "' " << nodeToString() << ")";
+		return ss.str();
+	}
+
+	const std::string& Text::generateLine(int maximum_line_width, int offset, int* line_width, int* line_offset)
+	{
+		auto parent = getParent();
+		ASSERT_LOG(parent != nullptr, "No parent for this text node data '" << text_ << "' can't generate line");
+		parent->getStyle("font-family");
+	}
+
 }

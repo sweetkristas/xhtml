@@ -88,6 +88,7 @@
     <ClCompile Include="..\src\xhtml\xhtml_node.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_parser.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_render_ctx.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_text_node.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\asserts.hpp" />
@@ -191,9 +192,11 @@
     <ClInclude Include="..\src\xhtml\xhtml_node.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_parser.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_render_ctx.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_text_node.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\data\test1.xhtml" />
+    <None Include="..\data\test2.xhtml" />
     <None Include="..\data\user_agent.css" />
     <None Include="..\src\kre\geometry.inl" />
   </ItemGroup>

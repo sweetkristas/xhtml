@@ -114,7 +114,8 @@ namespace css
 		//PropertyRegistrar property027("border", std::bind(&PropertyParser::parseBorderList, _1, _2));
 		PropertyRegistrar property026("display", Object(CssDisplay::INLINE), std::bind(&PropertyParser::parseDisplay, _1, _2));	
 		PropertyRegistrar property027("width", Object(CssLength(CssLengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));	
-		PropertyRegistrar property028("height", Object(CssLength(CssLengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));	
+		PropertyRegistrar property028("height", Object(CssLength(CssLengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property029("whitespace", Object(CssWhitespace::NORMAL), std::bind(&PropertyParser::parseWhitespace, _1, _2));	
 	}
 
 	PropertyList::PropertyList()
@@ -504,5 +505,30 @@ namespace css
 			}
 		}
 		plist_.addProperty(name, Object(display));
+	}
+
+	void PropertyParser::parseWhitespace(const std::string& name)
+	{
+		CssWhitespace ws = CssWhitespace::NORMAL;
+		if(isToken(TokenId::IDENT)) {
+			std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "normal") {
+				ws = CssWhitespace::NORMAL;
+			} else if(ref == "pre") {
+				ws = CssWhitespace::PRE;
+			} else if(ref == "nowrap") {
+				ws = CssWhitespace::NOWRAP;
+			} else if(ref == "pre-wrap") {
+				ws = CssWhitespace::PRE_WRAP;
+			} else if(ref == "pre-line") {
+				ws = CssWhitespace::PRE_LINE;
+			} else {
+				throw ParserError(formatter() << "Unrecognised token for display property: " << ref);
+			}			
+		} else {
+			throw ParserError(formatter() << "Expected identifier for property: " << name << " found " << Token::tokenIdToString((*it_)->id()));
+		}
+		plist_.addProperty(name, Object(ws));
 	}
 }

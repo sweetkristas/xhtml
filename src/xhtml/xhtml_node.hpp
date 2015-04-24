@@ -73,6 +73,7 @@ namespace xhtml
 		void normalize();
 		void mergeProperties(const css::PropertyList& plist);
 		const css::PropertyList& getProperties() const { return properties_; }
+		void processWhitespace();
 	protected:
 		std::string nodeToString() const;
 	private:
@@ -107,19 +108,6 @@ namespace xhtml
 		std::string toString() const override;
 	protected:
 		DocumentFragment(WeakDocumentPtr owner);
-	};
-
-	class Text : public Node
-	{
-	public:
-		static TextPtr create(const std::string& txt, WeakDocumentPtr owner=WeakDocumentPtr());
-		void addText(const std::string& txt) { text_ += txt; }
-	protected:
-		explicit Text(const std::string& txt, WeakDocumentPtr owner);
-		std::string toString() const override;
-		const std::string& getValue() const override { return text_; }
-	private:
-		std::string text_;
 	};
 
 	class Attribute : public Node

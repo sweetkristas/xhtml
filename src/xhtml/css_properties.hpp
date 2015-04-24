@@ -63,6 +63,7 @@ namespace css
 		void parseBorderWidth(const std::string& name);
 		void parseBorderStyle(const std::string& name);
 		void parseDisplay(const std::string& name);
+		void parseWhitespace(const std::string& name);
 	private:
 		void advance();
 		void skipWhitespace();

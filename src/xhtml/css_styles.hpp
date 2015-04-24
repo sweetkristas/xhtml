@@ -198,4 +198,12 @@ namespace css
 		TABLE_CELL,
 		TABLE_CAPTION,
 	};
+
+	enum class CssWhitespace {
+		NORMAL,
+		PRE,
+		NOWRAP,
+		PRE_WRAP,
+		PRE_LINE,
+	};
 }

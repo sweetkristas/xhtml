@@ -66,13 +66,42 @@ namespace xhtml
 
 	void LayoutBox::layout(RenderContext* ctx, const Dimensions& containing)
 	{
-		layoutWidth(ctx, containing);
-		layoutPosition(ctx, containing);
-		layoutChildren(ctx);
-		layoutHeight(ctx, containing);
+		switch(display_) {
+			case css::CssDisplay::BLOCK:
+				layoutBlock(ctx, containing);
+				break;
+			case css::CssDisplay::INLINE:
+				layoutInline(ctx, containing);
+				break;
+			case css::CssDisplay::LIST_ITEM:
+			case css::CssDisplay::INLINE_BLOCK:
+			case css::CssDisplay::TABLE:
+			case css::CssDisplay::INLINE_TABLE:
+			case css::CssDisplay::TABLE_ROW_GROUP:
+			case css::CssDisplay::TABLE_HEADER_GROUP:
+			case css::CssDisplay::TABLE_FOOTER_GROUP:
+			case css::CssDisplay::TABLE_ROW:
+			case css::CssDisplay::TABLE_COLUMN_GROUP:
+			case css::CssDisplay::TABLE_COLUMN:
+			case css::CssDisplay::TABLE_CELL:
+			case css::CssDisplay::TABLE_CAPTION:
+				ASSERT_LOG(false, "Implement display layout type: " << static_cast<int>(display_));
+				break;
+			case css::CssDisplay::NONE:
+			default: 
+				break;
+		}
 	}
 
-	void LayoutBox::layoutWidth(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layoutBlock(RenderContext* ctx, const Dimensions& containing)
+	{
+		layoutBlockWidth(ctx, containing);
+		layoutBlockPosition(ctx, containing);
+		layoutBlockChildren(ctx);
+		layoutBlockHeight(ctx, containing);
+	}
+
+	void LayoutBox::layoutBlockWidth(RenderContext* ctx, const Dimensions& containing)
 	{
 		auto node = node_.lock();
 		// boxes without nodes are anonymous and thus dimensionless.
@@ -122,6 +151,7 @@ namespace xhtml
 					width = 0;
 					dimensions_.margin_.right = css_margin_right.evaluate(containing_width, ctx) + underflow;
 				}
+				dimensions_.content_.set_w(width);
 			} else if(!css_margin_left.isAuto() && !css_margin_right.isAuto()) {
 				dimensions_.margin_.right = dimensions_.margin_.right + underflow;
 			} else if(!css_margin_left.isAuto() && css_margin_right.isAuto()) {
@@ -137,7 +167,7 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::layoutPosition(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layoutBlockPosition(RenderContext* ctx, const Dimensions& containing)
 	{
 		auto node = node_.lock();
 		if(node != nullptr) {
@@ -158,7 +188,7 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::layoutChildren(RenderContext* ctx)
+	void LayoutBox::layoutBlockChildren(RenderContext* ctx)
 	{
 		for(auto& child : children_) {
 			child->layout(ctx, dimensions_);
@@ -170,7 +200,7 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::layoutHeight(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layoutBlockHeight(RenderContext* ctx, const Dimensions& containing)
 	{
 		auto node = node_.lock();
 		if(node != nullptr) {
@@ -180,6 +210,15 @@ namespace xhtml
 				dimensions_.content_.set_h(h.getValue<css::CssLength>().evaluate(containing.content_.h(), ctx));
 			}
 		}		
+	}
+
+	void LayoutBox::layoutInline(RenderContext* ctx, const Dimensions& containing)
+	{
+		layoutInlineWidth(ctx, containing);
+	}
+
+	void LayoutBox::layoutInlineWidth(RenderContext* ctx, const Dimensions& containing)
+	{
 	}
 
 	void LayoutBox::preOrderTraversal(std::function<void(LayoutBoxPtr)> fn)

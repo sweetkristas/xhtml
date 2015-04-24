@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 	const std::string test_doc = "data/test1.xhtml";
 	const std::string ua_ss = "data/user_agent.css";
 #else
-	const std::string test_doc = "../data/test1.xhtml";
+	const std::string test_doc = "../data/test2.xhtml";
 	const std::string ua_ss = "../data/user_agent.css";
 #endif
 
@@ -75,6 +75,8 @@ int main(int argc, char* argv[])
 	doc->addChild(doc_frag);
 	doc->normalize();
 	doc->processStyles();
+	// whitespace can only be processed after applying styles.
+	doc->processWhitespace();
 
 	doc->preOrderTraversal([](xhtml::NodePtr n) {
 		LOG_DEBUG(n->toString());
@@ -84,7 +86,7 @@ int main(int argc, char* argv[])
 	auto layout = xhtml::LayoutBox::create(doc);
 	xhtml::RenderContext ctx("arial", 12.0);
 	xhtml::Dimensions root_dimensions;
-	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, height);
+	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, 0);
 	layout->layout(&ctx, root_dimensions);
 
 	layout->preOrderTraversal([](xhtml::LayoutBoxPtr box) {
