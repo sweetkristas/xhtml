@@ -116,6 +116,7 @@ namespace css
 		PropertyRegistrar property027("width", Object(CssLength(CssLengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));	
 		PropertyRegistrar property028("height", Object(CssLength(CssLengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property029("whitespace", Object(CssWhitespace::NORMAL), std::bind(&PropertyParser::parseWhitespace, _1, _2));	
+		PropertyRegistrar property030("font-family", Object(std::vector<std::string>()), std::bind(&PropertyParser::parseFontFamily, _1, _2));	
 	}
 
 	PropertyList::PropertyList()
@@ -208,14 +209,14 @@ namespace css
 	std::vector<TokenPtr> PropertyParser::parseCSVList(TokenId end_token)
 	{
 		std::vector<TokenPtr> res;
-		while(!isToken(TokenId::EOF_TOKEN) && !isToken(end_token)) {
+		while(!isToken(TokenId::EOF_TOKEN) && !isToken(end_token) && !isToken(TokenId::SEMICOLON)) {
 			skipWhitespace();
 			res.emplace_back(*it_);
 			advance();
 			skipWhitespace();
 			if(isToken(TokenId::COMMA)) {
 				advance();
-			} else if(!isToken(end_token) && !isToken(TokenId::EOF_TOKEN)) {
+			} else if(!isToken(end_token) && !isToken(TokenId::EOF_TOKEN) && !isToken(TokenId::SEMICOLON)) {
 				throw ParserError("Expected ',' (COMMA) while parsing color value.");
 			}
 		}
@@ -236,6 +237,22 @@ namespace css
 				fn(n, t->getNumericValue(), false);
 			} else {
 				throw ParserError("Expected percent or numeric value while parsing numeric list.");
+			}
+			++n;
+		}
+	}
+
+	void PropertyParser::parseCSVStringList(TokenId end_token, std::function<void(int, const std::string&)> fn)
+	{
+		auto toks = parseCSVList(end_token);
+		int n = 0;
+		for(auto& t : toks) {
+			if(t->id() == TokenId::IDENT) {
+				fn(n, t->getStringValue());
+			} else if(t->id() == TokenId::STRING) {
+				fn(n, t->getStringValue());
+			} else {
+				throw ParserError("Expected ident or string value while parsing string list.");
 			}
 			++n;
 		}
@@ -530,5 +547,14 @@ namespace css
 			throw ParserError(formatter() << "Expected identifier for property: " << name << " found " << Token::tokenIdToString((*it_)->id()));
 		}
 		plist_.addProperty(name, Object(ws));
+	}
+
+	void PropertyParser::parseFontFamily(const std::string& name)
+	{
+		std::vector<std::string> font_list;
+		parseCSVStringList(TokenId::DELIM, [&font_list](int n, const std::string& str) {
+			font_list.emplace_back(str);
+		});
+		plist_.addProperty(name, Object(font_list));
 	}
 }

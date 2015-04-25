@@ -56,7 +56,7 @@ namespace xhtml
 	{
 		auto parent = getParent();
 		ASSERT_LOG(parent != nullptr, "No parent for this text node data '" << text_ << "' can't generate line");
-		parent->getStyle("font-family");
+		auto ff = parent->getStyle("font-family").getValue<std::vector<std::string>>();
 	}
 
 }

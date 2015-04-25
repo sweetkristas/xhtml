@@ -64,6 +64,7 @@ namespace css
 		void parseBorderStyle(const std::string& name);
 		void parseDisplay(const std::string& name);
 		void parseWhitespace(const std::string& name);
+		void parseFontFamily(const std::string& name);
 	private:
 		void advance();
 		void skipWhitespace();
@@ -71,6 +72,7 @@ namespace css
 		bool isTokenDelimiter(const std::string& delim);
 		std::vector<TokenPtr> PropertyParser::parseCSVList(TokenId end_token);
 		void parseCSVNumberList(TokenId end_token, std::function<void(int,double,bool)> fn);
+		void parseCSVStringList(TokenId end_token, std::function<void(int, const std::string&)> fn);
 		Object parseColorInternal();
 		Object parseWidthInternal();
 		Object parseBorderWidthInternal();
