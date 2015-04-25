@@ -118,6 +118,8 @@ namespace css
 				} else if(isToken(TokenId::LBRACE)) {
 					advance();
 					parseDeclarationList(&pp_);
+				} else if(isToken(TokenId::EOF_TOKEN)) {
+					throw ParserError("expected block declaration");
 				}
 
 			}
@@ -234,7 +236,11 @@ namespace css
 		  end_(tokens.end())
 	{
 		for(auto& token : pasrseRuleList(0)) {
-			parseRule(token);
+			try {
+				parseRule(token);
+			} catch(ParserError& e) {
+				LOG_DEBUG("Dropping rule: " << e.what());
+			}
 		}
 	}
 
@@ -403,6 +409,9 @@ namespace css
 
 	void Parser::parseRule(TokenPtr rule)
 	{
+		if(rule == nullptr) {
+			throw ParserError("Trying to parse empty rule.");
+		}
 		std::ostringstream ss;
 		ss << "RULE. prelude:";
 		for(auto& r : rule->getParameters()) {
