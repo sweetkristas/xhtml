@@ -57,16 +57,16 @@ namespace xhtml
 	public:
 		LayoutBox(NodePtr node, css::CssDisplay display);
 		static LayoutBoxPtr create(NodePtr node);
-		void layout(RenderContext* ctx, const Dimensions& containing);
+		void layout(const Dimensions& containing);
 		
-		void layoutBlock(RenderContext* ctx, const Dimensions& containing);
-		void layoutBlockWidth(RenderContext* ctx, const Dimensions& containing);
-		void layoutBlockPosition(RenderContext* ctx, const Dimensions& containing);
-		void layoutBlockChildren(RenderContext* ctx);
-		void layoutBlockHeight(RenderContext* ctx, const Dimensions& containing);
+		void layoutBlock(const Dimensions& containing);
+		void layoutBlockWidth(const Dimensions& containing);
+		void layoutBlockPosition(const Dimensions& containing);
+		void layoutBlockChildren();
+		void layoutBlockHeight(const Dimensions& containing);
 
-		void layoutInline(RenderContext* ctx, const Dimensions& containing);
-		void layoutInlineWidth(RenderContext* ctx, const Dimensions& containing);
+		void layoutInline(const Dimensions& containing);
+		void layoutInlineWidth(const Dimensions& containing);
 
 		void preOrderTraversal(std::function<void(LayoutBoxPtr)> fn);
 		std::string toString() const;

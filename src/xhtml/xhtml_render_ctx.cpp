@@ -33,4 +33,10 @@ namespace xhtml
 		  font_xheight_(font_size/2.0)
 	{
 	}
+
+	RenderContext& RenderContext::get()
+	{
+		static RenderContext res("FreeSerif.ttf", 14);
+		return res;
+	}
 }

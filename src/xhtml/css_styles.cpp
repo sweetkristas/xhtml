@@ -24,6 +24,7 @@
 #include "asserts.hpp"
 
 #include "css_styles.hpp"
+#include "xhtml_render_ctx.hpp"
 
 namespace css
 {
@@ -109,21 +110,21 @@ namespace css
 	{
 	}
 
-	double CssLength::evaluate(double length, const xhtml::RenderContext* ctx) const
+	double CssLength::evaluate(double length) const
 	{
 		// auto values evaluate as 0
 		if(isAuto()) {
 			return 0;
 		}
+		auto& ctx = xhtml::RenderContext::get();
 		switch(units_) {
 			case CssLengthUnits::NUMBER:
 			case CssLengthUnits::PX:
 				return value_ * pixels_per_inch / 72.0 * 0.75;
 			case CssLengthUnits::EM:
-				return ctx->getFontSize() * value_ * pixels_per_inch / 72.0;
+				return ctx.getFontSize() * value_ * pixels_per_inch / 72.0;
 			case CssLengthUnits::EX:
-				// fudge
-				return ctx->getFontXHeight() * value_ * pixels_per_inch / 72.0;
+				return ctx.getFontXHeight() * value_ * pixels_per_inch / 72.0;
 			case CssLengthUnits::IN:
 				return value_ * pixels_per_inch;
 			case CssLengthUnits::CM:

@@ -23,6 +23,7 @@
 
 #include "asserts.hpp"
 #include "xhtml_text_node.hpp"
+#include "xhtml_render_ctx.hpp"
 
 namespace xhtml
 {

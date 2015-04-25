@@ -76,7 +76,7 @@ namespace css
 		explicit CssLength(CssLengthParam param);
 		// evaluate the current length value given the context, in px.
 		// XXX we should replace "font_size" with some sort of render context, which has the current font/font-size, width/length etc
-		double evaluate(double length, const xhtml::RenderContext* ctx) const;
+		double evaluate(double length) const;
 		bool isAuto() const { return param_ == CssLengthParam::AUTO; }
 	private:
 		CssLengthParam param_;

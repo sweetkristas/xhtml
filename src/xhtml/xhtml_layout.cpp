@@ -64,14 +64,14 @@ namespace xhtml
 		return nullptr;
 	}
 
-	void LayoutBox::layout(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layout(const Dimensions& containing)
 	{
 		switch(display_) {
 			case css::CssDisplay::BLOCK:
-				layoutBlock(ctx, containing);
+				layoutBlock(containing);
 				break;
 			case css::CssDisplay::INLINE:
-				layoutInline(ctx, containing);
+				layoutInline(containing);
 				break;
 			case css::CssDisplay::LIST_ITEM:
 			case css::CssDisplay::INLINE_BLOCK:
@@ -93,33 +93,33 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::layoutBlock(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layoutBlock(const Dimensions& containing)
 	{
-		layoutBlockWidth(ctx, containing);
-		layoutBlockPosition(ctx, containing);
-		layoutBlockChildren(ctx);
-		layoutBlockHeight(ctx, containing);
+		layoutBlockWidth(containing);
+		layoutBlockPosition(containing);
+		layoutBlockChildren();
+		layoutBlockHeight(containing);
 	}
 
-	void LayoutBox::layoutBlockWidth(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layoutBlockWidth(const Dimensions& containing)
 	{
 		auto node = node_.lock();
 		// boxes without nodes are anonymous and thus dimensionless.
 		if(node != nullptr) {
 			double containing_width = containing.content_.w();
 			auto css_width = node->getStyle("width").getValue<css::CssLength>();
-			double width = css_width.evaluate(containing_width, ctx);
+			double width = css_width.evaluate(containing_width);
 
-			dimensions_.border_.left = node->getStyle("border-left-width").getValue<css::CssLength>().evaluate(containing_width, ctx);
-			dimensions_.border_.right = node->getStyle("border-right-width").getValue<css::CssLength>().evaluate(containing_width, ctx);
+			dimensions_.border_.left = node->getStyle("border-left-width").getValue<css::CssLength>().evaluate(containing_width);
+			dimensions_.border_.right = node->getStyle("border-right-width").getValue<css::CssLength>().evaluate(containing_width);
 
-			dimensions_.padding_.left = node->getStyle("padding-left").getValue<css::CssLength>().evaluate(containing_width, ctx);
-			dimensions_.padding_.right = node->getStyle("padding-right").getValue<css::CssLength>().evaluate(containing_width, ctx);
+			dimensions_.padding_.left = node->getStyle("padding-left").getValue<css::CssLength>().evaluate(containing_width);
+			dimensions_.padding_.right = node->getStyle("padding-right").getValue<css::CssLength>().evaluate(containing_width);
 
 			auto css_margin_left = node->getStyle("margin-left").getValue<css::CssLength>();
 			auto css_margin_right = node->getStyle("margin-right").getValue<css::CssLength>();
-			dimensions_.margin_.left = css_margin_left.evaluate(containing_width, ctx);
-			dimensions_.margin_.right = css_margin_right.evaluate(containing_width, ctx);
+			dimensions_.margin_.left = css_margin_left.evaluate(containing_width);
+			dimensions_.margin_.right = css_margin_right.evaluate(containing_width);
 
 			double total = dimensions_.border_.left + dimensions_.border_.right
 				+ dimensions_.padding_.left + dimensions_.padding_.right
@@ -149,7 +149,7 @@ namespace xhtml
 					width = underflow;
 				} else {
 					width = 0;
-					dimensions_.margin_.right = css_margin_right.evaluate(containing_width, ctx) + underflow;
+					dimensions_.margin_.right = css_margin_right.evaluate(containing_width) + underflow;
 				}
 				dimensions_.content_.set_w(width);
 			} else if(!css_margin_left.isAuto() && !css_margin_right.isAuto()) {
@@ -167,19 +167,19 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::layoutBlockPosition(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layoutBlockPosition(const Dimensions& containing)
 	{
 		auto node = node_.lock();
 		if(node != nullptr) {
 			double containing_height = containing.content_.h();
-			dimensions_.border_.top = node->getStyle("border-top-width").getValue<css::CssLength>().evaluate(containing_height, ctx);
-			dimensions_.border_.bottom = node->getStyle("border-bottom-width").getValue<css::CssLength>().evaluate(containing_height, ctx);
+			dimensions_.border_.top = node->getStyle("border-top-width").getValue<css::CssLength>().evaluate(containing_height);
+			dimensions_.border_.bottom = node->getStyle("border-bottom-width").getValue<css::CssLength>().evaluate(containing_height);
 
-			dimensions_.padding_.top = node->getStyle("padding-top").getValue<css::CssLength>().evaluate(containing_height, ctx);
-			dimensions_.padding_.bottom = node->getStyle("padding-bottom").getValue<css::CssLength>().evaluate(containing_height, ctx);
+			dimensions_.padding_.top = node->getStyle("padding-top").getValue<css::CssLength>().evaluate(containing_height);
+			dimensions_.padding_.bottom = node->getStyle("padding-bottom").getValue<css::CssLength>().evaluate(containing_height);
 
-			dimensions_.margin_.top = node->getStyle("margin-top").getValue<css::CssLength>().evaluate(containing_height, ctx);
-			dimensions_.margin_.bottom = node->getStyle("margin-bottom").getValue<css::CssLength>().evaluate(containing_height, ctx);
+			dimensions_.margin_.top = node->getStyle("margin-top").getValue<css::CssLength>().evaluate(containing_height);
+			dimensions_.margin_.bottom = node->getStyle("margin-bottom").getValue<css::CssLength>().evaluate(containing_height);
 
 			dimensions_.content_.set_x(containing.content_.x() + dimensions_.margin_.left + dimensions_.padding_.left + dimensions_.border_.left);
 			dimensions_.content_.set_y(containing.content_.y2() + dimensions_.margin_.top + dimensions_.padding_.top + dimensions_.border_.top);
@@ -188,10 +188,10 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::layoutBlockChildren(RenderContext* ctx)
+	void LayoutBox::layoutBlockChildren()
 	{
 		for(auto& child : children_) {
-			child->layout(ctx, dimensions_);
+			child->layout(dimensions_);
 			dimensions_.content_.set_h(dimensions_.content_.h()
 				+ child->dimensions_.content_.h() 
 				+ child->dimensions_.margin_.top + child->dimensions_.margin_.bottom
@@ -200,24 +200,24 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::layoutBlockHeight(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layoutBlockHeight(const Dimensions& containing)
 	{
 		auto node = node_.lock();
 		if(node != nullptr) {
 			// a set height value overrides the calculated value.
 			auto h = node->getStyle("height");
 			if(!h.empty()) {
-				dimensions_.content_.set_h(h.getValue<css::CssLength>().evaluate(containing.content_.h(), ctx));
+				dimensions_.content_.set_h(h.getValue<css::CssLength>().evaluate(containing.content_.h()));
 			}
 		}		
 	}
 
-	void LayoutBox::layoutInline(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layoutInline(const Dimensions& containing)
 	{
-		layoutInlineWidth(ctx, containing);
+		layoutInlineWidth(containing);
 	}
 
-	void LayoutBox::layoutInlineWidth(RenderContext* ctx, const Dimensions& containing)
+	void LayoutBox::layoutInlineWidth(const Dimensions& containing)
 	{
 	}
 
