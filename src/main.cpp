@@ -63,7 +63,8 @@ int main(int argc, char* argv[])
 	const std::string test_doc = "data/test1.xhtml";
 	const std::string ua_ss = "data/user_agent.css";
 #else
-	const std::string test_doc = "../data/test2.xhtml";
+	//const std::string test_doc = "../data/test2.xhtml";
+	const std::string test_doc = "../data/storyboard.xhtml";
 	const std::string ua_ss = "../data/user_agent.css";
 #endif
 
@@ -84,10 +85,9 @@ int main(int argc, char* argv[])
 	});
 
 	auto layout = xhtml::LayoutBox::create(doc);
-	xhtml::RenderContext ctx("arial", 12.0);
 	xhtml::Dimensions root_dimensions;
 	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, 0);
-	layout->layout(&ctx, root_dimensions);
+	layout->layout(root_dimensions);
 
 	layout->preOrderTraversal([](xhtml::LayoutBoxPtr box) {
 		LOG_DEBUG(box->toString());
