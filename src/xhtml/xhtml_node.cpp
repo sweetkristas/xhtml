@@ -27,6 +27,8 @@
 #include "css_parser.hpp"
 #include "xhtml_text_node.hpp"
 
+#include "filesystem.hpp"
+
 namespace xhtml
 {
 	namespace {
@@ -193,6 +195,21 @@ namespace xhtml
 				for(auto& child : n->getChildren()) {
 					if(child->id() == NodeId::TEXT) {						
 						css::Parser::parse(ss, child->getValue());
+					}
+				}
+			}
+			if(n->hasTag(ElementId::LINK)) {
+				auto rel = n->getAttribute("rel");
+				auto href = n->getAttribute("href");
+				auto type = n->getAttribute("type");		// expect "type/css"
+				//auto media = n->getAttribute("media");	// expect "display" or nullptr
+				if(rel && rel->getValue() == "stylesheet") {
+					if(href == nullptr) {
+						LOG_ERROR("There was no 'href' in the LINK element.");
+					} else {
+						//auto css_file = get_uri(href->getValue);
+						auto css_file = sys::read_file("../data/" + href->getValue());
+						css::Parser::parse(ss, css_file);
 					}
 				}
 			}
