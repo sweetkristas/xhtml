@@ -96,6 +96,8 @@ namespace xhtml
 	// variable is the advance per space character.
 	Lines Text::generateLines(int current_line_width, int maximum_line_width)
 	{
+		// adjust the current_line_width to be the space remaining on the line.
+		current_line_width = maximum_line_width - current_line_width;
 		auto parent = getParent();
 		if(parent == nullptr) {
 			return Lines();

@@ -257,7 +257,7 @@ namespace xhtml
 	{
 		auto node = node_.lock();
 		if(node != nullptr) {
-			node->generateLines(containing.content_.w()-0, containing.content_.w());
+			node->generateLines(0, containing.content_.w());
 		}
 	}
 
