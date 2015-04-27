@@ -28,10 +28,26 @@
 namespace xhtml
 {
 	RenderContext::RenderContext(const std::string& font_name, double font_size)
-		: font_name_(font_name),
-		  font_size_(font_size),
-		  font_xheight_(font_size/2.0)
 	{
+		std::vector<std::string> names(1, font_name);
+		fh_.emplace(KRE::FontDriver::getFontHandle(names, font_size));
+	}
+
+	void RenderContext::pushFont(const std::string& name, double size)
+	{
+		std::vector<std::string> names(1, name);
+		pushFont(names, size);
+	}
+
+	void RenderContext::pushFont(const std::vector<std::string>& name, double size)
+	{
+		fh_.emplace(KRE::FontDriver::getFontHandle(name, size));
+	}
+
+	void RenderContext::popFont()
+	{
+		fh_.pop();
+		ASSERT_LOG(!fh_.empty(), "Popped too many fonts and emptied the stack");
 	}
 
 	RenderContext& RenderContext::get()

@@ -36,9 +36,11 @@
 #include "unit_test.hpp"
 
 #include "css_parser.hpp"
+#include "font_freetype.hpp"
 #include "xhtml.hpp"
 #include "xhtml_layout.hpp"
 #include "xhtml_node.hpp"
+#include "xhtml_render_ctx.hpp"
 
 int main(int argc, char* argv[])
 {
@@ -60,13 +62,19 @@ int main(int argc, char* argv[])
 	}
 
 #if defined(__linux__)
-	const std::string test_doc = "data/test1.xhtml";
-	const std::string ua_ss = "data/user_agent.css";
+	const std::string data_path = "data/";
 #else
-	//const std::string test_doc = "../data/test2.xhtml";
-	const std::string test_doc = "../data/storyboard.xhtml";
-	const std::string ua_ss = "../data/user_agent.css";
+	const std::string data_path = "../data/";
 #endif
+	const std::string test_doc = data_path + "test2.xhtml";
+	//const std::string test_doc = data_path + "storyboard.xhtml";
+	const std::string ua_ss = data_path + "user_agent.css";
+
+	sys::file_path_map font_files;
+	sys::get_unique_files(data_path + "fonts/", font_files);
+	KRE::FontDriver::setAvailableFonts(font_files);
+
+	xhtml::RenderContext& rc = xhtml::RenderContext::get();
 
 	auto user_agent_style_sheet = std::make_shared<css::StyleSheet>();
 	css::Parser::parse(user_agent_style_sheet, sys::read_file(ua_ss));
@@ -74,10 +82,10 @@ int main(int argc, char* argv[])
 	auto doc_frag = xhtml::parse_from_file(test_doc);
 	auto doc = xhtml::Document::create(user_agent_style_sheet);
 	doc->addChild(doc_frag);
-	doc->normalize();
+	//doc->normalize();
 	doc->processStyles();
 	// whitespace can only be processed after applying styles.
-	doc->processWhitespace();
+	//doc->processWhitespace();
 
 	doc->preOrderTraversal([](xhtml::NodePtr n) {
 		LOG_DEBUG(n->toString());

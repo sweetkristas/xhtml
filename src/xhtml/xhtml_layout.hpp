@@ -55,8 +55,8 @@ namespace xhtml
 	class LayoutBox : public std::enable_shared_from_this<LayoutBox>
 	{
 	public:
-		LayoutBox(NodePtr node, css::CssDisplay display);
-		static LayoutBoxPtr create(NodePtr node);
+		LayoutBox(LayoutBoxPtr parent, NodePtr node, css::CssDisplay display);
+		static LayoutBoxPtr create(NodePtr node, LayoutBoxPtr parent=nullptr);
 		void layout(const Dimensions& containing);
 		
 		void layoutBlock(const Dimensions& containing);
@@ -72,10 +72,17 @@ namespace xhtml
 		std::string toString() const;
 		const geometry::Rect<double>& getContentDimensions() const { return dimensions_.content_; }
 		Object getNodeStyle(const std::string& style);
+
+		void setFonts(const std::vector<std::string>& fonts) { fonts_ = fonts; }
+		void setFontSize(double size) { font_size_ = size; }
 	private:
 		WeakNodePtr node_;
 		css::CssDisplay display_;
 		Dimensions dimensions_;
 		std::vector<LayoutBoxPtr> children_;
+
+		// holder for font details, if any.
+		std::vector<std::string> fonts_;
+		double font_size_;
 	};
 }

@@ -22,25 +22,40 @@
 */
 
 #include "asserts.hpp"
+#include "css_styles.hpp"
 #include "xhtml_layout.hpp"
 #include "xhtml_node.hpp"
 
 namespace xhtml
 {
-	LayoutBox::LayoutBox(NodePtr node, css::CssDisplay display)
+	LayoutBox::LayoutBox(LayoutBoxPtr parent, NodePtr node, css::CssDisplay display)
 		: node_(node),
 		  display_(display),
 		  dimensions_(),
-		  children_()
+		  children_(),
+		  fonts_(),
+		  font_size_(0)
 	{
 		ASSERT_LOG(display_ != css::CssDisplay::NONE, "Tried to create a layout node with a display of none.");
+		if(node != nullptr) {
+			auto fonts = node->getStyle("font-family").getValue<std::vector<std::string>>();
+			if(!fonts.empty()) {
+				setFonts(fonts);
+			}
+			auto font_size = node->getStyle("font-size");
+			if(font_size.shouldInherit()) {
+				font_size_ = parent->font_size_;
+			} else {
+				font_size_ = font_size.getValue<css::FontSize>().getFontSize(parent == nullptr ? 12.0 : parent->font_size_);
+			}
+		}
 	}
 
-	LayoutBoxPtr LayoutBox::create(NodePtr node)
+	LayoutBoxPtr LayoutBox::create(NodePtr node, LayoutBoxPtr parent)
 	{
 		auto display = node->getStyle("display").getValue<css::CssDisplay>();
 		if(display != css::CssDisplay::NONE) {
-			auto root = std::make_shared<LayoutBox>(node, display);
+			auto root = std::make_shared<LayoutBox>(parent, node, display);
 
 			LayoutBoxPtr inline_container;
 			for(auto& c : node->getChildren()) {
@@ -49,13 +64,13 @@ namespace xhtml
 					// ignore child nodes with display none.
 				} else if(disp == css::CssDisplay::INLINE && root->display_ == css::CssDisplay::BLOCK) {
 					if(inline_container == nullptr) {
-						inline_container = std::make_shared<LayoutBox>(nullptr, css::CssDisplay::BLOCK);
+						inline_container = std::make_shared<LayoutBox>(root, nullptr, css::CssDisplay::BLOCK);
 						root->children_.emplace_back(inline_container);
 					}
-					inline_container->children_.emplace_back(create(c));
+					inline_container->children_.emplace_back(create(c, root));
 				} else {
 					inline_container.reset();
-					root->children_.emplace_back(create(c));
+					root->children_.emplace_back(create(c, root));
 				}
 			}
 
@@ -66,6 +81,20 @@ namespace xhtml
 
 	void LayoutBox::layout(const Dimensions& containing)
 	{
+		bool font_pushed = false;
+		if(!fonts_.empty()) {
+			RenderContext& rc = RenderContext::get();
+			double fs = font_size_;
+			if(fs == 0) {
+				fs = rc.getFontSize();
+			}
+			// XXX we should implement this push/pop as an RAII pattern.
+			rc.pushFont(fonts_, fs);
+			font_pushed = true;
+		}
+
+		// XXX need to deal with non-static positioned elements
+
 		switch(display_) {
 			case css::CssDisplay::BLOCK:
 				layoutBlock(containing);
@@ -73,8 +102,8 @@ namespace xhtml
 			case css::CssDisplay::INLINE:
 				layoutInline(containing);
 				break;
-			case css::CssDisplay::LIST_ITEM:
 			case css::CssDisplay::INLINE_BLOCK:
+			case css::CssDisplay::LIST_ITEM:
 			case css::CssDisplay::TABLE:
 			case css::CssDisplay::INLINE_TABLE:
 			case css::CssDisplay::TABLE_ROW_GROUP:
@@ -90,6 +119,10 @@ namespace xhtml
 			case css::CssDisplay::NONE:
 			default: 
 				break;
+		}
+
+		if(font_pushed) {
+			RenderContext::get().popFont();
 		}
 	}
 
@@ -215,10 +248,17 @@ namespace xhtml
 	void LayoutBox::layoutInline(const Dimensions& containing)
 	{
 		layoutInlineWidth(containing);
+		for(auto& c : children_) {
+			c->layoutInline(containing);
+		}
 	}
 
 	void LayoutBox::layoutInlineWidth(const Dimensions& containing)
 	{
+		auto node = node_.lock();
+		if(node != nullptr) {
+			node->generateLines(containing.content_.w()-0, containing.content_.w());
+		}
 	}
 
 	void LayoutBox::preOrderTraversal(std::function<void(LayoutBoxPtr)> fn)

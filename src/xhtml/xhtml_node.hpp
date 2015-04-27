@@ -45,6 +45,16 @@ namespace xhtml
 	typedef std::map<std::string, AttributePtr> AttributeMap;
 	typedef std::vector<NodePtr> NodeList;
 
+	struct Word
+	{
+		explicit Word(const std::string& w) : word(w), advance() {}
+		std::string word;
+		std::vector<geometry::Point<double>> advance;
+	};
+
+	typedef std::vector<Word> Line;
+	typedef std::vector<Line> Lines;
+
 	class Node : std::enable_shared_from_this<Node>
 	{
 	public:
@@ -74,6 +84,9 @@ namespace xhtml
 		void mergeProperties(const css::PropertyList& plist);
 		const css::PropertyList& getProperties() const { return properties_; }
 		void processWhitespace();
+
+		// for text nodes.
+		virtual Lines generateLines(int current_line_width, int maximum_line_width) { return Lines(); }
 	protected:
 		std::string nodeToString() const;
 	private:

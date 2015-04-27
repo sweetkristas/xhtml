@@ -115,8 +115,13 @@ namespace css
 		PropertyRegistrar property026("display", Object(CssDisplay::INLINE), std::bind(&PropertyParser::parseDisplay, _1, _2));	
 		PropertyRegistrar property027("width", Object(CssLength(CssLengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));	
 		PropertyRegistrar property028("height", Object(CssLength(CssLengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property029("whitespace", Object(CssWhitespace::NORMAL), std::bind(&PropertyParser::parseWhitespace, _1, _2));	
+		PropertyRegistrar property029("white-space", Object(CssWhitespace::NORMAL), std::bind(&PropertyParser::parseWhitespace, _1, _2));	
 		PropertyRegistrar property030("font-family", Object(std::vector<std::string>()), std::bind(&PropertyParser::parseFontFamily, _1, _2));	
+		PropertyRegistrar property031("font-size", Object(FontSize(FontSizeAbsolute::MEDIUM)), std::bind(&PropertyParser::parseFontSize, _1, _2));
+		//PropertyRegistrar property032("font-style", Object(FontStyle::NORMAL), std::bind(&PropertyParser::parseFontStyle, _1, _2));
+		//PropertyRegistrar property033("font-variant", Object(FontVariant::NORMAL), std::bind(&PropertyParser::parseFontVariant, _1, _2));
+		PropertyRegistrar property034("font-weight", Object(FontWeight()), std::bind(&PropertyParser::parseFontWeight, _1, _2));
+		//PropertyRegistrar property035("font", Object(Font), std::bind(&PropertyParser::parseFont, _1, _2));
 	}
 
 	PropertyList::PropertyList()
@@ -556,5 +561,65 @@ namespace css
 			font_list.emplace_back(str);
 		});
 		plist_.addProperty(name, Object(font_list));
+	}
+	
+	void PropertyParser::parseFontSize(const std::string& name)
+	{
+		FontSize fs;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, Object(true));
+				return;
+			} else if(ref == "xx-small") {
+				fs.setFontSize(FontSizeAbsolute::XX_SMALL);
+			} else if(ref == "x-small") {
+				fs.setFontSize(FontSizeAbsolute::X_SMALL);
+			} else if(ref == "small") {
+				fs.setFontSize(FontSizeAbsolute::SMALL);
+			} else if(ref == "medium") {
+				fs.setFontSize(FontSizeAbsolute::MEDIUM);
+			} else if(ref == "large") {
+				fs.setFontSize(FontSizeAbsolute::LARGE);
+			} else if(ref == "x-large") {
+				fs.setFontSize(FontSizeAbsolute::X_LARGE);
+			} else if(ref == "xx-large") {
+				fs.setFontSize(FontSizeAbsolute::XX_LARGE);
+			} else if(ref == "larger") {
+				fs.setFontSize(FontSizeRelative::LARGER);
+			} else if(ref == "smaller") {
+				fs.setFontSize(FontSizeRelative::SMALLER);
+			}
+			plist_.addProperty(name, Object(fs));
+		} else {
+			Object o = parseWidthInternal();
+			plist_.addProperty(name, o);
+		}		
+	}
+
+	void PropertyParser::parseFontWeight(const std::string& name)
+	{
+		FontWeight fs;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, Object(true));
+				return;
+			} else if(ref == "lighter") {
+				fs.setRelative(FontWeightRelative::LIGHTER);
+			} else if(ref == "bolder") {
+				fs.setRelative(FontWeightRelative::BOLDER);
+			} else if(ref == "normal") {
+				fs.setWeight(400);
+			} else if(ref == "bold") {
+				fs.setWeight(700);
+			}
+		} else if(isToken(TokenId::NUMBER)) {
+			fs.setWeight((*it_)->getNumericValue());
+			advance();
+		}
+		plist_.addProperty(name, Object(fs));
 	}
 }

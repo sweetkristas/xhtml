@@ -30,20 +30,21 @@
 
 #include "geometry.hpp"
 #include "Color.hpp"
+#include "Texture.hpp"
 
-namespace xhtml
+namespace KRE
 {
 	typedef std::map<std::string, std::string> font_path_cache;	
 
-	struct FontError : public std::runtime_error
+	struct FontError2 : public std::runtime_error
 	{
-		FontError(const std::string& str) : std::runtime_error(str) {}
+		FontError2(const std::string& str) : std::runtime_error(str) {}
 	};
 
 	class FontHandle
 	{
 	public:
-		FontHandle(const std::string& fnt_name, int size, const KRE::Color& color);
+		FontHandle(const std::string& fnt_name, float size, const Color& color);
 		~FontHandle();
 		float getFontSize();
 		float getFontXHeight();
@@ -52,8 +53,10 @@ namespace xhtml
 		void renderText();
 		void getFontMetrics();
 		rectf getBoundingBox(const std::string& text);
+		void getGlyphPath(const std::string& text, std::vector<geometry::Point<double>>* path);
+		double calculateCharAdvance(char32_t cp);
 	private:
-		struct Impl;
+		class Impl;
 		std::unique_ptr<Impl> impl_;
 	};
 	typedef std::shared_ptr<FontHandle> FontHandlePtr;
@@ -61,9 +64,9 @@ namespace xhtml
 	class FontDriver
 	{
 	public:
-		static FontHandlePtr getFontHandle(const std::vector<std::string>& font_list, int size, const KRE::Color& color=KRE::Color::colorWhite());
+		static FontHandlePtr getFontHandle(const std::vector<std::string>& font_list, float size, const Color& color=Color::colorWhite());
 		static void setAvailableFonts(const font_path_cache& font_map);
-		//static KRE::TexturePtr renderText(const std::string& text, ...);
+		//static TexturePtr renderText(const std::string& text, ...);
 	private:
 		FontDriver();
 	};

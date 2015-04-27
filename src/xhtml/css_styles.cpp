@@ -32,20 +32,20 @@ namespace css
 	{
 		const double pixels_per_inch = 96.0;
 
-		std::vector<int>& get_font_size_table(int ppi)
+		std::vector<double>& get_font_size_table(int ppi)
 		{
-			static std::vector<int> res;
+			static std::vector<double> res;
 			if(res.empty()) {
 				// First guess implementation.
 				double min_size = 9.0 / 72.0 * ppi;
-				res.emplace_back(static_cast<int>(min_size));
-				res.emplace_back(static_cast<int>(std::ceil(min_size * 1.1)));
-				res.emplace_back(static_cast<int>(std::ceil(min_size * 1.3)));
-				res.emplace_back(static_cast<int>(std::ceil(min_size * 1.45)));
-				res.emplace_back(static_cast<int>(std::ceil(min_size * 1.6)));
-				res.emplace_back(static_cast<int>(std::ceil(min_size * 1.8)));
-				res.emplace_back(static_cast<int>(std::ceil(min_size * 2.0)));
-				res.emplace_back(static_cast<int>(std::ceil(min_size * 2.3)));
+				res.emplace_back(min_size);
+				res.emplace_back(std::ceil(min_size * 1.1));
+				res.emplace_back(std::ceil(min_size * 1.3));
+				res.emplace_back(std::ceil(min_size * 1.45));
+				res.emplace_back(std::ceil(min_size * 1.6));
+				res.emplace_back(std::ceil(min_size * 1.8));
+				res.emplace_back(std::ceil(min_size * 2.0));
+				res.emplace_back(std::ceil(min_size * 2.3));
 			}
 			return res;
 		}
@@ -141,6 +141,26 @@ namespace css
 		}
 		ASSERT_LOG(false, "Unrecognised units value: " << static_cast<int>(units_));
 		return value_;
+	}
+
+	double FontSize::getFontSize(double parent_fs)
+	{
+		double res = 0;
+		if(is_absolute_) {
+			res = get_font_size_table(pixels_per_inch)[static_cast<int>(absolute_)];
+		} else if(is_relative_) {
+			// XXX hack
+			if(relative_ == FontSizeRelative::LARGER) {
+				res = parent_fs * 1.15;
+			} else {
+				res = parent_fs / 1.15;
+			}
+		} else if(is_length_) {
+			res = length_.evaluate(parent_fs);
+		} else {
+			ASSERT_LOG(false, "FontSize has no definite size defined!");
+		}
+		return res;
 	}
 
 	Border::Border() 

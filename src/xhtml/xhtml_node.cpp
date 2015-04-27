@@ -175,7 +175,7 @@ namespace xhtml
 
 	void Node::processWhitespace()
 	{
-		css::CssWhitespace ws = getStyle("whitespace").getValue<css::CssWhitespace>();
+		css::CssWhitespace ws = getStyle("white-space").getValue<css::CssWhitespace>();
 		// XXX
 	}
 
@@ -208,6 +208,7 @@ namespace xhtml
 						LOG_ERROR("There was no 'href' in the LINK element.");
 					} else {
 						//auto css_file = get_uri(href->getValue);
+						// XXX add a fix for getting data directory,
 						auto css_file = sys::read_file("../data/" + href->getValue());
 						css::Parser::parse(ss, css_file);
 					}

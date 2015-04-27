@@ -25,8 +25,9 @@
 
 #include <memory>
 #include <string>
+#include <stack>
 
-#include "ft_iface.hpp"
+#include "font_freetype.hpp"
 
 namespace xhtml
 {
@@ -36,15 +37,16 @@ namespace xhtml
 		// Returns the render context instance.
 		static RenderContext& get();
 
-		void setFont(const std::string& name) { font_name_ = name; }
-		void setFontSize(double fs, double xheight=0) { font_size_ = fs; font_xheight_ = xheight==0 ? 0.5*fs : xheight; }
-		const std::string& getFontName() const { return font_name_; }
-		double getFontSize() const { return font_size_; }
-		double getFontXHeight() const { return font_xheight_; }
+		void pushFont(const std::string& name, double size);
+		void pushFont(const std::vector<std::string>& name, double size);
+		void popFont();
+		const std::string& getFontName() const { return fh_.top()->getFontName(); }
+		double getFontSize() const { return fh_.top()->getFontSize(); }
+		double getFontXHeight() const { return fh_.top()->getFontXHeight(); }
+
+		KRE::FontHandlePtr getFont() const { return fh_.top(); }
 	private:
 		explicit RenderContext(const std::string& font_name, double font_size);
-		std::string font_name_;
-		double font_size_;
-		double font_xheight_;
+		std::stack<KRE::FontHandlePtr> fh_;
 	};
 }

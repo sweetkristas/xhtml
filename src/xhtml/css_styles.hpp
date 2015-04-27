@@ -150,6 +150,15 @@ namespace css
 			  length_()
 		{
 		}
+		explicit FontSize(FontSizeAbsolute absvalue) 
+			: is_absolute_(true), 
+			  absolute_(absvalue), 
+			  is_relative_(false), 
+			  relative_(FontSizeRelative::NONE), 
+			  is_length_(false), 
+			  length_()
+		{
+		}
 		void setFontSize(FontSizeAbsolute absvalue) { 
 			disableAll();
 			absolute_ = absvalue;
@@ -165,6 +174,7 @@ namespace css
 			length_ = len;
 			is_length_ = true;
 		}
+		double getFontSize(double parent_fs);
 	private:
 		bool is_absolute_;
 		FontSizeAbsolute absolute_;
@@ -205,5 +215,37 @@ namespace css
 		NOWRAP,
 		PRE_WRAP,
 		PRE_LINE,
+	};
+
+	enum class FontStyle {
+		INHERIT,
+		NORMAL,
+		ITALIC,
+		OBLIQUE,
+	};
+
+	enum class FontVariant {
+		INHERIT,
+		NORMAL,
+		SMALL_CAPS,
+	};
+
+	enum class FontWeightRelative {
+		LIGHTER,
+		BOLDER,
+	};
+
+	class FontWeight
+	{
+	public:
+		FontWeight() : is_relative_(false), weight_(400), relative_(FontWeightRelative::LIGHTER) {}
+		explicit FontWeight(FontWeightRelative r) { is_relative_ = true; relative_ = r; }
+		explicit FontWeight(double fw) { is_relative_ = false; weight_ = fw; }
+		void setRelative(FontWeightRelative r) { is_relative_ = true; relative_ = r; }
+		void setWeight(double fw) { is_relative_ = false; weight_ = fw; }
+	private:
+		bool is_relative_;
+		double weight_;
+		FontWeightRelative relative_;
 	};
 }
