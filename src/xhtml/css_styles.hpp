@@ -248,4 +248,26 @@ namespace css
 		double weight_;
 		FontWeightRelative relative_;
 	};
+
+	enum class TextAlign {
+		// normal is the default value that acts as 'left' if direction=ltr and
+		// 'right' if direction='rtl'.
+		NORMAL,
+		LEFT,
+		RIGHT,
+		CENTER,
+		JUSTIFY,
+	};
+
+	enum class Direction {
+		LTR,
+		RTL,
+	};
+
+	enum class TextTransform {
+		NONE,
+		CAPITALIZE,
+		UPPERCASE,
+		LOWERCASE,
+	};
 }

@@ -67,6 +67,10 @@ namespace css
 		void parseFontFamily(const std::string& name);
 		void parseFontSize(const std::string& name);
 		void parseFontWeight(const std::string& name);
+		void parseSpacing(const std::string& name);
+		void parseTextAlign(const std::string& name);
+		void parseDirection(const std::string& name);
+		void parseTextTransform(const std::string& name);
 	private:
 		void advance();
 		void skipWhitespace();

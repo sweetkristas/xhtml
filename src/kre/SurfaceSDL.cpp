@@ -37,6 +37,9 @@ enum {
 	SDL_PIXELFORMAT_XRGB8888 = 
         SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED32, SDL_PACKEDORDER_XRGB,
                                SDL_PACKEDLAYOUT_8888, 32, 4),
+	SDL_PIXELFORMAT_R8 = 
+        SDL_DEFINE_PIXELFORMAT(SDL_PIXELTYPE_PACKED8, SDL_PACKEDORDER_NONE,
+                               SDL_PACKEDLAYOUT_NONE, 8, 1),
 };
 
 namespace KRE
@@ -88,6 +91,7 @@ namespace KRE
 				case PixelFormat::PF::PIXELFORMAT_YUY2:	        return SDL_PIXELFORMAT_YUY2;
 				case PixelFormat::PF::PIXELFORMAT_UYVY:	        return SDL_PIXELFORMAT_UYVY;
 				case PixelFormat::PF::PIXELFORMAT_YVYU:	        return SDL_PIXELFORMAT_YVYU;
+				case PixelFormat::PF::PIXELFORMAT_R8:			return SDL_PIXELFORMAT_R8;
 				default:
 					ASSERT_LOG(false, "Unknown pixel format given");
 			}
@@ -101,7 +105,10 @@ namespace KRE
 		uint32_t rmask, 
 		uint32_t gmask, 
 		uint32_t bmask, 
-		uint32_t amask) : has_data_(false)
+		uint32_t amask)
+		: surface_(nullptr),
+		  has_data_(false),
+		  palette_()
 	{
 		surface_ = SDL_CreateRGBSurface(0, width, height, bpp, rmask, gmask, bmask, amask);
 		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << SDL_GetError());
@@ -119,7 +126,10 @@ namespace KRE
 		uint32_t gmask, 
 		uint32_t bmask, 
 		uint32_t amask, 
-		const void* pixels) : has_data_(true)
+		const void* pixels)
+		: surface_(nullptr),
+		  has_data_(true),
+		  palette_()
 	{
 		ASSERT_LOG(pixels != nullptr, "nullptr value for pixels while creating surface.");
 		surface_ = SDL_CreateRGBSurfaceFrom(const_cast<void*>(pixels), width, height, bpp, row_pitch, rmask, gmask, bmask, amask);
@@ -130,6 +140,9 @@ namespace KRE
 	}
 
 	SurfaceSDL::SurfaceSDL(const std::string& filename)
+		: surface_(nullptr),
+		  has_data_(false),
+		  palette_()
 	{
 		auto filter = Surface::getFileFilter(FileFilterType::LOAD);
 		auto surface_ = IMG_Load(filter(filename).c_str());
@@ -143,7 +156,9 @@ namespace KRE
 	}
 
 	SurfaceSDL::SurfaceSDL(SDL_Surface* surface)
-		: surface_(surface)
+		: surface_(surface),
+		  has_data_(false),
+		  palette_()
 	{
 		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << SDL_GetError());
 		auto pf = std::make_shared<SDLPixelFormat>(surface_->format->format);
@@ -152,11 +167,18 @@ namespace KRE
 	}
 
 	SurfaceSDL::SurfaceSDL(int width, int height, PixelFormat::PF format)
+		: surface_(nullptr),
+		  has_data_(false),
+		  palette_()
 	{
 		int bpp;
 		uint32_t rmask, gmask, bmask, amask;
-		SDL_bool ret = SDL_PixelFormatEnumToMasks(get_sdl_pixel_format(format), &bpp, &rmask, &gmask, &bmask, &amask);
-		ASSERT_LOG(ret != SDL_FALSE, "Unable to convert pixel format to masks: " << SDL_GetError());
+		if(format == PixelFormat::PF::PIXELFORMAT_R8) {
+			return;
+		} else {
+			SDL_bool ret = SDL_PixelFormatEnumToMasks(get_sdl_pixel_format(format), &bpp, &rmask, &gmask, &bmask, &amask);
+			ASSERT_LOG(ret != SDL_FALSE, "Unable to convert pixel format to masks: " << SDL_GetError());
+		}
 
 		surface_ = SDL_CreateRGBSurface(0, width, height, bpp, rmask, gmask, bmask, amask);
 		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << SDL_GetError());
@@ -167,8 +189,10 @@ namespace KRE
 
 	SurfaceSDL::~SurfaceSDL()
 	{
-		ASSERT_LOG(surface_ != nullptr, "surface_ is null in destructor");
-		SDL_FreeSurface(surface_);
+		//ASSERT_LOG(surface_ != nullptr, "surface_ is null in destructor");
+		if(surface_ != nullptr) {
+			SDL_FreeSurface(surface_);
+		}
 	}
 
 	SurfacePtr SurfaceSDL::createFromPixels(int width, 
@@ -237,7 +261,10 @@ namespace KRE
 
 	const void* SurfaceSDL::pixels() const
 	{
-		ASSERT_LOG(surface_ != nullptr, "surface_ is null");
+		if(surface_ == nullptr) {
+			return nullptr;
+		}
+		//ASSERT_LOG(surface_ != nullptr, "surface_ is null");
 		// technically surface_->locked is an internal implementation detail.
 		// but we'll live with using it.
 		if(SDL_MUSTLOCK(surface_) && !surface_->locked) {
@@ -642,6 +669,7 @@ namespace KRE
 			case SDL_PIXELFORMAT_YUY2:	        return PF::PIXELFORMAT_YUY2;
 			case SDL_PIXELFORMAT_UYVY:	        return PF::PIXELFORMAT_UYVY;
 			case SDL_PIXELFORMAT_YVYU:	        return PF::PIXELFORMAT_YVYU;
+			case SDL_PIXELFORMAT_R8:			return PF::PIXELFORMAT_R8;
 		}
 		return PF::PIXELFORMAT_UNKNOWN;
 	}
@@ -725,6 +753,12 @@ namespace KRE
 				green = color.g;
 				blue = color.b;
 				alpha = color.a;
+				break;
+			}
+
+			case PixelFormat::PF::PIXELFORMAT_R8: {
+				alpha = green = blue = 0;
+				red = *reinterpret_cast<const uint8_t*>(pixels);
 				break;
 			}
 
@@ -840,6 +874,12 @@ namespace KRE
 				}
 				uint32_t* px = static_cast<uint32_t*>(pixels);
 				*px = pixel;
+				break;
+			}
+
+			case PixelFormat::PF::PIXELFORMAT_R8: {
+				uint8_t* px = static_cast<uint8_t*>(pixels);
+				*px = red;
 				break;
 			}
 

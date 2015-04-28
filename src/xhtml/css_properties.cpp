@@ -122,6 +122,11 @@ namespace css
 		//PropertyRegistrar property033("font-variant", Object(FontVariant::NORMAL), std::bind(&PropertyParser::parseFontVariant, _1, _2));
 		PropertyRegistrar property034("font-weight", Object(FontWeight()), std::bind(&PropertyParser::parseFontWeight, _1, _2));
 		//PropertyRegistrar property035("font", Object(Font), std::bind(&PropertyParser::parseFont, _1, _2));
+		PropertyRegistrar property036("letter-spacing", Object(CssLength()), std::bind(&PropertyParser::parseSpacing, _1, _2));
+		PropertyRegistrar property037("word-spacing", Object(CssLength()), std::bind(&PropertyParser::parseSpacing, _1, _2));
+		PropertyRegistrar property038("text-align", Object(TextAlign::NORMAL), std::bind(&PropertyParser::parseTextAlign, _1, _2));
+		PropertyRegistrar property039("direction", Object(Direction::LTR), std::bind(&PropertyParser::parseDirection, _1, _2));
+		PropertyRegistrar property040("text-transform", Object(TextTransform::NONE), std::bind(&PropertyParser::parseTextTransform, _1, _2));
 	}
 
 	PropertyList::PropertyList()
@@ -621,5 +626,108 @@ namespace css
 			advance();
 		}
 		plist_.addProperty(name, Object(fs));
+	}
+
+	void PropertyParser::parseSpacing(const std::string& name)
+	{
+		CssLength spacing;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, Object(true));
+				return;
+			} else if(ref == "normal") {
+				// spacing defaults to 0
+			} else {
+				ASSERT_LOG(false, "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else if(isToken(TokenId::DIMENSION)) {
+			const std::string units = (*it_)->getStringValue();
+			double value = (*it_)->getNumericValue();
+			advance();
+			spacing = CssLength(value, units);
+		} else if(isToken(TokenId::NUMBER)) {
+			double d = (*it_)->getNumericValue();
+			advance();
+			spacing = CssLength(d);
+		} else {
+			ASSERT_LOG(false, "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(name, Object(spacing));
+	}
+
+	void PropertyParser::parseTextAlign(const std::string& name)
+	{
+		TextAlign ta = TextAlign::NORMAL;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, Object(true));
+				return;
+			} else if(ref == "left") {
+				ta = TextAlign::LEFT;
+			} else if(ref == "right") {
+				ta = TextAlign::RIGHT;
+			} else if(ref == "center" || ref == "centre") {
+				ta = TextAlign::CENTER;
+			} else if(ref == "justify") {
+				ta = TextAlign::JUSTIFY;
+			} else {
+				ASSERT_LOG(false, "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else {
+			ASSERT_LOG(false, "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(name, Object(ta));
+	}
+
+	void PropertyParser::parseDirection(const std::string& name)
+	{
+		Direction dir = Direction::LTR;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, Object(true));
+				return;
+			} else if(ref == "ltr") {
+				dir = Direction::LTR;
+			} else if(ref == "rtl") {
+				dir = Direction::RTL;
+			} else {
+				ASSERT_LOG(false, "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else {
+			ASSERT_LOG(false, "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(name, Object(dir));
+	}
+
+	void PropertyParser::parseTextTransform(const std::string& name)
+	{
+		TextTransform tt = TextTransform::NONE;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, Object(true));
+				return;
+			} else if(ref == "capitalize") {
+				tt = TextTransform::CAPITALIZE;
+			} else if(ref == "uppercase") {
+				tt = TextTransform::UPPERCASE;
+			} else if(ref == "lowercase") {
+				tt = TextTransform::LOWERCASE;
+			} else if(ref == "none") {
+				tt = TextTransform::NONE;
+			} else {
+				ASSERT_LOG(false, "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else {
+			ASSERT_LOG(false, "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(name, Object(tt));
 	}
 }

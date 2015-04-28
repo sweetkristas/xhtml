@@ -49,11 +49,17 @@ namespace xhtml
 	{
 		explicit Word(const std::string& w) : word(w), advance() {}
 		std::string word;
-		std::vector<geometry::Point<double>> advance;
+		std::vector<geometry::Point<long>> advance;
 	};
 
 	typedef std::vector<Word> Line;
-	typedef std::vector<Line> Lines;
+
+	struct Lines
+	{
+		Lines() : space_advance(0), lines(1, Line()) {}
+		long space_advance;
+		std::vector<Line> lines;
+	};
 
 	class Node : std::enable_shared_from_this<Node>
 	{

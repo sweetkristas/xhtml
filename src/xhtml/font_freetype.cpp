@@ -31,11 +31,18 @@
 #include "font_freetype.hpp"
 #include "utf8_to_codepoint.hpp"
 
+#include "AttributeSet.hpp"
+#include "DisplayDevice.hpp"
+#include "SceneObject.hpp"
+#include "Shaders.hpp"
+
 namespace KRE
 {
 	namespace
 	{
 		const int default_dpi = 96;
+		const int surface_width = 1024;
+		const int surface_height = 1024;
 
 		font_path_cache& get_font_path_cache()
 		{
@@ -66,7 +73,90 @@ namespace KRE
 			}
 			return library;
 		}
+
+		struct CacheKey
+		{
+			CacheKey(const std::string& fn, float sz) : font_name(fn), size(sz) {}
+			std::string font_name;
+			float size;
+			bool operator<(const CacheKey& other) const {
+				return font_name == other.font_name ? size < other.size : font_name < other.font_name;
+			}
+		};
+
+		typedef std::map<CacheKey, FontHandlePtr> font_cache;
+		font_cache& get_font_cache()
+		{
+			static font_cache res;
+			return res;
+		}
+
+		// Returns a list of what we consider 'common' codepoints
+		// these generally consist of the 7-bit ASCII characters.
+		// and the unicode replacement character 0xfffd
+		std::vector<char32_t>& get_common_glyphs()
+		{
+			static std::vector<char32_t> res;
+			if(res.empty()) {
+				for(char32_t n = 0x21; n < 0x7f; ++n) {
+					res.emplace_back(n);
+				}
+				res.emplace_back(0xfffd);
+			}
+			return res;
+		}
 	}
+
+	struct GlyphInfo
+	{
+		// X co-ordinate of top-left corner of glyph in texture.
+		unsigned short tex_x;
+		// Y co-ordinate of top-left corner of glyph in texture.
+		unsigned short tex_y;
+		// Width of glyph in texture.
+		unsigned short width;
+		// Hidth of glyph in texture.
+		unsigned short height;
+		// X advance (i.e. distance to start of next glyph on X axis)
+		long advance_x;
+		// Y advance (i.e. distance to start of next glyph on Y axis)
+		long advance_y;
+		// X offset to top of glyph from origin
+		long bearing_x;
+		// Y offset to top of glyph from origin
+		long bearing_y;
+	};
+
+	struct font_coord
+	{
+		font_coord(const glm::vec2& v, const glm::u16vec2& t) : vtx(v), tc(t) {}
+		glm::vec2 vtx;
+		glm::u16vec2 tc;
+	};
+
+	class FontRenderable : public SceneObject
+	{
+	public:
+		FontRenderable() 
+			: SceneObject("font-renderable")
+		{
+			setShader(ShaderProgram::getProgram("font_shader"));
+			auto as = DisplayDevice::createAttributeSet();
+			attribs_.reset(new Attribute<font_coord>(AccessFreqHint::DYNAMIC, AccessTypeHint::DRAW));
+			attribs_->addAttributeDesc(AttributeDesc(AttrType::POSITION, 2, AttrFormat::FLOAT, false, sizeof(font_coord), offsetof(font_coord, vtx)));
+			attribs_->addAttributeDesc(AttributeDesc(AttrType::TEXTURE,  2, AttrFormat::UNSIGNED_SHORT, true, sizeof(font_coord), offsetof(font_coord, tc)));
+			as->addAttribute(AttributeBasePtr(attribs_));
+			as->setDrawMode(DrawMode::TRIANGLES);
+		
+			addAttributeSet(as);
+		}
+		void update(std::vector<font_coord>* queue)
+		{
+			attribs_->update(queue);
+		}
+	private:
+		std::shared_ptr<Attribute<font_coord>> attribs_;
+	};
 
 	FontDriver::FontDriver()
 	{
@@ -118,7 +208,13 @@ namespace KRE
 			throw FontError2(ss.str());
 		}
 
-		return std::make_shared<FontHandle>(selected_font, size, color);
+		auto it = get_font_cache().find(CacheKey(selected_font, size));
+		if(it != get_font_cache().end()) {
+			return it->second;
+		}
+		auto fh = std::make_shared<FontHandle>(selected_font, size, color);
+		get_font_cache()[CacheKey(selected_font, size)] = fh;
+		return fh;
 	}
 
 	class FontHandle::Impl
@@ -130,7 +226,13 @@ namespace KRE
 			  color_(color),
 			  face_(nullptr),
 			  has_kerning_(false),
-			  x_height_(0)
+			  x_height_(0),
+			  font_texture_(),
+			  next_font_x_(0),
+			  next_font_y_(0),
+			  last_line_height_(0),
+			  glyph_info_(),
+			  all_glyphs_added_(false)
 		{
 			// XXX starting off with a basic way of rendering glyphs.
 			// It'd be better to render all the glyphs to a texture,
@@ -156,6 +258,15 @@ namespace KRE
 			FT_UInt glyph_index = FT_Get_Char_Index(face_, 'x');
 			FT_Load_Glyph(face_, glyph_index, FT_LOAD_DEFAULT);
 			x_height_ = face_->glyph->metrics.height / 64.0f;
+
+			// This is an empirical fudge that just adds all the glyphs in the
+			// font to the texture on the caveat that they will fit.
+			float px_sz = size / 72.0f * default_dpi;
+			if((surface_width / px_sz) * (surface_height / px_sz) > face_->num_glyphs) {
+				addAllGlyphsToTexture();
+			} else {
+				addGlyphsToTexture(get_common_glyphs());
+			}
 		}
 		~Impl() 
 		{
@@ -164,7 +275,7 @@ namespace KRE
 				face_ = nullptr;
 			}
 		}
-		void getBoundingBox(const std::string& str, double* w, double* h) 
+		void getBoundingBox(const std::string& str, long* w, long* h) 
 		{
 			FT_GlyphSlot slot = face_->glyph;
 			FT_UInt previous_glyph = 0;
@@ -186,48 +297,18 @@ namespace KRE
 				previous_glyph = glyph_index;
 			}
 			// This is to ensure that the returned dimensions are tight, i.e. the final advance is replaced by the width of the character.
-			*w = (pen.x - slot->advance.x + slot->metrics.width) / 64.0;
-			*h = (pen.y - slot->advance.y + slot->metrics.height) / 64.0;
-		}
-		SurfacePtr renderTextAsSurface(const std::string& utf8_str)
-		{
-			FT_Vector pen = { 0, 0 };
-			FT_GlyphSlot slot = face_->glyph;
-			FT_Error error;
-			double w, h;			
-			getBoundingBox(utf8_str, &w, &h);
-			SurfacePtr dest = Surface::create(static_cast<int>(w), static_cast<int>(h), PixelFormat::PF::PIXELFORMAT_RGBA8888);
-			FT_UInt previous_glyph = 0;
-			for(char32_t cp : utils::utf8_to_codepoint(utf8_str)) {
-				// FT_Set_Transform(face, &matrix, &pen);
-
-				FT_UInt glyph_index = FT_Get_Char_Index(face_, cp);
-				if(has_kerning_ && previous_glyph && glyph_index) {
-					FT_Vector  delta;
-					FT_Get_Kerning(face_, previous_glyph, glyph_index, FT_KERNING_DEFAULT, &delta);
-					pen.x += delta.x;
-				}
-
-				if((error = FT_Load_Glyph(face_, glyph_index, FT_LOAD_RENDER)) != 0) {
-					continue;
-				}
-				SurfacePtr src = Surface::create(slot->bitmap.width, slot->bitmap.rows, PixelFormat::PF::PIXELFORMAT_RGBA8888);
-				dest->blitTo(src, rect(pen.x >> 6, pen.y >> 6));
-				pen.x += slot->advance.x;
-				pen.y += slot->advance.y;
-
-				previous_glyph = glyph_index;
-			}
+			*w = (pen.x - slot->advance.x + slot->metrics.width);
+			*h = (pen.y - slot->advance.y + slot->metrics.height);
 		}
 
-		void getGlyphPath(const std::string& text, std::vector<geometry::Point<double>>* path)
+		void getGlyphPath(const std::string& text, std::vector<geometry::Point<long>>* path)
 		{
 			FT_Vector pen = { 0, 0 };
 			FT_GlyphSlot slot = face_->glyph;
 			FT_Error error;
 			FT_UInt previous_glyph = 0;
 			for(char32_t cp : utils::utf8_to_codepoint(text)) {
-				path->emplace_back(pen.x / 64.0, pen.y / 64.0);
+				path->emplace_back(pen.x, pen.y);
 				FT_UInt glyph_index = FT_Get_Char_Index(face_, cp);
 				if(has_kerning_ && previous_glyph && glyph_index) {
 					FT_Vector  delta;
@@ -243,10 +324,68 @@ namespace KRE
 				previous_glyph = glyph_index;
 			}
 			// pushing back the end point so we know where the next letter starts.
-			path->emplace_back(pen.x / 64.0, pen.y / 64.0);
+			path->emplace_back(pen.x, pen.y);
 		}
 		
-		double calculateCharAdvance(char32_t cp)
+		// text is a utf-8 string, path is expected to have at least has many data points as there
+		// are codepoints in the string. path should be in units consist with FT_Pos
+		RenderablePtr createRenderableFromPath(const std::string& text, const std::vector<geometry::Point<long>>& path)
+		{
+			auto cp_string = utils::utf8_to_codepoint(text);
+			int glyphs_in_text = 0;
+			std::vector<char32_t> glyphs_to_add;
+			for(char32_t cp : cp_string) {
+				++glyphs_in_text;
+				auto it = glyph_info_.find(cp);
+				if(it == glyph_info_.end()) {
+					glyphs_to_add.emplace_back(cp);
+				}
+			}
+			if(!glyphs_to_add.empty()) {
+				addGlyphsToTexture(glyphs_to_add);
+			}
+			
+			auto font_renderable = std::shared_ptr<FontRenderable>();
+			font_renderable->setTexture(font_texture_);
+
+			std::vector<font_coord> coords;
+			coords.reserve(glyphs_in_text * 6);
+			int n = 0;
+			for(char32_t cp : cp_string) {
+				ASSERT_LOG(n < static_cast<int>(path.size()), "Insufficient points were supplied to create a path from the string '" << text << "'");
+				auto& pt =path[n];
+				auto it = glyph_info_.find(cp);
+				if(it == glyph_info_.end()) {
+					it = glyph_info_.find(0xfffd);
+					if(it == glyph_info_.end()) {
+						continue;
+					}
+				}
+				GlyphInfo& gi = it->second;
+				const unsigned short u1 = gi.tex_x;
+				const unsigned short v1 = gi.tex_y;
+				const unsigned short u2 = gi.tex_x + gi.width;
+				const unsigned short v2 = gi.tex_y + gi.height;
+
+				const float x1 = static_cast<float>(pt.x + gi.bearing_x) / 64.0f;
+				const float y1 = static_cast<float>(pt.y + gi.bearing_y) / 64.0f;
+				const float x2 = x1 + static_cast<float>(gi.width);
+				const float y2 = y1 + static_cast<float>(gi.height);
+				coords.emplace_back(glm::vec2(x1, y2), glm::u16vec2(u1, v2));
+				coords.emplace_back(glm::vec2(x1, y1), glm::u16vec2(u1, v1));
+				coords.emplace_back(glm::vec2(x2, y1), glm::u16vec2(u2, v1));
+
+				coords.emplace_back(glm::vec2(x2, y1), glm::u16vec2(u2, v1));
+				coords.emplace_back(glm::vec2(x1, y2), glm::u16vec2(u1, v2));
+				coords.emplace_back(glm::vec2(x2, y2), glm::u16vec2(u2, v2));
+				++n;
+			}
+
+			font_renderable->update(&coords);
+			return font_renderable;
+		}
+
+		long calculateCharAdvance(char32_t cp)
 		{
 			FT_Error error;
 			FT_GlyphSlot slot = face_->glyph;
@@ -254,7 +393,90 @@ namespace KRE
 				return 0;
 			}
 			// XXX we should return int's and use the *64 version, stuff processing power.
-			return slot->advance.x / 64.0;
+			return slot->advance.x;
+		}
+
+		// Adds all the glyphs in the font to the texture.
+		// Assumes you've calculated that they'll all fit.
+		void addAllGlyphsToTexture()
+		{
+			std::vector<char32_t> glyphs;
+			for(int n = 0; n != face_->num_glyphs; ++n) {
+			}
+			addGlyphsToTexture(glyphs);
+			all_glyphs_added_ = true;
+		}
+
+		void addGlyphsToTexture(const std::vector<char32_t>& glyphs) 
+		{
+			if(font_texture_ == nullptr) {
+				// XXX if slot->bitmap.pixel_mode == FT_PIXEL_MODE_LCD then allocate a RGBA surface
+				font_texture_ = Texture::createTexture2D(surface_width, surface_height, PixelFormat::PF::PIXELFORMAT_R8);
+				font_texture_->setUnpackAlignment(0, 1);
+				next_font_x_ = next_font_y_ = 0;
+			}
+			FT_Error error;
+			FT_GlyphSlot slot = face_->glyph;
+			// use a simple packing algorithm.
+			for(auto& cp : glyphs) {
+				if(glyph_info_.find(cp) != glyph_info_.end()) {
+					continue;
+				}
+				if((error = FT_Load_Char(face_, cp, FT_LOAD_RENDER)) != 0) {
+					LOG_ERROR("Font '" << fnt_ << "' does not contain glyph for: " << utils::codepoint_to_utf8(cp));
+					continue;
+				}
+				if(slot->bitmap.buffer == nullptr) {
+					continue;
+				}
+				GlyphInfo& gi = glyph_info_[cp];
+				gi.width = static_cast<unsigned short>(slot->metrics.width/64);
+				gi.height = static_cast<unsigned short>(slot->metrics.height/64);
+				gi.advance_x = slot->advance.x;
+				gi.advance_y = slot->advance.y;
+				gi.bearing_x = slot->metrics.horiBearingX;
+				gi.bearing_y = slot->metrics.horiBearingY;
+				last_line_height_ = std::max(last_line_height_, gi.height);
+				if(gi.width + next_font_x_ > surface_width) {
+					next_font_x_ = 0;
+					next_font_y_ += last_line_height_;
+					ASSERT_LOG(next_font_y_ < surface_height, "This font would exceed to maximum surface size. " 
+						<< surface_width << "x" << surface_height << ", number of glyphs: " << glyph_info_.size());
+				}
+				gi.tex_x = next_font_x_;
+				gi.tex_y = next_font_y_;
+
+				switch(slot->bitmap.pixel_mode) {
+					case FT_PIXEL_MODE_MONO: {
+						const int pixel_count = slot->bitmap.pitch * slot->bitmap.rows;
+						std::vector<uint8_t> pixels(pixel_count, 0);
+						for(int n = 0; n != pixel_count; n += 8) {
+							pixels[n+0] = (slot->bitmap.buffer[n] & 128) ? 255 : 0;
+							pixels[n+1] = (slot->bitmap.buffer[n] &  64) ? 255 : 0;
+							pixels[n+2] = (slot->bitmap.buffer[n] &  32) ? 255 : 0;
+							pixels[n+3] = (slot->bitmap.buffer[n] &  16) ? 255 : 0;
+							pixels[n+4] = (slot->bitmap.buffer[n] &   8) ? 255 : 0;
+							pixels[n+5] = (slot->bitmap.buffer[n] &   4) ? 255 : 0;
+							pixels[n+6] = (slot->bitmap.buffer[n] &   2) ? 255 : 0;
+							pixels[n+7] = (slot->bitmap.buffer[n] &   1) ? 255 : 0;
+						}
+						font_texture_->update2D(0, next_font_x_, next_font_y_, gi.width, gi.height, slot->bitmap.pitch, &pixels[0]);
+						break;
+					}
+					case FT_PIXEL_MODE_GRAY:
+						font_texture_->update2D(0, next_font_x_, next_font_y_, gi.width, gi.height, slot->bitmap.pitch, slot->bitmap.buffer);
+						break;
+					case FT_PIXEL_MODE_LCD:
+					case FT_PIXEL_MODE_GRAY2:
+					case FT_PIXEL_MODE_GRAY4:
+					case FT_PIXEL_MODE_LCD_V:
+					/* case FT_PIXEL_MODE_BGRA: */
+					default:
+						ASSERT_LOG(false, "Unhandled font pixel mode: " << slot->bitmap.pixel_mode);
+						break;
+				}
+				next_font_x_ += gi.width;
+			}
 		}
 	private:
 		std::string fnt_;
@@ -263,6 +485,14 @@ namespace KRE
 		FT_Face face_;
 		bool has_kerning_;
 		float x_height_;
+		TexturePtr font_texture_;
+		int next_font_x_;
+		int next_font_y_;
+		unsigned short last_line_height_;
+		// XXX see what is practically faster using a sorted list and binary search
+		// or this map. Also a vector would have better locality.
+		std::map<char32_t, GlyphInfo> glyph_info_;
+		bool all_glyphs_added_;
 		friend class FontHandle;
 	};
 	
@@ -305,17 +535,22 @@ namespace KRE
 	{
 	}
 
-	void FontHandle::getGlyphPath(const std::string& text, std::vector<geometry::Point<double>>* path)
+	void FontHandle::getGlyphPath(const std::string& text, std::vector<geometry::Point<long>>* path)
 	{
 		impl_->getGlyphPath(text, path);
 	}
 
-	rectf FontHandle::getBoundingBox(const std::string& text)
+	rect FontHandle::getBoundingBox(const std::string& text)
 	{
-		return rectf();
+		return rect();
 	}
 
-	double FontHandle::calculateCharAdvance(char32_t cp)
+	RenderablePtr FontHandle::createRenderableFromPath(const std::string& text, const std::vector<geometry::Point<long>>& path)
+	{
+		return impl_->createRenderableFromPath(text, path);
+	}
+
+	long FontHandle::calculateCharAdvance(char32_t cp)
 	{
 		return impl_->calculateCharAdvance(cp);
 	}

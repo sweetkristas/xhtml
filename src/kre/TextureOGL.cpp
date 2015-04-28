@@ -435,6 +435,11 @@ namespace KRE
 				td.internal_format = GL_RGBA;
 				td.type = GL_UNSIGNED_BYTE;
 				break;
+			case PixelFormat::PF::PIXELFORMAT_R8:
+				td.format = GL_RED;
+				td.internal_format = GL_RGBA;
+				td.type = GL_UNSIGNED_BYTE;
+				break;
 			case PixelFormat::PF::PIXELFORMAT_RGB332:
 				td.format = GL_RGB;
 				td.internal_format = GL_R3_G3_B2;

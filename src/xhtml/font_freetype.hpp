@@ -30,6 +30,7 @@
 
 #include "geometry.hpp"
 #include "Color.hpp"
+#include "RenderFwd.hpp"
 #include "Texture.hpp"
 
 namespace KRE
@@ -52,9 +53,11 @@ namespace KRE
 		const std::string& getFontFamily();
 		void renderText();
 		void getFontMetrics();
-		rectf getBoundingBox(const std::string& text);
-		void getGlyphPath(const std::string& text, std::vector<geometry::Point<double>>* path);
-		double calculateCharAdvance(char32_t cp);
+		rect getBoundingBox(const std::string& text);
+		RenderablePtr createRenderableFromPath(const std::string& text, const std::vector<geometry::Point<long>>& path);
+		void getGlyphPath(const std::string& text, std::vector<geometry::Point<long>>* path);
+		long calculateCharAdvance(char32_t cp);
+		long getScaleFactor() const { return 64; }
 	private:
 		class Impl;
 		std::unique_ptr<Impl> impl_;

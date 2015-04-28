@@ -21,6 +21,8 @@
 	   distribution.
 */
 
+#include <boost/locale.hpp>
+
 #include "asserts.hpp"
 #include "xhtml_text_node.hpp"
 #include "xhtml_render_ctx.hpp"
@@ -96,16 +98,49 @@ namespace xhtml
 	// variable is the advance per space character.
 	Lines Text::generateLines(int current_line_width, int maximum_line_width)
 	{
-		// adjust the current_line_width to be the space remaining on the line.
-		current_line_width = maximum_line_width - current_line_width;
 		auto parent = getParent();
 		if(parent == nullptr) {
 			return Lines();
 		}
 		ASSERT_LOG(parent != nullptr, "Can't un-parented Text node.");
+
+		// adjust the current_line_width to be the space remaining on the line.
+		long font_coord_factor = RenderContext::get().getFont()->getScaleFactor();
+		current_line_width = (maximum_line_width - current_line_width) * font_coord_factor;
+
 		css::CssWhitespace ws = parent->getStyle("white-space").getValue<css::CssWhitespace>();
 
-		// XXX need to transform text_ based on "text-transform" property
+		// Apply transform text_ based on "text-transform" property		
+		css::TextTransform text_transform = parent->getStyle("text-transform").getValue<css::TextTransform>();
+		std::string transformed_text = text_;
+		switch(text_transform) {
+			case css::TextTransform::CAPITALIZE: {
+				bool first_letter = true;
+				transformed_text.clear();
+				for(auto cp : utils::utf8_to_codepoint(text_)) {
+					if(is_white_space(cp)) {
+						first_letter = true;
+						transformed_text += utils::codepoint_to_utf8(cp);
+					} else {
+						if(first_letter) {
+							first_letter = false;
+							transformed_text += boost::locale::to_upper(utils::codepoint_to_utf8(cp));
+						} else {
+							transformed_text += utils::codepoint_to_utf8(cp);
+						}
+					}
+				}
+				break;
+			}
+			case css::TextTransform::UPPERCASE:
+				transformed_text = boost::locale::to_upper(text_);
+				break;
+			case css::TextTransform::LOWERCASE:
+				transformed_text = boost::locale::to_lower(text_);
+				break;
+			case css::TextTransform::NONE:
+			default: break;
+		}
 
 		// indicates whitespace should be collapsed together.
 		bool collapse_whitespace = ws == css::CssWhitespace::NORMAL || ws == css::CssWhitespace::NOWRAP || ws == css::CssWhitespace::PRE_LINE;
@@ -115,18 +150,25 @@ namespace xhtml
 		// indicates we should break on newline characters.
 		bool break_at_newline = ws == css::CssWhitespace::PRE || ws == css::CssWhitespace::PRE_LINE || ws == css::CssWhitespace::PRE_WRAP;
 
-		// XXX should apply letter-spacing and word-spacing here.
-		auto line = xhtml::tokenize_text(text_, collapse_whitespace, break_at_newline);
-		double space_advance = RenderContext::get().getFont()->calculateCharAdvance(' ');
-		//double word_spacing = parent->getStyle("word-spacing").getValue<double>();
-		//space_advance += word_spacing;
-		//double letter_spacing = parent->getStyle("letter-spacing").getValue<double>();
-		//space_advance += letter_spacing;
+		// Apply letter-spacing and word-spacing here.
+		auto line = xhtml::tokenize_text(transformed_text, collapse_whitespace, break_at_newline);
+		long space_advance = RenderContext::get().getFont()->calculateCharAdvance(' ');
+		long word_spacing = static_cast<long>(parent->getStyle("word-spacing").getValue<css::CssLength>().evaluate(0) * font_coord_factor);
+		space_advance += word_spacing;
+		long letter_spacing = static_cast<long>(parent->getStyle("letter-spacing").getValue<css::CssLength>().evaluate(0) * font_coord_factor);
+		space_advance += letter_spacing;
+
+		css::Direction dir = parent->getStyle("direction").getValue<css::Direction>();
+		css::TextAlign text_align = parent->getStyle("text-align").getValue<css::TextAlign>();
+		if(text_align == css::TextAlign::NORMAL) {
+			text_align = dir == css::Direction::LTR ? css::TextAlign::LEFT : css::TextAlign::RIGHT;
+		}
 
 		// accumulator for current line lenth
-		double length_acc = 0;
+		long length_acc = 0;
 		
-		Lines lines(1, Line());
+		Lines lines;
+		lines.space_advance = space_advance;
 		bool last_line_was_auto_break = false;
 		bool is_first_line = true;
 		for(auto& word : line) {
@@ -134,31 +176,47 @@ namespace xhtml
 			if(word.word == "\n") {
 				if(!(last_line_was_auto_break && length_acc == 0)) {
 					last_line_was_auto_break = false;
-					lines.emplace_back(Line());
+					lines.lines.emplace_back(Line());
 					length_acc = 0;
 				}
 				continue;
 			}
 			RenderContext::get().getFont()->getGlyphPath(word.word, &word.advance);
-			//double ls_acc = 0;
-			//for(auto& pt : word.advance) {
-			//	pt.x += ls_acc;
-			//	ls_acc += letter_spacing;
-			//}
+			if(letter_spacing != 0) {
+				long ls_acc = 0;
+				for(auto& pt : word.advance) {
+					pt.x += ls_acc;
+					ls_acc += letter_spacing;
+				}
+			}
 			// XXX we should enforce a minimum of one-word per line even if it overflows.
 			if(break_at_line && length_acc + word.advance.back().x + space_advance > current_line_width) {
+				// if text-align is set to justify we can add more spaces to bring the outer word aligned to the maximum_line_width
+				// XXX this code is still slightly wrong as it will make the advance of the next character align with the edge
+				// rather than the bounding box of the last glyph.
+				if(text_align == css::TextAlign::JUSTIFY) {
+					long space_to_add = current_line_width - length_acc;
+					// only add padding if more than one word per line.
+					// XXX if this is the last line we don't justify it.
+					if(lines.lines.back().size() > 1) {
+						space_to_add /= (lines.lines.back().size() - 1);
+						for(auto& w : lines.lines.back()) {
+							w.advance.back().x += space_to_add;
+						}
+					}
+				}
+
 				// XXX add new line to be rendered here.
-				lines.emplace_back(Line());
+				lines.lines.emplace_back(Line());
 				length_acc = 0;
 				last_line_was_auto_break = true;
-				current_line_width = maximum_line_width;
+				current_line_width = maximum_line_width * font_coord_factor;
 			} else {
 				length_acc += word.advance.back().x + space_advance;
 				// XXX render word glyph here.
-				lines.back().emplace_back(word);
+				lines.lines.back().emplace_back(word);
 				last_line_was_auto_break = false;
-			}
-		
+			}		
 		}
 
 		return lines;

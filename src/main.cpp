@@ -74,8 +74,6 @@ int main(int argc, char* argv[])
 	sys::get_unique_files(data_path + "fonts/", font_files);
 	KRE::FontDriver::setAvailableFonts(font_files);
 
-	xhtml::RenderContext& rc = xhtml::RenderContext::get();
-
 	auto user_agent_style_sheet = std::make_shared<css::StyleSheet>();
 	css::Parser::parse(user_agent_style_sheet, sys::read_file(ua_ss));
 
@@ -90,15 +88,6 @@ int main(int argc, char* argv[])
 	doc->preOrderTraversal([](xhtml::NodePtr n) {
 		LOG_DEBUG(n->toString());
 		return true;
-	});
-
-	auto layout = xhtml::LayoutBox::create(doc);
-	xhtml::Dimensions root_dimensions;
-	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, 0);
-	layout->layout(root_dimensions);
-
-	layout->preOrderTraversal([](xhtml::LayoutBoxPtr box) {
-		LOG_DEBUG(box->toString());
 	});
 
 #if 1
@@ -135,6 +124,17 @@ int main(int argc, char* argv[])
 	root->setNodeName("root_node");
 
 	DisplayDevice::getCurrent()->setDefaultCamera(std::make_shared<Camera>("ortho1", 0, width, 0, height));
+
+	// layout has to happen after initialisation of graphics
+	auto layout = xhtml::LayoutBox::create(doc);
+	xhtml::Dimensions root_dimensions;
+	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, 0);
+	layout->layout(root_dimensions);
+
+	layout->preOrderTraversal([](xhtml::LayoutBoxPtr box) {
+		LOG_DEBUG(box->toString());
+	});
+	// end xhtml layout
 
 	auto rman = std::make_shared<RenderManager>();
 	auto rq = rman->addQueue(0, "opaques");
