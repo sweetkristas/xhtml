@@ -21,40 +21,22 @@
 	   distribution.
 */
 
-#pragma once
+#include "SceneObject.hpp"
 
-#include "xhtml_render_ctx.hpp"
+#include "display_list.hpp"
 
 namespace xhtml
 {
-	RenderContext::RenderContext(const std::string& font_name, double font_size)
-		: fh_(),
-		  dpi_scale_(96.0)
-	{
-		std::vector<std::string> names(1, font_name);
-		fh_.emplace(KRE::FontDriver::getFontHandle(names, font_size));
-	}
 
-	void RenderContext::pushFont(const std::string& name, double size)
+	DisplayList::DisplayList(std::weak_ptr<KRE::SceneGraph> sg)
+		: SceneNode(sg),
+		  ordering_(0)
 	{
-		std::vector<std::string> names(1, name);
-		pushFont(names, size);
 	}
-
-	void RenderContext::pushFont(const std::vector<std::string>& name, double size)
+	
+	void DisplayList::addRenderable(KRE::SceneObjectPtr r)
 	{
-		fh_.emplace(KRE::FontDriver::getFontHandle(name, size));
-	}
-
-	void RenderContext::popFont()
-	{
-		fh_.pop();
-		ASSERT_LOG(!fh_.empty(), "Popped too many fonts and emptied the stack");
-	}
-
-	RenderContext& RenderContext::get()
-	{
-		static RenderContext res("FreeSerif.ttf", 12);
-		return res;
+		r->setOrder(ordering_++);
+		attachObject(r);
 	}
 }

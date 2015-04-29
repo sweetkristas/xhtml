@@ -25,16 +25,57 @@
 #include "css_styles.hpp"
 #include "xhtml_layout.hpp"
 #include "xhtml_node.hpp"
+#include "xhtml_render_ctx.hpp"
 
 namespace xhtml
 {
-	LayoutBox::LayoutBox(LayoutBoxPtr parent, NodePtr node, css::CssDisplay display)
+	namespace 
+	{
+		std::string display_string(css::CssDisplay disp) {
+			switch(disp) {
+				case css::CssDisplay::BLOCK:				return "block";
+				case css::CssDisplay::INLINE:				return "inline";
+				case css::CssDisplay::INLINE_BLOCK:			return "inline-block";
+				case css::CssDisplay::LIST_ITEM:			return "list-item";
+				case css::CssDisplay::TABLE:				return "table";
+				case css::CssDisplay::INLINE_TABLE:			return "inline-table";
+				case css::CssDisplay::TABLE_ROW_GROUP:		return "table-row-group";
+				case css::CssDisplay::TABLE_HEADER_GROUP:	return "table-header-group";
+				case css::CssDisplay::TABLE_FOOTER_GROUP:	return "table-footer-group";
+				case css::CssDisplay::TABLE_ROW:			return "table-row";
+				case css::CssDisplay::TABLE_COLUMN_GROUP:	return "table-column-group";
+				case css::CssDisplay::TABLE_COLUMN:			return "table-column";
+				case css::CssDisplay::TABLE_CELL:			return "table-cell";
+				case css::CssDisplay::TABLE_CAPTION:		return "table-caption";
+				case css::CssDisplay::NONE:					return "none";
+				default: 
+					ASSERT_LOG(false, "illegal display value: " << static_cast<int>(disp));
+					break;
+			}
+			return "none";
+		}
+	}
+
+	double convert_pt_to_pixels(double pt)
+	{
+		return pt / 72.0 * RenderContext::get().getDPI();
+	}
+
+	LayoutBox::LayoutBox(LayoutBoxPtr parent, NodePtr node, css::CssDisplay display, DisplayListPtr display_list)
 		: node_(node),
 		  display_(display),
 		  dimensions_(),
+		  display_list_(display_list),
 		  children_(),
 		  fonts_(),
-		  font_size_(0)
+		  font_size_(0),
+		  line_height_(0),
+		  font_style_(css::FontStyle::NORMAL),
+		  color_(),
+		  background_color_(),
+		  border_color_(),
+		  border_width_(),
+		  border_style_()
 	{
 		ASSERT_LOG(display_ != css::CssDisplay::NONE, "Tried to create a layout node with a display of none.");
 		if(node != nullptr) {
@@ -48,14 +89,71 @@ namespace xhtml
 			} else {
 				font_size_ = font_size.getValue<css::FontSize>().getFontSize(parent == nullptr ? 12.0 : parent->font_size_);
 			}
+
+			auto line_height = node->getStyle("line-height");
+			if(line_height.shouldInherit()) {
+				line_height_ = parent->line_height_;
+			} else {
+				css::CssLength& len = line_height.getValue<css::CssLength>();
+				if(len.isNumber() || len.isPercent()) {
+					line_height_ = convert_pt_to_pixels(len.evaluate(1.0) * font_size_);
+				} else {
+					line_height_ = len.evaluate(0);
+				}
+			}
+
+			auto font_style = node->getStyle("font-style");
+			if(font_style.shouldInherit()) {
+				font_style_ = parent->font_style_;
+			} else {
+				font_style_ = font_style.getValue<css::FontStyle>();
+			}
+
+			auto color = node->getStyle("color");
+			if(color.shouldInherit()) {
+				color_ = parent->color_;
+			} else {
+				color_ = color.getValue<css::CssColor>();
+			}
+
+			color = node->getStyle("background-color");
+			if(color.shouldInherit()) {
+				background_color_ = parent->background_color_;
+			} else {
+				background_color_ = color.getValue<css::CssColor>();
+			}
+
+			std::vector<std::string> directions = { "top", "left", "bottom", "right" };
+			for(int n = 0; n != 4; ++n) {
+				color = node->getStyle("border-" + directions[n] + "-color");
+				if(color.shouldInherit()) {
+					border_color_[n] = parent->border_color_[n];
+				} else {
+					border_color_[n] = color.getValue<css::CssColor>();
+				}
+
+				auto bwidth = node->getStyle("border-" + directions[n] + "-width");
+				if(bwidth.shouldInherit()) {
+					border_width_[n] = parent->border_width_[n];
+				} else {
+					border_width_[n] =  bwidth.getValue<css::CssLength>().evaluate(parent != nullptr ? parent->border_width_[n] : 0);
+				}
+
+				auto bstyle = node->getStyle("border-" + directions[n] + "-style");
+				if(bwidth.shouldInherit()) {
+					border_style_[n] = parent->border_style_[n];
+				} else {
+					border_style_[n] =  bstyle.getValue<css::BorderStyle>();
+				}
+			}
 		}
 	}
 
-	LayoutBoxPtr LayoutBox::create(NodePtr node, LayoutBoxPtr parent)
+	LayoutBoxPtr LayoutBox::create(NodePtr node, DisplayListPtr display_list, LayoutBoxPtr parent)
 	{
 		auto display = node->getStyle("display").getValue<css::CssDisplay>();
 		if(display != css::CssDisplay::NONE) {
-			auto root = std::make_shared<LayoutBox>(parent, node, display);
+			auto root = std::make_shared<LayoutBox>(parent, node, display, display_list);
 
 			LayoutBoxPtr inline_container;
 			for(auto& c : node->getChildren()) {
@@ -64,13 +162,13 @@ namespace xhtml
 					// ignore child nodes with display none.
 				} else if(disp == css::CssDisplay::INLINE && root->display_ == css::CssDisplay::BLOCK) {
 					if(inline_container == nullptr) {
-						inline_container = std::make_shared<LayoutBox>(root, nullptr, css::CssDisplay::BLOCK);
+						inline_container = std::make_shared<LayoutBox>(root, nullptr, css::CssDisplay::BLOCK, display_list);
 						root->children_.emplace_back(inline_container);
 					}
-					inline_container->children_.emplace_back(create(c, root));
+					inline_container->children_.emplace_back(create(c, display_list, root));
 				} else {
 					inline_container.reset();
-					root->children_.emplace_back(create(c, root));
+					root->children_.emplace_back(create(c, display_list, root));
 				}
 			}
 
@@ -79,28 +177,20 @@ namespace xhtml
 		return nullptr;
 	}
 
-	void LayoutBox::layout(const Dimensions& containing)
+	void LayoutBox::layout(const Dimensions& containing, point& offset)
 	{
-		bool font_pushed = false;
-		if(!fonts_.empty()) {
-			RenderContext& rc = RenderContext::get();
-			double fs = font_size_;
-			if(fs == 0) {
-				fs = rc.getFontSize();
-			}
-			// XXX we should implement this push/pop as an RAII pattern.
-			rc.pushFont(fonts_, fs);
-			font_pushed = true;
-		}
-
 		// XXX need to deal with non-static positioned elements
-
+		if(node_.lock() == nullptr) {
+			// anonymous
+			layoutInline(containing, offset);
+			return;
+		}
 		switch(display_) {
 			case css::CssDisplay::BLOCK:
 				layoutBlock(containing);
 				break;
 			case css::CssDisplay::INLINE:
-				layoutInline(containing);
+				layoutInline(containing, offset);
 				break;
 			case css::CssDisplay::INLINE_BLOCK:
 			case css::CssDisplay::LIST_ITEM:
@@ -120,18 +210,34 @@ namespace xhtml
 			default: 
 				break;
 		}
-
-		if(font_pushed) {
-			RenderContext::get().popFont();
-		}
 	}
 
 	void LayoutBox::layoutBlock(const Dimensions& containing)
 	{
+		bool font_pushed = false;
+		RenderContext& rc = RenderContext::get();
+		if(!fonts_.empty() || (font_size_ != rc.getFontSize() && font_size_ != 0)) {
+			double fs = font_size_;
+			if(fs == 0) {
+				fs = rc.getFontSize();
+			}			
+			// XXX we should implement this push/pop as an RAII pattern.
+			if(fonts_.empty()) {
+				rc.pushFont(rc.getFontName(), fs);
+			} else {
+				rc.pushFont(fonts_, fs);
+			}
+			font_pushed = true;
+		}
+
 		layoutBlockWidth(containing);
 		layoutBlockPosition(containing);
 		layoutBlockChildren();
 		layoutBlockHeight(containing);
+
+		if(font_pushed) {
+			RenderContext::get().popFont();
+		}
 	}
 
 	void LayoutBox::layoutBlockWidth(const Dimensions& containing)
@@ -222,9 +328,9 @@ namespace xhtml
 	}
 
 	void LayoutBox::layoutBlockChildren()
-	{
+	{		
 		for(auto& child : children_) {
-			child->layout(dimensions_);
+			child->layout(dimensions_, point());
 			dimensions_.content_.set_h(dimensions_.content_.h()
 				+ child->dimensions_.content_.h() 
 				+ child->dimensions_.margin_.top + child->dimensions_.margin_.bottom
@@ -245,27 +351,108 @@ namespace xhtml
 		}		
 	}
 
-	void LayoutBox::layoutInline(const Dimensions& containing)
+	void LayoutBox::layoutInline(const Dimensions& containing, point& offset)
 	{
-		layoutInlineWidth(containing);
+		bool font_pushed = false;
+		RenderContext& rc = RenderContext::get();
+		if(!fonts_.empty() || (font_size_ != rc.getFontSize() && font_size_ != 0)) {
+			double fs = font_size_;
+			if(fs == 0) {
+				fs = rc.getFontSize();
+			}			
+			// XXX we should implement this push/pop as an RAII pattern.
+			if(fonts_.empty()) {
+				rc.pushFont(rc.getFontName(), fs);
+			} else {
+				rc.pushFont(fonts_, fs);
+			}
+			font_pushed = true;
+		}
+
+		layoutInlineWidth(containing, offset);
 		for(auto& c : children_) {
-			c->layoutInline(containing);
+			c->layout(containing, offset);
+		}
+
+		if(font_pushed) {
+			RenderContext::get().popFont();
 		}
 	}
 
-	void LayoutBox::layoutInlineWidth(const Dimensions& containing)
+	void LayoutBox::layoutInlineWidth(const Dimensions& containing, point& offset)
 	{
+		KRE::FontRenderablePtr fontr = nullptr;
 		auto node = node_.lock();
-		if(node != nullptr) {
-			node->generateLines(0, containing.content_.w());
+		if(node != nullptr && node->id() == NodeId::TEXT) {
+			long font_coord_factor = RenderContext::get().getFont()->getScaleFactor();
+			auto lines = node->generateLines(offset.x/font_coord_factor, containing.content_.w());
+
+			// Generate a renderable object from the lines.
+			// XXX move this to its own function.
+			std::vector<geometry::Point<long>> path;
+			std::string text;
+
+			// XXX need to apply margins/padding/border.
+
+			// XXX we need to store in RenderContext a variable specifying the max-line-height of the last line
+			// to account for the case that we have mixed fonts on one line.
+			// XXX also need to handle the case that we have an element with a different line height on the same line
+			// oh, I suppose that is the same case I just mentioned. mea-culpa.
+			// XXX I think this still needs to be passed up to a higher layer and concatenate more text flows together
+			// which would allow better handling of justified text when you have elements or breaks on a line near the
+			// end of a run. 
+			// e.g. <span>Some text to render <em>NeedThisRenderedToday!</em> more text.</span>
+			// If the screen was like this |----------------------------|
+			// then the text might render  |Some text to render         |
+			//                             |NeedThisRenderedToday! more |
+			//                             |text.                       |
+			//                             |----------------------------|
+			// Where it breaks the em element on to another line, but doesn't justify the first line correctly to account 
+			// for it. Yes it's a contrived example, but I saw it happen in practice. The other example is if it did
+			// |----------------------------|
+			// | This is a msg. me this  one| 
+			// |----------------------------|
+			// i.e. <span>This is a msg.<em>me</em> This one</span>
+			// What happens is that the justify algoritm only applies to the text after the em tag finishes,
+			// which can look kind of silly if there are only a few words being justified, when the entire 
+			// rest of the line could be used.
+
+
+			// since the Renderable returned from createRenderableFromPath is relative to the font baseline
+			// we offset by the line-height to start.
+			LOG_DEBUG("line-height: " << line_height_);
+			if(offset.y == 0) {
+				offset.y = static_cast<long>(line_height_ * font_coord_factor);
+			}
+			auto last_line = lines.lines.end()-1;
+			for(auto line_it = lines.lines.begin(); line_it != lines.lines.end(); ++line_it) {
+				auto& line = *line_it;
+				for(auto& word : line) {
+					for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
+						path.emplace_back(it->x + offset.x, it->y + offset.y);
+					}
+					offset.x += word.advance.back().x + lines.space_advance;
+					text += word.word;
+				}
+				// We exclude the last line from generating a newline.
+				if(line_it != last_line) {
+					offset.y += static_cast<long>(line_height_ * font_coord_factor);
+					offset.x = 0;
+				}
+			}
+
+			auto fh = RenderContext::get().getFont();
+			fontr = fh->createRenderableFromPath(fontr, text, path);
+			fontr->setColor(color_.getColor());
+			display_list_->addRenderable(fontr);
 		}
 	}
 
-	void LayoutBox::preOrderTraversal(std::function<void(LayoutBoxPtr)> fn)
+	void LayoutBox::preOrderTraversal(std::function<void(LayoutBoxPtr, int)> fn, int nesting)
 	{
-		fn(shared_from_this());
+		fn(shared_from_this(), nesting);
 		for(auto& child : children_) {
-			child->preOrderTraversal(fn);
+			child->preOrderTraversal(fn, nesting+1);
 		}
 	}
 
@@ -273,7 +460,8 @@ namespace xhtml
 	{
 		std::stringstream ss;
 		auto node = node_.lock();
-		ss << "Box(" << (node ? node->toString() : "anonymous") << ", content: " << dimensions_.content_ << ")";
+		//ss << "Box(" << (node ? display_string(display_) : "anonymous") << ", content: " << dimensions_.content_ << ")";
+		ss << "Box(" << (node ? display_string(display_) : "anonymous") << (node ? ", " + node->toString() : "") << ")";
 		return ss.str();
 	}
 

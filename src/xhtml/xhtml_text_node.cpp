@@ -29,6 +29,8 @@
 #include "utf8_to_codepoint.hpp"
 #include "unit_test.hpp"
 
+#include "WindowManager.hpp"
+
 namespace xhtml
 {
 	namespace
@@ -92,6 +94,13 @@ namespace xhtml
 		std::ostringstream ss;
 		ss << "Text('" << text_ << "' " << nodeToString() << ")";
 		return ss.str();
+	}
+
+	Object Text::getStyle(const std::string& name) const
+	{
+		auto parent = getParent();
+		ASSERT_LOG(parent != nullptr, "Getting style from unparented Text object isn't valid.");
+		return parent->getStyle(name);
 	}
 
 	// XXX we need to add a variable to the Lines and turn it into a struct. This
@@ -207,8 +216,8 @@ namespace xhtml
 				}
 
 				// XXX add new line to be rendered here.
-				lines.lines.emplace_back(Line());
-				length_acc = 0;
+				lines.lines.emplace_back(Line(1, word));
+				length_acc = word.advance.back().x + space_advance;
 				last_line_was_auto_break = true;
 				current_line_width = maximum_line_width * font_coord_factor;
 			} else {

@@ -45,8 +45,12 @@ namespace xhtml
 		double getFontXHeight() const { return fh_.top()->getFontXHeight(); }
 
 		KRE::FontHandlePtr getFont() const { return fh_.top(); }
+
+		double getDPI() const { return dpi_scale_; }
+		void setDPI(double dpi) { dpi_scale_ = dpi; }
 	private:
 		explicit RenderContext(const std::string& font_name, double font_size);
 		std::stack<KRE::FontHandlePtr> fh_;
+		double dpi_scale_;
 	};
 }

@@ -94,6 +94,28 @@ namespace xhtml
 		}
 	}
 
+	void Node::removeChild(NodePtr child)
+	{
+		if(child->getParent() == shared_from_this()) {
+			if(children_.size() == 1) {
+				children_.clear();
+			} else {
+				children_.erase(std::remove_if(children_.begin(), children_.end(), [child](NodePtr p){ return p == child; }), children_.end());
+				auto left = child->left_.lock();
+				if(left != nullptr) {
+					left->right_ = child->right_;
+				}
+				auto right = child->right_.lock();
+				if(right != nullptr) {
+					right->left_ = child->left_;
+				}
+			}			
+			child->left_ = child->right_ = std::weak_ptr<Node>();
+		} else {
+			ASSERT_LOG(false, "Tried to remove child node which doesn't belong to us.");
+		}
+	}
+
 	void Node::addAttribute(AttributePtr a)
 	{
 		a->setParent(shared_from_this());
@@ -176,7 +198,31 @@ namespace xhtml
 	void Node::processWhitespace()
 	{
 		css::CssWhitespace ws = getStyle("white-space").getValue<css::CssWhitespace>();
-		// XXX
+		bool collapse_whitespace = ws == css::CssWhitespace::NORMAL || ws == css::CssWhitespace::NOWRAP || ws == css::CssWhitespace::PRE_LINE;
+		if(collapse_whitespace) {
+			std::vector<NodePtr> removal_list;
+			for(auto& child : children_) {
+				if(child->id() == NodeId::TEXT) {
+					auto& txt = child->getValue();
+					bool non_empty = false;
+					for(auto& ch : txt) {
+						if(ch != '\t' && ch != '\r' && ch != '\n' && ch != ' ') {
+							non_empty = true;
+						}
+					}
+					if(!non_empty) {
+						removal_list.emplace_back(child);
+					}
+				}
+			}
+			for(auto& child : removal_list) {
+				removeChild(child);
+			}
+		}
+
+		for(auto& child : children_) {
+			child->processWhitespace();
+		}
 	}
 
 	// Documents do not have an owner document.
@@ -242,6 +288,11 @@ namespace xhtml
 		auto o = properties_.getProperty(name);
 		if(o.shouldInherit()) {
 			auto p = getParent();
+			// XXX should figure a better way to handle this.
+			// i.e. font-size is always inherited.
+			if(name == "font-size" && p == nullptr) {
+				return Object(css::FontSize(css::FontSizeAbsolute::MEDIUM));
+			}
 			ASSERT_LOG(p != nullptr, "css property(" << name << ") is set to inherit but the node has no parent.");
 			return p->getStyle(name);
 		}

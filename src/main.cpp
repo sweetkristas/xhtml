@@ -36,6 +36,7 @@
 #include "unit_test.hpp"
 
 #include "css_parser.hpp"
+#include "display_list.hpp"
 #include "font_freetype.hpp"
 #include "xhtml.hpp"
 #include "xhtml_layout.hpp"
@@ -66,7 +67,7 @@ int main(int argc, char* argv[])
 #else
 	const std::string data_path = "../data/";
 #endif
-	const std::string test_doc = data_path + "test2.xhtml";
+	const std::string test_doc = data_path + "test3.xhtml";
 	//const std::string test_doc = data_path + "storyboard.xhtml";
 	const std::string ua_ss = data_path + "user_agent.css";
 
@@ -83,7 +84,7 @@ int main(int argc, char* argv[])
 	//doc->normalize();
 	doc->processStyles();
 	// whitespace can only be processed after applying styles.
-	//doc->processWhitespace();
+	doc->processWhitespace();
 
 	doc->preOrderTraversal([](xhtml::NodePtr n) {
 		LOG_DEBUG(n->toString());
@@ -103,43 +104,45 @@ int main(int argc, char* argv[])
 	main_wnd->enableVsync(true);
 	const float aspect_ratio = static_cast<float>(width) / height;
 
-	std::map<std::string, std::string> font_paths;
 #if defined(__linux__)
 	LOG_DEBUG("setting image file filter to 'images/'");
 	Surface::setFileFilter(FileFilterType::LOAD, [](const std::string& fname) { return "images/" + fname; });
 	Surface::setFileFilter(FileFilterType::SAVE, [](const std::string& fname) { return "images/" + fname; });
-	
-	font_paths["FreeSans.ttf"] = "data/fonts/FreeSans.ttf";
 #else
 	LOG_DEBUG("setting image file filter to '../images/'");
 	Surface::setFileFilter(FileFilterType::LOAD, [](const std::string& fname) { return "../images/" + fname; });
 	Surface::setFileFilter(FileFilterType::SAVE, [](const std::string& fname) { return "../images/" + fname; });
-
-	font_paths["FreeSans.ttf"] = "../data/fonts/FreeSans.ttf";
 #endif
-	Font::setAvailableFonts(font_paths);
+	Font::setAvailableFonts(font_files);
 
 	SceneGraphPtr scene = SceneGraph::create("main");
 	SceneNodePtr root = scene->getRootNode();
 	root->setNodeName("root_node");
 
+	xhtml::DisplayListPtr display_list = std::make_shared<xhtml::DisplayList>(scene);
+	root->attachNode(display_list);
+
 	DisplayDevice::getCurrent()->setDefaultCamera(std::make_shared<Camera>("ortho1", 0, width, 0, height));
-
-	// layout has to happen after initialisation of graphics
-	auto layout = xhtml::LayoutBox::create(doc);
-	xhtml::Dimensions root_dimensions;
-	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, 0);
-	layout->layout(root_dimensions);
-
-	layout->preOrderTraversal([](xhtml::LayoutBoxPtr box) {
-		LOG_DEBUG(box->toString());
-	});
-	// end xhtml layout
 
 	auto rman = std::make_shared<RenderManager>();
 	auto rq = rman->addQueue(0, "opaques");
 
+	// layout has to happen after initialisation of graphics
+	auto layout = xhtml::LayoutBox::create(doc, display_list);
+	xhtml::Dimensions root_dimensions;
+	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, 0);
+	layout->layout(root_dimensions, point());
+
+	layout->preOrderTraversal([](xhtml::LayoutBoxPtr box, int nesting) {
+		std::string indent(nesting*2, ' ');
+		LOG_DEBUG(indent + box->toString());
+	}, 0);
+	// end xhtml layout
+
 	auto canvas = Canvas::getInstance();
+
+	auto txt = Font::getInstance()->renderText("Thequickbrownfoxjumpsoverthelazydog.", Color::colorWhite(), static_cast<int>(24.0*96.0/72.0), true, "FreeSerif.ttf");
+
 
 	SDL_Event e;
 	bool done = false;
@@ -158,14 +161,16 @@ int main(int argc, char* argv[])
 
 		main_wnd->clear(ClearFlags::ALL);
 
-		layout->preOrderTraversal([canvas](xhtml::LayoutBoxPtr box) {
+		//Canvas::getInstance()->blitTexture(txt, 0, rect(0, 200));
+	
+		/*layout->preOrderTraversal([canvas](xhtml::LayoutBoxPtr box) {
 			auto css_color = box->getNodeStyle("color");
 			if(!css_color.empty()) {
 				canvas->drawSolidRect(box->getContentDimensions().as_type<int>(), css_color.getValue<css::CssColor>().getColor());
 			} else {
 				canvas->drawSolidRect(box->getContentDimensions().as_type<int>(), Color::colorBlueviolet());
 			}
-		});
+		});*/
 
 		// Called once a cycle before rendering.
 		Uint32 current_tick_time = SDL_GetTicks();

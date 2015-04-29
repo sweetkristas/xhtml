@@ -71,7 +71,17 @@ namespace css
 		void parseTextAlign(const std::string& name);
 		void parseDirection(const std::string& name);
 		void parseTextTransform(const std::string& name);
+		void parseLineHeight(const std::string& name);
+		void parseFontStyle(const std::string& name);
 	private:
+		enum NumericParseOptions {
+			NUMBER,
+			PERCENTAGE,
+			LENGTH,
+			AUTO,
+			NUMERIC = NUMBER | PERCENTAGE | LENGTH,
+			ALL = NUMBER | PERCENTAGE | LENGTH | AUTO,
+		};
 		void advance();
 		void skipWhitespace();
 		bool isToken(TokenId tok) const;
@@ -80,6 +90,7 @@ namespace css
 		void parseCSVNumberList(TokenId end_token, std::function<void(int,double,bool)> fn);
 		void parseCSVStringList(TokenId end_token, std::function<void(int, const std::string&)> fn);
 		Object parseColorInternal();
+		CssLength parseLengthInternal(NumericParseOptions opts=ALL);
 		Object parseWidthInternal();
 		Object parseBorderWidthInternal();
 		Object parseBorderStyleInternal();

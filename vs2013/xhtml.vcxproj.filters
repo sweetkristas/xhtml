@@ -267,6 +267,9 @@
     <ClCompile Include="..\src\xhtml\font_freetype.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\xhtml\display_list.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -578,6 +581,9 @@
     <ClInclude Include="..\src\xhtml\font_freetype.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\xhtml\display_list.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\kre\geometry.inl">
@@ -590,6 +596,9 @@
       <Filter>Test Files</Filter>
     </None>
     <None Include="..\data\test2.xhtml">
+      <Filter>Test Files</Filter>
+    </None>
+    <None Include="..\data\test3.xhtml">
       <Filter>Test Files</Filter>
     </None>
   </ItemGroup>

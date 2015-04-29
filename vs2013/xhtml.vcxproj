@@ -81,6 +81,7 @@
     <ClCompile Include="..\src\xhtml\css_properties.cpp" />
     <ClCompile Include="..\src\xhtml\css_selector.cpp" />
     <ClCompile Include="..\src\xhtml\css_stylesheet.cpp" />
+    <ClCompile Include="..\src\xhtml\display_list.cpp" />
     <ClCompile Include="..\src\xhtml\document_object_model.cpp" />
     <ClCompile Include="..\src\xhtml\dom_exception.cpp" />
     <ClCompile Include="..\src\xhtml\font_freetype.cpp" />
@@ -182,6 +183,7 @@
     <ClInclude Include="..\src\xhtml\css_properties.hpp" />
     <ClInclude Include="..\src\xhtml\css_selector.hpp" />
     <ClInclude Include="..\src\xhtml\css_stylesheet.hpp" />
+    <ClInclude Include="..\src\xhtml\display_list.hpp" />
     <ClInclude Include="..\src\xhtml\document_object_model.hpp" />
     <ClInclude Include="..\src\xhtml\dom_exception.hpp" />
     <ClInclude Include="..\src\xhtml\font_freetype.hpp" />
@@ -199,6 +201,7 @@
   <ItemGroup>
     <None Include="..\data\test1.xhtml" />
     <None Include="..\data\test2.xhtml" />
+    <None Include="..\data\test3.xhtml" />
     <None Include="..\data\user_agent.css" />
     <None Include="..\src\kre\geometry.inl" />
   </ItemGroup>

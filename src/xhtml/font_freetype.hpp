@@ -29,8 +29,10 @@
 #include <vector>
 
 #include "geometry.hpp"
+#include "AttributeSet.hpp"
 #include "Color.hpp"
 #include "RenderFwd.hpp"
+#include "SceneObject.hpp"
 #include "Texture.hpp"
 
 namespace KRE
@@ -42,22 +44,62 @@ namespace KRE
 		FontError2(const std::string& str) : std::runtime_error(str) {}
 	};
 
+	struct GlyphInfo
+	{
+		// X co-ordinate of top-left corner of glyph in texture.
+		unsigned short tex_x;
+		// Y co-ordinate of top-left corner of glyph in texture.
+		unsigned short tex_y;
+		// Width of glyph in texture.
+		unsigned short width;
+		// Hidth of glyph in texture.
+		unsigned short height;
+		// X advance (i.e. distance to start of next glyph on X axis)
+		long advance_x;
+		// Y advance (i.e. distance to start of next glyph on Y axis)
+		long advance_y;
+		// X offset to top of glyph from origin
+		long bearing_x;
+		// Y offset to top of glyph from origin
+		long bearing_y;
+	};
+
+	struct font_coord
+	{
+		font_coord(const glm::vec2& v, const glm::vec2& t) : vtx(v), tc(t) {}
+		glm::vec2 vtx;
+		glm::vec2 tc;
+	};
+
+	class FontRenderable : public SceneObject
+	{
+	public:
+		FontRenderable();
+		void clear();
+		void update(std::vector<font_coord>* queue);
+	private:
+		std::shared_ptr<Attribute<font_coord>> attribs_;
+	};
+	typedef std::shared_ptr<FontRenderable> FontRenderablePtr;
+
 	class FontHandle
 	{
 	public:
-		FontHandle(const std::string& fnt_name, float size, const Color& color);
+		FontHandle(const std::string& fnt_name, const std::string& fnt_path, float size, const Color& color);
 		~FontHandle();
 		float getFontSize();
 		float getFontXHeight();
 		const std::string& getFontName();
+		const std::string& getFontPath();
 		const std::string& getFontFamily();
 		void renderText();
 		void getFontMetrics();
 		rect getBoundingBox(const std::string& text);
-		RenderablePtr createRenderableFromPath(const std::string& text, const std::vector<geometry::Point<long>>& path);
+		FontRenderablePtr createRenderableFromPath(FontRenderablePtr r, const std::string& text, const std::vector<geometry::Point<long>>& path);
 		void getGlyphPath(const std::string& text, std::vector<geometry::Point<long>>* path);
 		long calculateCharAdvance(char32_t cp);
-		long getScaleFactor() const { return 64; }
+		long getScaleFactor() const { return 65536; }
+		const GlyphInfo& getGlyphInfo(char32_t cp);
 	private:
 		class Impl;
 		std::unique_ptr<Impl> impl_;

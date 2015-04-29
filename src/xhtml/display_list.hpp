@@ -23,38 +23,19 @@
 
 #pragma once
 
-#include "xhtml_render_ctx.hpp"
+#include "RenderFwd.hpp"
+#include "SceneNode.hpp"
 
 namespace xhtml
 {
-	RenderContext::RenderContext(const std::string& font_name, double font_size)
-		: fh_(),
-		  dpi_scale_(96.0)
+	class DisplayList : public KRE::SceneNode
 	{
-		std::vector<std::string> names(1, font_name);
-		fh_.emplace(KRE::FontDriver::getFontHandle(names, font_size));
-	}
-
-	void RenderContext::pushFont(const std::string& name, double size)
-	{
-		std::vector<std::string> names(1, name);
-		pushFont(names, size);
-	}
-
-	void RenderContext::pushFont(const std::vector<std::string>& name, double size)
-	{
-		fh_.emplace(KRE::FontDriver::getFontHandle(name, size));
-	}
-
-	void RenderContext::popFont()
-	{
-		fh_.pop();
-		ASSERT_LOG(!fh_.empty(), "Popped too many fonts and emptied the stack");
-	}
-
-	RenderContext& RenderContext::get()
-	{
-		static RenderContext res("FreeSerif.ttf", 12);
-		return res;
-	}
+	public:
+		explicit DisplayList(std::weak_ptr<KRE::SceneGraph> sg);
+		void addRenderable(KRE::SceneObjectPtr r);
+	private:
+		DisplayList() = delete;
+		int ordering_;
+	};
+	typedef std::shared_ptr<DisplayList> DisplayListPtr;
 }

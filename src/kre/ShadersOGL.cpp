@@ -346,6 +346,40 @@ namespace KRE
 				{"", ""},
 			};
 
+			const char* const font_shader_vs = 
+				"uniform mat4 u_mvp_matrix;\n"
+				"attribute vec2 a_position;\n"
+				"attribute vec2 a_texcoord;\n"
+				"varying vec2 v_texcoord;\n"
+				"void main()\n"
+				"{\n"
+				"    v_texcoord = a_texcoord;\n"
+				"    gl_Position = u_mvp_matrix * vec4(a_position,0.0,1.0);\n"
+				"}\n";
+			const char* const font_shader_fs = 
+				"#version 120\n"
+				"uniform sampler2D u_tex_map;\n"
+				"uniform vec4 u_color;\n"
+				"varying vec2 v_texcoord;\n"
+				"void main()\n"
+				"{\n"
+				"    vec4 color = vec4(1.0, 1.0, 1.0, texture2D(u_tex_map, v_texcoord).r);\n"
+				"    gl_FragColor = color * u_color;\n"
+				"}\n";
+			const uniform_mapping font_shader_uniform_mapping[] = 
+			{
+				{"mvp_matrix", "u_mvp_matrix"},
+				{"color", "u_color"},
+				{"tex_map", "u_tex_map"},
+				{"", ""},
+			};
+			const attribute_mapping font_shader_attribute_mapping[] = 
+			{
+				{"position", "a_position"},
+				{"texcoord", "a_texcoord"},
+				{"", ""},
+			};
+
 			const struct {
 				const char* shader_name;
 				const char* vertex_shader_name;
@@ -363,6 +397,7 @@ namespace KRE
 				{ "vtc_shader", "vtc_vs", vtc_vs, "vtc_fs", vtc_fs, vtc_uniform_mapping, vtc_attribue_mapping },
 				{ "circle", "circle_vs", circle_vs, "circle_fs", circle_fs, circle_uniform_mapping, circle_attribue_mapping },
 				{ "point_shader", "point_shader_vs", point_shader_vs, "point_shader_fs", point_shader_fs, point_shader_uniform_mapping, point_shader_attribute_mapping },
+				{ "font_shader", "font_shader_vs", font_shader_vs, "font_shader_fs", font_shader_fs, font_shader_uniform_mapping, font_shader_attribute_mapping },
 			};
 
 			typedef std::map<std::string, ShaderProgramPtr> shader_factory_map;

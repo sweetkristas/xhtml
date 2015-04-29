@@ -68,6 +68,7 @@ namespace xhtml
 		virtual ~Node();
 		NodeId id() const { return id_; }
 		void addChild(NodePtr child);
+		void removeChild(NodePtr child);
 		void addAttribute(AttributePtr a);
 		NodePtr getLeft() const { return left_.lock(); }
 		NodePtr getRight() const { return right_.lock(); }
@@ -85,7 +86,7 @@ namespace xhtml
 		virtual bool hasTag(ElementId tag) const { return false; }
 		AttributePtr getAttribute(const std::string& name);
 		virtual const std::string& getValue() const;
-		Object getStyle(const std::string& name) const;
+		virtual Object getStyle(const std::string& name) const;
 		void normalize();
 		void mergeProperties(const css::PropertyList& plist);
 		const css::PropertyList& getProperties() const { return properties_; }

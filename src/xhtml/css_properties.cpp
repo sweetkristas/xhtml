@@ -117,8 +117,8 @@ namespace css
 		PropertyRegistrar property028("height", Object(CssLength(CssLengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property029("white-space", Object(CssWhitespace::NORMAL), std::bind(&PropertyParser::parseWhitespace, _1, _2));	
 		PropertyRegistrar property030("font-family", Object(std::vector<std::string>()), std::bind(&PropertyParser::parseFontFamily, _1, _2));	
-		PropertyRegistrar property031("font-size", Object(FontSize(FontSizeAbsolute::MEDIUM)), std::bind(&PropertyParser::parseFontSize, _1, _2));
-		//PropertyRegistrar property032("font-style", Object(FontStyle::NORMAL), std::bind(&PropertyParser::parseFontStyle, _1, _2));
+		PropertyRegistrar property031("font-size", Object(true), std::bind(&PropertyParser::parseFontSize, _1, _2));
+		PropertyRegistrar property032("font-style", Object(FontStyle::NORMAL), std::bind(&PropertyParser::parseFontStyle, _1, _2));
 		//PropertyRegistrar property033("font-variant", Object(FontVariant::NORMAL), std::bind(&PropertyParser::parseFontVariant, _1, _2));
 		PropertyRegistrar property034("font-weight", Object(FontWeight()), std::bind(&PropertyParser::parseFontWeight, _1, _2));
 		//PropertyRegistrar property035("font", Object(Font), std::bind(&PropertyParser::parseFont, _1, _2));
@@ -127,6 +127,7 @@ namespace css
 		PropertyRegistrar property038("text-align", Object(TextAlign::NORMAL), std::bind(&PropertyParser::parseTextAlign, _1, _2));
 		PropertyRegistrar property039("direction", Object(Direction::LTR), std::bind(&PropertyParser::parseDirection, _1, _2));
 		PropertyRegistrar property040("text-transform", Object(TextTransform::NONE), std::bind(&PropertyParser::parseTextTransform, _1, _2));
+		PropertyRegistrar property041("line-height", Object(CssLength(1.15)), std::bind(&PropertyParser::parseLineHeight, _1, _2));
 	}
 
 	PropertyList::PropertyList()
@@ -349,25 +350,35 @@ namespace css
 			if(ref == "inherit") {
 				advance();
 				return Object(true);
-			} else if(ref == "auto") {
-				advance();
-				return Object(CssLength(CssLengthParam::AUTO));
 			}
-		} else if(isToken(TokenId::DIMENSION)) {
+		}
+		return Object(parseLengthInternal());
+	}
+
+	CssLength PropertyParser::parseLengthInternal(NumericParseOptions opts)
+	{
+		skipWhitespace();
+		if(isToken(TokenId::IDENT) && (opts & AUTO)) {
+			const std::string ref = (*it_)->getStringValue();
+			if(ref == "auto") {
+				advance();
+				return CssLength(CssLengthParam::AUTO);
+			}
+		} else if(isToken(TokenId::DIMENSION) && (opts & LENGTH)) {
 			const std::string units = (*it_)->getStringValue();
 			double value = (*it_)->getNumericValue();
 			advance();
-			return Object(CssLength(value, units));
-		} else if(isToken(TokenId::PERCENT)) {
+			return CssLength(value, units);
+		} else if(isToken(TokenId::PERCENT) && (opts & PERCENTAGE)) {
 			double d = (*it_)->getNumericValue();
 			advance();
-			return Object(CssLength(d, true));
-		} else if(isToken(TokenId::NUMBER)) {
+			return CssLength(d, true);
+		} else if(isToken(TokenId::NUMBER) && (opts & NUMBER)) {
 			double d = (*it_)->getNumericValue();
 			advance();
-			return Object(CssLength(d));
+			return CssLength(d);
 		}
-		return Object();
+		throw ParserError(formatter() << "Unrecognised value for property: "  << (*it_)->toString());
 	}
 
 	Object PropertyParser::parseBorderWidthInternal()
@@ -375,7 +386,10 @@ namespace css
 		skipWhitespace();
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
-			if(ref == "thin") {
+			if(ref == "inherit") {
+				advance();
+				return Object(true);
+			} else if(ref == "thin") {
 				advance();
 				return Object(CssLength(border_width_thin));
 			} else if(ref == "medium") {
@@ -474,12 +488,11 @@ namespace css
 			} else if(ref == "outset") {
 				bs = BorderStyle::OUTSET;
 			} else {
-				throw ParserError(formatter() << "Expected identifier '" << ref << "' while parsing border style");
+				throw ParserError(formatter() << "Unwxpected identifier '" << ref << "' while parsing border style");
 			}
 			return Object(bs);
 		}
-		throw ParserError(formatter() << "Expected IDENTIFIER, found: " << (*it_)->toString());
-		return Object(bs);
+		throw ParserError(formatter() << "Unexpected IDENTIFIER, found: " << (*it_)->toString());
 	}
 
 	void PropertyParser::parseBorderStyle(const std::string& name)
@@ -595,12 +608,28 @@ namespace css
 				fs.setFontSize(FontSizeRelative::LARGER);
 			} else if(ref == "smaller") {
 				fs.setFontSize(FontSizeRelative::SMALLER);
+			} else {
+				// XXX this should throw a ParseError
+				ASSERT_LOG(false, "Unrecognised identifier for '" << name << "' property: " << ref);
 			}
-			plist_.addProperty(name, Object(fs));
+		} else if(isToken(TokenId::DIMENSION)) {
+			const std::string units = (*it_)->getStringValue();
+			double value = (*it_)->getNumericValue();
+			advance();
+			fs.setFontSize(CssLength(value, units));
+		} else if(isToken(TokenId::PERCENT)) {
+			double d = (*it_)->getNumericValue();
+			advance();
+			fs.setFontSize(CssLength(d, true));
+		} else if(isToken(TokenId::NUMBER)) {
+			double d = (*it_)->getNumericValue();
+			advance();
+			fs.setFontSize(CssLength(d));
 		} else {
-			Object o = parseWidthInternal();
-			plist_.addProperty(name, o);
+			// XXX this should throw a ParseError
+			ASSERT_LOG(false, "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
 		}		
+		plist_.addProperty(name, Object(fs));
 	}
 
 	void PropertyParser::parseFontWeight(const std::string& name)
@@ -729,5 +758,49 @@ namespace css
 			ASSERT_LOG(false, "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
 		}
 		plist_.addProperty(name, Object(tt));
+	}
+
+	void PropertyParser::parseLineHeight(const std::string& name)
+	{
+		CssLength lh(1.1);
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, Object(true));
+				return;
+			} else if(ref == "normal") {
+				// do nothing as already set in default
+			} else {
+				ASSERT_LOG(false, "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else {
+			lh = parseLengthInternal(NUMERIC);
+		}
+		plist_.addProperty(name, Object(lh));
+	}
+
+	void PropertyParser::parseFontStyle(const std::string& name)
+	{
+		FontStyle fs = FontStyle::NORMAL;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, Object(true));
+				return;
+			} else if(ref == "italic") {
+				fs = FontStyle::ITALIC;
+			} else if(ref == "normal") {
+				fs = FontStyle::NORMAL;
+			} else if(ref == "oblique") {
+				fs = FontStyle::OBLIQUE;
+			} else {
+				ASSERT_LOG(false, "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else {
+			ASSERT_LOG(false, "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(name, Object(fs));
 	}
 }

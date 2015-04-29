@@ -30,9 +30,7 @@ namespace css
 {
 	namespace 
 	{
-		const double pixels_per_inch = 96.0;
-
-		std::vector<double>& get_font_size_table(int ppi)
+		std::vector<double>& get_font_size_table(double ppi)
 		{
 			static std::vector<double> res;
 			if(res.empty()) {
@@ -66,6 +64,9 @@ namespace css
 	void CssColor::setParam(ColorParam param)
 	{
 		param_ = param;
+		if(param_ != ColorParam::VALUE) {
+			color_ = KRE::Color(0, 0, 0, 0);
+		}
 	}
 
 	void CssColor::setColor(const KRE::Color& color)
@@ -117,24 +118,25 @@ namespace css
 			return 0;
 		}
 		auto& ctx = xhtml::RenderContext::get();
+		const double dpi = ctx.getDPI();
 		switch(units_) {
 			case CssLengthUnits::NUMBER:
 			case CssLengthUnits::PX:
-				return value_ * pixels_per_inch / 72.0 * 0.75;
+				return value_ * dpi / 72.0 * 0.75;
 			case CssLengthUnits::EM:
-				return ctx.getFontSize() * value_ * pixels_per_inch / 72.0;
+				return ctx.getFontSize() * value_ * dpi / 72.0;
 			case CssLengthUnits::EX:
-				return ctx.getFontXHeight() * value_ * pixels_per_inch / 72.0;
+				return ctx.getFontXHeight() * value_ * dpi / 72.0;
 			case CssLengthUnits::IN:
-				return value_ * pixels_per_inch;
+				return value_ * dpi;
 			case CssLengthUnits::CM:
-				return value_ * pixels_per_inch * 2.54;
+				return value_ * dpi * 2.54;
 			case CssLengthUnits::MM:
-				return value_ * pixels_per_inch * 25.4;
+				return value_ * dpi * 25.4;
 			case CssLengthUnits::PT:
-				return value_ * pixels_per_inch / 72.0;
+				return value_ * dpi / 72.0;
 			case CssLengthUnits::PC:
-				return 12.0 * value_ * pixels_per_inch / 72.0;
+				return 12.0 * value_ * dpi / 72.0;
 			case CssLengthUnits::PERCENT:
 				return value_* length;
 			default: break;
@@ -147,7 +149,7 @@ namespace css
 	{
 		double res = 0;
 		if(is_absolute_) {
-			res = get_font_size_table(pixels_per_inch)[static_cast<int>(absolute_)];
+			res = get_font_size_table(xhtml::RenderContext::get().getDPI())[static_cast<int>(absolute_)];
 		} else if(is_relative_) {
 			// XXX hack
 			if(relative_ == FontSizeRelative::LARGER) {

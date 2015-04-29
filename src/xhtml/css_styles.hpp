@@ -42,7 +42,10 @@ namespace css
 		void setParam(ColorParam param);
 		void setColor(const KRE::Color& color);
 		ColorParam getParam() const { return param_; }
-		const KRE::Color& getColor() const { return color_; }		
+		const KRE::Color& getColor() const { return color_; }	
+		bool isTransparent() const { return param_ == ColorParam::TRANSPARENT; }
+		bool isNone() const { return param_ == ColorParam::NONE; }
+		bool isValue() const { return param_ == ColorParam::VALUE; }
 	private:
 		ColorParam param_;
 		KRE::Color color_;
@@ -78,6 +81,9 @@ namespace css
 		// XXX we should replace "font_size" with some sort of render context, which has the current font/font-size, width/length etc
 		double evaluate(double length) const;
 		bool isAuto() const { return param_ == CssLengthParam::AUTO; }
+		bool isNumber() const { return param_ == CssLengthParam::VALUE && units_ == CssLengthUnits::NUMBER; }
+		bool isPercent() const { return param_ == CssLengthParam::VALUE && units_ == CssLengthUnits::PERCENT; }
+		bool isLength() const {  return param_ == CssLengthParam::VALUE && units_ != CssLengthUnits::NUMBER && units_ != CssLengthUnits::PERCENT; }
 	private:
 		CssLengthParam param_;
 		double value_;
@@ -104,6 +110,9 @@ namespace css
 		void setWidth(const CssLength& len);
 		void setColor(const CssColor& color);
 		void setStyle(BorderStyle style);
+		BorderStyle getStyle() const { return style_; }
+		CssColor getColor() const { return color_; }
+		const CssLength& getWidth() const { return width_; }
 	private:
 		BorderStyle style_;
 		CssColor color_;
@@ -218,14 +227,12 @@ namespace css
 	};
 
 	enum class FontStyle {
-		INHERIT,
 		NORMAL,
 		ITALIC,
 		OBLIQUE,
 	};
 
 	enum class FontVariant {
-		INHERIT,
 		NORMAL,
 		SMALL_CAPS,
 	};
