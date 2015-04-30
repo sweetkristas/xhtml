@@ -164,10 +164,6 @@ namespace css
 		KRE::Color color_;
 	};
 
-	class Width
-	{
-	};
-
 	enum class LengthUnits {
 		NUMBER,		// Plain old number
 		EM,			// Computed value of the font-size property
@@ -180,30 +176,34 @@ namespace css
 		PX,			// Pixels. 1px = 0.75pt
 		PERCENT		// percent value
 	};
-
-	enum class LengthParam {
-		VALUE,
-		AUTO,
-	};
 	
 	class Length : public Style
 	{
 	public:
 		MAKE_FACTORY(Length);
-		Length() : param_(LengthParam::VALUE), value_(0), units_(LengthUnits::NUMBER) {}
-		explicit Length(double value, bool is_percent=false) : param_(LengthParam::VALUE), value_(value), units_(is_percent ? LengthUnits::PERCENT : LengthUnits::NUMBER) {}
-		explicit Length(double value, LengthUnits units) : param_(LengthParam::VALUE), value_(value), units_(units) {}
+		Length() : value_(0), units_(LengthUnits::NUMBER) {}
+		explicit Length(double value, bool is_percent=false) : value_(value), units_(is_percent ? LengthUnits::PERCENT : LengthUnits::NUMBER) {}
+		explicit Length(double value, LengthUnits units) : value_(value), units_(units) {}
 		explicit Length(double value, const std::string& units);
-		explicit Length(LengthParam param);
-		bool isAuto() const { return param_ == LengthParam::AUTO; }
-		bool isNumber() const { return param_ == LengthParam::VALUE && units_ == LengthUnits::NUMBER; }
-		bool isPercent() const { return param_ == LengthParam::VALUE && units_ == LengthUnits::PERCENT; }
-		bool isLength() const {  return param_ == LengthParam::VALUE && units_ != LengthUnits::NUMBER && units_ != LengthUnits::PERCENT; }
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;	
+		bool isNumber() const { return units_ == LengthUnits::NUMBER; }
+		bool isPercent() const { return units_ == LengthUnits::PERCENT; }
+		bool isLength() const {  return units_ != LengthUnits::NUMBER && units_ != LengthUnits::PERCENT; }
+		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
 	private:
-		LengthParam param_;
 		double value_;
 		LengthUnits units_;
+	};
+
+	class Width : public Style
+	{
+	public:
+		explicit Width(Length len) : is_auto_(false), width_(len) {}
+		explicit Width(bool a) : is_auto_(a), width_() {}
+		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;	
+		bool isAuto() const { return is_auto_; }
+	private:
+		bool is_auto_;
+		Length width_;
 	};
 
 	enum class CssBorderStyle {

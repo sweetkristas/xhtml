@@ -112,23 +112,22 @@ namespace css
 		}
 	}
 
-	Length::Length(LengthParam param)
-		: param_(param), 
-		  value_(0), 
-		  units_(LengthUnits::NUMBER)
+	Object Width::evaluate(Property p, const xhtml::RenderContext& ctx) const
 	{
+		if(is_auto_) {
+			return Object(0.0);
+		}
+		return width_.evaluate(p, ctx);
 	}
 
 	Object Length::evaluate(Property p, const xhtml::RenderContext& ctx) const
 	{
-		// auto values evaluate as 0
-		if(isAuto()) {
-			return Object(0);
-		}
 		const double dpi = ctx.getDPI();
 		double res = 0;
 		switch(units_) {
 			case LengthUnits::NUMBER:
+				res = value_;
+				break;
 			case LengthUnits::PX:
 				res = value_ * dpi / 72.0 * 0.75;
 				break;
@@ -154,7 +153,7 @@ namespace css
 				res = 12.0 * value_ * dpi / 72.0;
 				break;
 			case LengthUnits::PERCENT:
-				res = value_* ctx.getComputedValue(p).getValue<double>();
+				res = value_;
 				break;
 			default: 
 				ASSERT_LOG(false, "Unrecognised units value: " << static_cast<int>(units_));

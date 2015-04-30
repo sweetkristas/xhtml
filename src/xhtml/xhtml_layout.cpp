@@ -159,17 +159,18 @@ namespace xhtml
 			RenderContext& ctx = RenderContext::get();
 			double containing_width = containing.content_.w();
 
-			auto css_width = ctx.getComputedValue(css::Property::WIDTH).getValue<css::Length>();
-			double width = css_width.evaluate(css::Property::WIDTH, ctx);
+			// XXX If the value is a percentable it needs to be relative to the containing_width.
+			auto css_width = ctx.getComputedValue(css::Property::WIDTH).getValue<css::Width>();
+			double width = css_width.evaluate(css::Property::WIDTH, ctx).getValue<double>();
 
-			dimensions_.border_.left = ctx.getComputedValue(css::Property::BORDER_LEFT_WIDTH).getValue<css::CssLength>().evaluate(containing_width);
-			dimensions_.border_.right = ctx.getComputedValue(css::Property::BORDER_RIGHT_WIDTH).getValue<css::CssLength>().evaluate(containing_width);
+			dimensions_.border_.left = ctx.getComputedValue(css::Property::BORDER_LEFT_WIDTH).getValue<double>();
+			dimensions_.border_.right = ctx.getComputedValue(css::Property::BORDER_RIGHT_WIDTH).getValue<double>();
 
-			dimensions_.padding_.left = node->getStyle("padding-left").getValue<css::CssLength>().evaluate(containing_width);
-			dimensions_.padding_.right = node->getStyle("padding-right").getValue<css::CssLength>().evaluate(containing_width);
+			dimensions_.padding_.left = ctx.getComputedValue(css::Property::PADDING_LEFT).getValue<double>();
+			dimensions_.padding_.right = ctx.getComputedValue(css::Property::PADDING_RIGHT).getValue<double>();
 
-			auto css_margin_left = node->getStyle("margin-left").getValue<css::CssLength>();
-			auto css_margin_right = node->getStyle("margin-right").getValue<css::CssLength>();
+			auto css_margin_left = ctx.getComputedValue(css::Property::MARGIN_LEFT).getValue<css::Width>();
+			auto css_margin_right = ctx.getComputedValue(css::Property::MARGIN_RIGHT).getValue<css::Width>();
 			dimensions_.margin_.left = css_margin_left.evaluate(containing_width);
 			dimensions_.margin_.right = css_margin_right.evaluate(containing_width);
 

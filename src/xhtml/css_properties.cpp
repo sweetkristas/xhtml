@@ -108,10 +108,10 @@ namespace css
 		PropertyRegistrar property004("padding-top", Property::PADDING_TOP, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property005("padding-bottom", Property::PADDING_BOTTOM, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property006("padding", std::bind(&PropertyParser::parseWidthList, _1, _2));
-		PropertyRegistrar property007("margin-left", Property::MARGIN_LEFT, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property008("margin-right", Property::MARGIN_RIGHT, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property009("margin-top", Property::MARGIN_TOP, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property010("margin-bottom", Property::MARGIN_BOTTOM, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property007("margin-left", Property::MARGIN_LEFT, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property008("margin-right", Property::MARGIN_RIGHT, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property009("margin-top", Property::MARGIN_TOP, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property010("margin-bottom", Property::MARGIN_BOTTOM, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property011("margin", std::bind(&PropertyParser::parseWidthList, _1, _2));
 		PropertyRegistrar property012("border-top-color", Property::BORDER_TOP_COLOR, false, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
 		PropertyRegistrar property013("border-left-color", Property::BORDER_LEFT_COLOR, false, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
@@ -130,8 +130,8 @@ namespace css
 		//PropertyRegistrar property026("border-style", std::bind(&PropertyParser::parseBorderStyleList, _1, _2));
 		//PropertyRegistrar property027("border", std::bind(&PropertyParser::parseBorderList, _1, _2));
 		PropertyRegistrar property026("display", Property::DISPLAY, false, Object(CssDisplay::INLINE), std::bind(&PropertyParser::parseDisplay, _1, _2));	
-		PropertyRegistrar property027("width", Property::WIDTH, false, Object(Length(LengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));	
-		PropertyRegistrar property028("height", Property::HEIGHT, false, Object(Length(LengthParam::AUTO)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property027("width", Property::WIDTH, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));	
+		PropertyRegistrar property028("height", Property::HEIGHT, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property029("white-space", Property::WHITE_SPACE, true, Object(CssWhitespace::NORMAL), std::bind(&PropertyParser::parseWhitespace, _1, _2));	
 		PropertyRegistrar property030("font-family", Property::FONT_FAMILY, true, Object(std::vector<std::string>()), std::bind(&PropertyParser::parseFontFamily, _1, _2));	
 		PropertyRegistrar property031("font-size", Property::FONT_SIZE, true, Object(FontSize(FontSizeAbsolute::MEDIUM)), std::bind(&PropertyParser::parseFontSize, _1, _2));
@@ -392,6 +392,9 @@ namespace css
 			if(ref == "inherit") {
 				advance();
 				return std::make_shared<Style>(true);
+			} else if(ref == "auto") {
+				advance();
+				return std::make_shared<Width>(true);
 			}
 		}
 		return std::make_shared<Length>(parseLengthInternal());
@@ -400,13 +403,7 @@ namespace css
 	Length PropertyParser::parseLengthInternal(NumericParseOptions opts)
 	{
 		skipWhitespace();
-		if(isToken(TokenId::IDENT) && (opts & AUTO)) {
-			const std::string ref = (*it_)->getStringValue();
-			if(ref == "auto") {
-				advance();
-				return Length(LengthParam::AUTO);
-			}
-		} else if(isToken(TokenId::DIMENSION) && (opts & LENGTH)) {
+		if(isToken(TokenId::DIMENSION) && (opts & LENGTH)) {
 			const std::string units = (*it_)->getStringValue();
 			double value = (*it_)->getNumericValue();
 			advance();
@@ -430,16 +427,15 @@ namespace css
 			const std::string ref = (*it_)->getStringValue();
 			if(ref == "inherit") {
 				advance();
-				return std::make_shared<Style>(true);
 			} else if(ref == "thin") {
 				advance();
-				return std::make_shared<Length>(Length(border_width_thin));
+				return std::make_shared<Width>(Length(border_width_thin));
 			} else if(ref == "medium") {
 				advance();
-				return std::make_shared<Length>(Length(border_width_medium));
+				return std::make_shared<Width>(Length(border_width_medium));
 			} else if(ref == "thick") {
 				advance();
-				return std::make_shared<Length>(Length(border_width_thick));
+				return std::make_shared<Width>(Length(border_width_thick));
 			}
 		}	
 		return parseWidthInternal();
