@@ -29,25 +29,27 @@
 
 namespace xhtml
 {
+	using namespace css;
+
 	namespace 
 	{
-		std::string display_string(css::CssDisplay disp) {
+		std::string display_string(CssDisplay disp) {
 			switch(disp) {
-				case css::CssDisplay::BLOCK:				return "block";
-				case css::CssDisplay::INLINE:				return "inline";
-				case css::CssDisplay::INLINE_BLOCK:			return "inline-block";
-				case css::CssDisplay::LIST_ITEM:			return "list-item";
-				case css::CssDisplay::TABLE:				return "table";
-				case css::CssDisplay::INLINE_TABLE:			return "inline-table";
-				case css::CssDisplay::TABLE_ROW_GROUP:		return "table-row-group";
-				case css::CssDisplay::TABLE_HEADER_GROUP:	return "table-header-group";
-				case css::CssDisplay::TABLE_FOOTER_GROUP:	return "table-footer-group";
-				case css::CssDisplay::TABLE_ROW:			return "table-row";
-				case css::CssDisplay::TABLE_COLUMN_GROUP:	return "table-column-group";
-				case css::CssDisplay::TABLE_COLUMN:			return "table-column";
-				case css::CssDisplay::TABLE_CELL:			return "table-cell";
-				case css::CssDisplay::TABLE_CAPTION:		return "table-caption";
-				case css::CssDisplay::NONE:					return "none";
+				case CssDisplay::BLOCK:					return "block";
+				case CssDisplay::INLINE:				return "inline";
+				case CssDisplay::INLINE_BLOCK:			return "inline-block";
+				case CssDisplay::LIST_ITEM:				return "list-item";
+				case CssDisplay::TABLE:					return "table";
+				case CssDisplay::INLINE_TABLE:			return "inline-table";
+				case CssDisplay::TABLE_ROW_GROUP:		return "table-row-group";
+				case CssDisplay::TABLE_HEADER_GROUP:	return "table-header-group";
+				case CssDisplay::TABLE_FOOTER_GROUP:	return "table-footer-group";
+				case CssDisplay::TABLE_ROW:				return "table-row";
+				case CssDisplay::TABLE_COLUMN_GROUP:	return "table-column-group";
+				case CssDisplay::TABLE_COLUMN:			return "table-column";
+				case CssDisplay::TABLE_CELL:			return "table-cell";
+				case CssDisplay::TABLE_CAPTION:			return "table-caption";
+				case CssDisplay::NONE:					return "none";
 				default: 
 					ASSERT_LOG(false, "illegal display value: " << static_cast<int>(disp));
 					break;
@@ -61,32 +63,32 @@ namespace xhtml
 		return pt / 72.0 * RenderContext::get().getDPI();
 	}
 
-	LayoutBox::LayoutBox(LayoutBoxPtr parent, NodePtr node, css::CssDisplay display, DisplayListPtr display_list)
+	LayoutBox::LayoutBox(LayoutBoxPtr parent, NodePtr node, CssDisplay display, DisplayListPtr display_list)
 		: node_(node),
 		  display_(display),
 		  dimensions_(),
 		  display_list_(display_list),
 		  children_()
 	{
-		ASSERT_LOG(display_ != css::CssDisplay::NONE, "Tried to create a layout node with a display of none.");
+		ASSERT_LOG(display_ != CssDisplay::NONE, "Tried to create a layout node with a display of none.");
 	}
 
 	LayoutBoxPtr LayoutBox::create(NodePtr node, DisplayListPtr display_list, LayoutBoxPtr parent)
 	{
 		RenderContext::Manager ctx_manager(node->getProperties());
-		css::CssDisplay display = RenderContext::get().getComputedValue(css::Property::DISPLAY).getValue<css::CssDisplay>();
-		if(display != css::CssDisplay::NONE) {
+		CssDisplay display = RenderContext::get().getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
+		if(display != CssDisplay::NONE) {
 			auto root = std::make_shared<LayoutBox>(parent, node, display, display_list);
 
 			LayoutBoxPtr inline_container;
 			for(auto& c : node->getChildren()) {
 				RenderContext::Manager child_ctx_manager(node->getProperties());
-				css::CssDisplay disp = RenderContext::get().getComputedValue(css::Property::DISPLAY).getValue<css::CssDisplay>();
-				if(disp == css::CssDisplay::NONE) {
+				CssDisplay disp = RenderContext::get().getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
+				if(disp == CssDisplay::NONE) {
 					// ignore child nodes with display none.
-				} else if(disp == css::CssDisplay::INLINE && root->display_ == css::CssDisplay::BLOCK) {
+				} else if(disp == CssDisplay::INLINE && root->display_ == CssDisplay::BLOCK) {
 					if(inline_container == nullptr) {
-						inline_container = std::make_shared<LayoutBox>(root, nullptr, css::CssDisplay::BLOCK, display_list);
+						inline_container = std::make_shared<LayoutBox>(root, nullptr, CssDisplay::BLOCK, display_list);
 						root->children_.emplace_back(inline_container);
 					}
 					inline_container->children_.emplace_back(create(c, display_list, root));
@@ -117,27 +119,27 @@ namespace xhtml
 		}
 
 		switch(display_) {
-			case css::CssDisplay::BLOCK:
+			case CssDisplay::BLOCK:
 				layoutBlock(containing);
 				break;
-			case css::CssDisplay::INLINE:
+			case CssDisplay::INLINE:
 				layoutInline(containing, offset);
 				break;
-			case css::CssDisplay::INLINE_BLOCK:
-			case css::CssDisplay::LIST_ITEM:
-			case css::CssDisplay::TABLE:
-			case css::CssDisplay::INLINE_TABLE:
-			case css::CssDisplay::TABLE_ROW_GROUP:
-			case css::CssDisplay::TABLE_HEADER_GROUP:
-			case css::CssDisplay::TABLE_FOOTER_GROUP:
-			case css::CssDisplay::TABLE_ROW:
-			case css::CssDisplay::TABLE_COLUMN_GROUP:
-			case css::CssDisplay::TABLE_COLUMN:
-			case css::CssDisplay::TABLE_CELL:
-			case css::CssDisplay::TABLE_CAPTION:
+			case CssDisplay::INLINE_BLOCK:
+			case CssDisplay::LIST_ITEM:
+			case CssDisplay::TABLE:
+			case CssDisplay::INLINE_TABLE:
+			case CssDisplay::TABLE_ROW_GROUP:
+			case CssDisplay::TABLE_HEADER_GROUP:
+			case CssDisplay::TABLE_FOOTER_GROUP:
+			case CssDisplay::TABLE_ROW:
+			case CssDisplay::TABLE_COLUMN_GROUP:
+			case CssDisplay::TABLE_COLUMN:
+			case CssDisplay::TABLE_CELL:
+			case CssDisplay::TABLE_CAPTION:
 				ASSERT_LOG(false, "Implement display layout type: " << static_cast<int>(display_));
 				break;
-			case css::CssDisplay::NONE:
+			case CssDisplay::NONE:
 			default: 
 				break;
 		}
@@ -160,19 +162,19 @@ namespace xhtml
 			double containing_width = containing.content_.w();
 
 			// XXX If the value is a percentable it needs to be relative to the containing_width.
-			auto css_width = ctx.getComputedValue(css::Property::WIDTH).getValue<css::Width>();
-			double width = css_width.evaluate(css::Property::WIDTH, ctx).getValue<double>();
+			auto css_width = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
+			double width = css_width.evaluate(ctx).getValue<Length>().compute(containing_width);
 
-			dimensions_.border_.left = ctx.getComputedValue(css::Property::BORDER_LEFT_WIDTH).getValue<double>();
-			dimensions_.border_.right = ctx.getComputedValue(css::Property::BORDER_RIGHT_WIDTH).getValue<double>();
+			dimensions_.border_.left = ctx.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute();
+			dimensions_.border_.right = ctx.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute();
 
-			dimensions_.padding_.left = ctx.getComputedValue(css::Property::PADDING_LEFT).getValue<double>();
-			dimensions_.padding_.right = ctx.getComputedValue(css::Property::PADDING_RIGHT).getValue<double>();
+			dimensions_.padding_.left = ctx.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute(containing_width);
+			dimensions_.padding_.right = ctx.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute(containing_width);
 
-			auto css_margin_left = ctx.getComputedValue(css::Property::MARGIN_LEFT).getValue<css::Width>();
-			auto css_margin_right = ctx.getComputedValue(css::Property::MARGIN_RIGHT).getValue<css::Width>();
-			dimensions_.margin_.left = css_margin_left.evaluate(containing_width);
-			dimensions_.margin_.right = css_margin_right.evaluate(containing_width);
+			auto css_margin_left = ctx.getComputedValue(Property::MARGIN_LEFT).getValue<Width>();
+			auto css_margin_right = ctx.getComputedValue(Property::MARGIN_RIGHT).getValue<Width>();
+			dimensions_.margin_.left = css_margin_left.evaluate(ctx).getValue<Length>().compute(containing_width);
+			dimensions_.margin_.right = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width);
 
 			double total = dimensions_.border_.left + dimensions_.border_.right
 				+ dimensions_.padding_.left + dimensions_.padding_.right
@@ -202,7 +204,7 @@ namespace xhtml
 					width = underflow;
 				} else {
 					width = 0;
-					dimensions_.margin_.right = css_margin_right.evaluate(containing_width) + underflow;
+					dimensions_.margin_.right = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width) + underflow;
 				}
 				dimensions_.content_.set_w(width);
 			} else if(!css_margin_left.isAuto() && !css_margin_right.isAuto()) {
@@ -224,15 +226,17 @@ namespace xhtml
 	{
 		auto node = node_.lock();
 		if(node != nullptr) {
+			RenderContext& ctx = RenderContext::get();
 			double containing_height = containing.content_.h();
-			dimensions_.border_.top = node->getStyle("border-top-width").getValue<css::CssLength>().evaluate(containing_height);
-			dimensions_.border_.bottom = node->getStyle("border-bottom-width").getValue<css::CssLength>().evaluate(containing_height);
+			
+			dimensions_.border_.top = ctx.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Length>().compute();
+			dimensions_.border_.bottom = ctx.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Length>().compute();
 
-			dimensions_.padding_.top = node->getStyle("padding-top").getValue<css::CssLength>().evaluate(containing_height);
-			dimensions_.padding_.bottom = node->getStyle("padding-bottom").getValue<css::CssLength>().evaluate(containing_height);
+			dimensions_.padding_.top = ctx.getComputedValue(Property::PADDING_TOP).getValue<Length>().compute(containing_height);
+			dimensions_.padding_.bottom = ctx.getComputedValue(Property::PADDING_BOTTOM).getValue<Length>().compute(containing_height);
 
-			dimensions_.margin_.top = node->getStyle("margin-top").getValue<css::CssLength>().evaluate(containing_height);
-			dimensions_.margin_.bottom = node->getStyle("margin-bottom").getValue<css::CssLength>().evaluate(containing_height);
+			dimensions_.margin_.top = ctx.getComputedValue(Property::MARGIN_TOP).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height);
+			dimensions_.margin_.bottom = ctx.getComputedValue(Property::MARGIN_BOTTOM).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height);
 
 			dimensions_.content_.set_x(containing.content_.x() + dimensions_.margin_.left + dimensions_.padding_.left + dimensions_.border_.left);
 			dimensions_.content_.set_y(containing.content_.y2() + dimensions_.margin_.top + dimensions_.padding_.top + dimensions_.border_.top);
@@ -257,39 +261,20 @@ namespace xhtml
 	{
 		auto node = node_.lock();
 		if(node != nullptr) {
+			RenderContext& ctx = RenderContext::get();
 			// a set height value overrides the calculated value.
-			auto h = node->getStyle("height");
-			if(!h.empty()) {
-				dimensions_.content_.set_h(h.getValue<css::CssLength>().evaluate(containing.content_.h()));
+			auto css_h = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
+			if(!css_h.isAuto()) {
+				dimensions_.content_.set_h(css_h.evaluate(ctx).getValue<Length>().compute(containing.content_.h()));
 			}
 		}		
 	}
 
 	void LayoutBox::layoutInline(const Dimensions& containing, point& offset)
 	{
-		bool font_pushed = false;
-		RenderContext& rc = RenderContext::get();
-		if(!fonts_.empty() || (font_size_ != rc.getFontSize() && font_size_ != 0)) {
-			double fs = font_size_;
-			if(fs == 0) {
-				fs = rc.getFontSize();
-			}			
-			// XXX we should implement this push/pop as an RAII pattern.
-			if(fonts_.empty()) {
-				rc.pushFont(rc.getFontName(), fs);
-			} else {
-				rc.pushFont(fonts_, fs);
-			}
-			font_pushed = true;
-		}
-
 		layoutInlineWidth(containing, offset);
 		for(auto& c : children_) {
 			c->layout(containing, offset);
-		}
-
-		if(font_pushed) {
-			RenderContext::get().popFont();
 		}
 	}
 
@@ -298,7 +283,7 @@ namespace xhtml
 		KRE::FontRenderablePtr fontr = nullptr;
 		auto node = node_.lock();
 		if(node != nullptr && node->id() == NodeId::TEXT) {
-			long font_coord_factor = RenderContext::get().getFont()->getScaleFactor();
+			long font_coord_factor = RenderContext::get().getFontHandle()->getScaleFactor();
 			auto lines = node->generateLines(offset.x/font_coord_factor, containing.content_.w());
 
 			// Generate a renderable object from the lines.
@@ -334,9 +319,15 @@ namespace xhtml
 
 			// since the Renderable returned from createRenderableFromPath is relative to the font baseline
 			// we offset by the line-height to start.
-			LOG_DEBUG("line-height: " << line_height_);
+			auto& ctx = RenderContext::get();
+			auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
+			double line_height = lh.compute();
+			if(lh.isPercent() || lh.isNumber()) {
+				line_height *= ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
+			}
+			LOG_DEBUG("line-height: " << line_height);
 			if(offset.y == 0) {
-				offset.y = static_cast<long>(line_height_ * font_coord_factor);
+				offset.y = static_cast<long>(line_height * font_coord_factor);
 			}
 			auto last_line = lines.lines.end()-1;
 			for(auto line_it = lines.lines.begin(); line_it != lines.lines.end(); ++line_it) {
@@ -350,14 +341,14 @@ namespace xhtml
 				}
 				// We exclude the last line from generating a newline.
 				if(line_it != last_line) {
-					offset.y += static_cast<long>(line_height_ * font_coord_factor);
+					offset.y += static_cast<long>(line_height * font_coord_factor);
 					offset.x = 0;
 				}
 			}
 
-			auto fh = RenderContext::get().getFont();
+			auto fh = ctx.getFontHandle();
 			fontr = fh->createRenderableFromPath(fontr, text, path);
-			fontr->setColor(color_.getColor());
+			fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<KRE::Color>());
 			display_list_->addRenderable(fontr);
 		}
 	}
@@ -378,29 +369,4 @@ namespace xhtml
 		ss << "Box(" << (node ? display_string(display_) : "anonymous") << (node ? ", " + node->toString() : "") << ")";
 		return ss.str();
 	}
-
-	Object LayoutBox::getNodeStyle(const std::string& style)
-	{
-		auto node = node_.lock();
-		if(node != nullptr) {
-			return node->getStyle(style);
-		}
-		return Object();
-	}
 }
-
-/*dimensions_.border_ = EdgeSize(
-	node->getStyle("border-left-width").getValue<css::CssLength>().evaluate(ctx),
-	node->getStyle("border-top-width").getValue<css::CssLength>().evaluate(ctx),
-	node->getStyle("border-right-width").getValue<css::CssLength>().evaluate(ctx),
-	node->getStyle("border-bottom-width").getValue<css::CssLength>().evaluate(ctx));
-dimensions_.margin_ = EdgeSize(
-	node->getStyle("margin-left").getValue<css::CssLength>().evaluate(ctx),
-	node->getStyle("margin-top").getValue<css::CssLength>().evaluate(ctx),
-	node->getStyle("margin-right").getValue<css::CssLength>().evaluate(ctx),
-	node->getStyle("margin-bottom").getValue<css::CssLength>().evaluate(ctx));
-dimensions_.padding_ = EdgeSize(
-	node->getStyle("padding-left").getValue<css::CssLength>().evaluate(ctx),
-	node->getStyle("padding-top").getValue<css::CssLength>().evaluate(ctx),
-	node->getStyle("padding-right").getValue<css::CssLength>().evaluate(ctx),
-	node->getStyle("padding-bottom").getValue<css::CssLength>().evaluate(ctx));*/

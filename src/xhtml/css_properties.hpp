@@ -86,6 +86,7 @@ namespace css
 		void parseLineHeight(const std::string& name);
 		void parseFontStyle(const std::string& name);
 		void parseFontVariant(const std::string& name);
+		void parseOverflow(const std::string& name);
 	private:
 		enum NumericParseOptions {
 			NUMBER,

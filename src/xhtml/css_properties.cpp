@@ -60,6 +60,16 @@ namespace css
 			return res;
 		}
 
+		std::vector<std::string>& get_default_fonts()
+		{
+			static std::vector<std::string> res;
+			if(res.empty()) {
+				res.emplace_back("arial.ttf");
+				res.emplace_back("FreeSerif.ttf");
+			}
+			return res;
+		}
+
 		KRE::Color hsla_to_color(double h, double s, double l, double a)
 		{
 			const float hue_upper_limit = 360.0;
@@ -103,10 +113,10 @@ namespace css
 		
 		PropertyRegistrar property000("background-color", Property::BACKGROUND_COLOR, false, Object(KRE::Color(0,0,0,0)), std::bind(&PropertyParser::parseColor, _1, _2));
 		PropertyRegistrar property001("color", Property::COLOR, true, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
-		PropertyRegistrar property002("padding-left", Property::PADDING_LEFT, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property003("padding-right", Property::PADDING_RIGHT, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property004("padding-top", Property::PADDING_TOP, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property005("padding-bottom", Property::PADDING_BOTTOM, false, Object(0), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property002("padding-left", Property::PADDING_LEFT, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property003("padding-right", Property::PADDING_RIGHT, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property004("padding-top", Property::PADDING_TOP, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property005("padding-bottom", Property::PADDING_BOTTOM, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property006("padding", std::bind(&PropertyParser::parseWidthList, _1, _2));
 		PropertyRegistrar property007("margin-left", Property::MARGIN_LEFT, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property008("margin-right", Property::MARGIN_RIGHT, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
@@ -118,10 +128,10 @@ namespace css
 		PropertyRegistrar property014("border-bottom-color", Property::BORDER_BOTTOM_COLOR, false, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
 		PropertyRegistrar property015("border-right-color", Property::BORDER_RIGHT_COLOR, false, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
 		//PropertyRegistrar property016("border-color", std::bind(&PropertyParser::parseColorList, _1, _2));
-		PropertyRegistrar property017("border-top-width", Property::BORDER_TOP_WIDTH, false, Object(border_width_medium), std::bind(&PropertyParser::parseBorderWidth, _1, _2));
-		PropertyRegistrar property018("border-left-width", Property::BORDER_LEFT_WIDTH, false, Object(border_width_medium), std::bind(&PropertyParser::parseBorderWidth, _1, _2));
-		PropertyRegistrar property019("border-bottom-width", Property::BORDER_BOTTOM_WIDTH, false, Object(border_width_medium), std::bind(&PropertyParser::parseBorderWidth, _1, _2));
-		PropertyRegistrar property020("border-right-width", Property::BORDER_RIGHT_WIDTH, false, Object(border_width_medium), std::bind(&PropertyParser::parseBorderWidth, _1, _2));
+		PropertyRegistrar property017("border-top-width", Property::BORDER_TOP_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, _2));
+		PropertyRegistrar property018("border-left-width", Property::BORDER_LEFT_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, _2));
+		PropertyRegistrar property019("border-bottom-width", Property::BORDER_BOTTOM_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, _2));
+		PropertyRegistrar property020("border-right-width", Property::BORDER_RIGHT_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, _2));
 		//PropertyRegistrar property021("border-width", std::bind(&PropertyParser::parseBorderWidthList, _1, _2));
 		PropertyRegistrar property022("border-top-style", Property::BORDER_TOP_STYLE, false, Object(CssBorderStyle::NONE), std::bind(&PropertyParser::parseBorderStyle, _1, _2));
 		PropertyRegistrar property023("border-left-style", Property::BORDER_LEFT_STYLE, false, Object(CssBorderStyle::NONE), std::bind(&PropertyParser::parseBorderStyle, _1, _2));
@@ -133,18 +143,19 @@ namespace css
 		PropertyRegistrar property027("width", Property::WIDTH, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));	
 		PropertyRegistrar property028("height", Property::HEIGHT, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property029("white-space", Property::WHITE_SPACE, true, Object(CssWhitespace::NORMAL), std::bind(&PropertyParser::parseWhitespace, _1, _2));	
-		PropertyRegistrar property030("font-family", Property::FONT_FAMILY, true, Object(std::vector<std::string>()), std::bind(&PropertyParser::parseFontFamily, _1, _2));	
-		PropertyRegistrar property031("font-size", Property::FONT_SIZE, true, Object(FontSize(FontSizeAbsolute::MEDIUM)), std::bind(&PropertyParser::parseFontSize, _1, _2));
+		PropertyRegistrar property030("font-family", Property::FONT_FAMILY, true, Object(get_default_fonts()), std::bind(&PropertyParser::parseFontFamily, _1, _2));	
+		PropertyRegistrar property031("font-size", Property::FONT_SIZE, true, Object(12.0), std::bind(&PropertyParser::parseFontSize, _1, _2));
 		PropertyRegistrar property032("font-style", Property::FONT_STYLE, true, Object(CssFontStyle::NORMAL), std::bind(&PropertyParser::parseFontStyle, _1, _2));
 		PropertyRegistrar property033("font-variant", Property::FONT_VARIANT, true, Object(CssFontVariant::NORMAL), std::bind(&PropertyParser::parseFontVariant, _1, _2));
-		PropertyRegistrar property034("font-weight", Property::FONT_WEIGHT, true, Object(FontWeight()), std::bind(&PropertyParser::parseFontWeight, _1, _2));
+		PropertyRegistrar property034("font-weight", Property::FONT_WEIGHT, true, Object(400.0), std::bind(&PropertyParser::parseFontWeight, _1, _2));
 		//PropertyRegistrar property035("font", Object(Font), std::bind(&PropertyParser::parseFont, _1, _2));
-		PropertyRegistrar property036("letter-spacing", Property::LETTER_SPACING, true, Object(0), std::bind(&PropertyParser::parseSpacing, _1, _2));
-		PropertyRegistrar property037("word-spacing", Property::WORD_SPACING, true, Object(0), std::bind(&PropertyParser::parseSpacing, _1, _2));
+		PropertyRegistrar property036("letter-spacing", Property::LETTER_SPACING, true, Object(Length(0)), std::bind(&PropertyParser::parseSpacing, _1, _2));
+		PropertyRegistrar property037("word-spacing", Property::WORD_SPACING, true, Object(Length(0)), std::bind(&PropertyParser::parseSpacing, _1, _2));
 		PropertyRegistrar property038("text-align", Property::TEXT_ALIGN, true, Object(CssTextAlign::NORMAL), std::bind(&PropertyParser::parseTextAlign, _1, _2));
 		PropertyRegistrar property039("direction", Property::DIRECTION, true, Object(CssDirection::LTR), std::bind(&PropertyParser::parseDirection, _1, _2));
 		PropertyRegistrar property040("text-transform", Property::TEXT_TRANSFORM, true, Object(CssTextTransform::NONE), std::bind(&PropertyParser::parseTextTransform, _1, _2));
-		PropertyRegistrar property041("line-height", Property::LINE_HEIGHT, true, Object(1.15), std::bind(&PropertyParser::parseLineHeight, _1, _2));
+		PropertyRegistrar property041("line-height", Property::LINE_HEIGHT, true, Object(Length(1.15)), std::bind(&PropertyParser::parseLineHeight, _1, _2));
+		PropertyRegistrar property042("overflow", Property::CSS_OVERFLOW, false, Object(CssOverflow::VISIBLE), std::bind(&PropertyParser::parseOverflow, _1, _2));
 	}
 
 	PropertyList::PropertyList()
@@ -867,5 +878,31 @@ namespace css
 			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
 		}
 		plist_.addProperty(name, FontVariant::create(fv));
+	}
+
+	void PropertyParser::parseOverflow(const std::string& name)
+	{
+		CssOverflow of = CssOverflow::VISIBLE;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, std::make_shared<Style>(true));
+				return;
+			} else if(ref == "visible") {
+				of = CssOverflow::VISIBLE;
+			} else if(ref == "hidden") {
+				of = CssOverflow::HIDDEN;
+			} else if(ref == "scroll") {
+				of = CssOverflow::SCROLL;
+			} else if(ref == "auto") {
+				of = CssOverflow::AUTO;
+			} else {
+				throw ParserError(formatter() << "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else {
+			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(name, Overflow::create(of));
 	}
 }

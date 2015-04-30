@@ -72,10 +72,6 @@ namespace xhtml
 		void preOrderTraversal(std::function<void(LayoutBoxPtr, int)> fn, int nesting);
 		std::string toString() const;
 		const geometry::Rect<double>& getContentDimensions() const { return dimensions_.content_; }
-		Object getNodeStyle(const std::string& style);
-
-		void setFonts(const std::vector<std::string>& fonts) { fonts_ = fonts; }
-		void setFontSize(double size) { font_size_ = size; }
 	private:
 		WeakNodePtr node_;
 		css::CssDisplay display_;

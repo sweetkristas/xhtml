@@ -28,6 +28,12 @@
 
 namespace xhtml
 {
+	struct RenderContextManager
+	{
+		RenderContextManager();
+		~RenderContextManager();
+	};
+
 	class RenderContext
 	{
 	public:

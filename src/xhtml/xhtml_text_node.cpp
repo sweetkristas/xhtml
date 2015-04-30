@@ -156,9 +156,9 @@ namespace xhtml
 		// Apply letter-spacing and word-spacing here.
 		auto line = xhtml::tokenize_text(transformed_text, collapse_whitespace, break_at_newline);
 		long space_advance = ctx.getFontHandle()->calculateCharAdvance(' ');
-		long word_spacing = static_cast<long>(ctx.getComputedValue(css::Property::WORD_SPACING).getValue<double>() * font_coord_factor);
+		long word_spacing = static_cast<long>(ctx.getComputedValue(css::Property::WORD_SPACING).getValue<css::Length>().compute() * font_coord_factor);
 		space_advance += word_spacing;
-		long letter_spacing = static_cast<long>(ctx.getComputedValue(css::Property::LETTER_SPACING).getValue<double>() * font_coord_factor);
+		long letter_spacing = static_cast<long>(ctx.getComputedValue(css::Property::LETTER_SPACING).getValue<css::Length>().compute() * font_coord_factor);
 		space_advance += letter_spacing;
 
 		css::CssDirection dir = ctx.getComputedValue(css::Property::DIRECTION).getValue<css::CssDirection>();

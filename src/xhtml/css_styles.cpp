@@ -75,7 +75,7 @@ namespace css
 		setParam(CssColorParam::VALUE);
 	}
 
-	Object CssColor::evaluate(Property p, const xhtml::RenderContext& ctx) const
+	Object CssColor::evaluate(const xhtml::RenderContext& ctx) const
 	{
 		if(param_ == CssColorParam::VALUE) {
 			return Object(color_);
@@ -112,16 +112,17 @@ namespace css
 		}
 	}
 
-	Object Width::evaluate(Property p, const xhtml::RenderContext& ctx) const
+	Object Width::evaluate(const xhtml::RenderContext& ctx) const
 	{
 		if(is_auto_) {
-			return Object(0.0);
+			return Object(Length(0));
 		}
-		return width_.evaluate(p, ctx);
+		return Object(width_);
 	}
 
-	Object Length::evaluate(Property p, const xhtml::RenderContext& ctx) const
+	double Length::compute(double scale) const
 	{
+		auto& ctx = xhtml::RenderContext::get();
 		const double dpi = ctx.getDPI();
 		double res = 0;
 		switch(units_) {
@@ -153,30 +154,35 @@ namespace css
 				res = 12.0 * value_ * dpi / 72.0;
 				break;
 			case LengthUnits::PERCENT:
-				res = value_;
-				break;
+				res = value_ * scale;
+				break; 
 			default: 
 				ASSERT_LOG(false, "Unrecognised units value: " << static_cast<int>(units_));
 				break;
 		}
-		return Object(res);
+		return res;
 	}
 
-	Object FontSize::evaluate(Property p, const xhtml::RenderContext& ctx) const
+	Object Length::evaluate(const xhtml::RenderContext& ctx) const
+	{
+		return Object(*this);
+	}
+
+	Object FontSize::evaluate(const xhtml::RenderContext& ctx) const
 	{
 		double res = 0;
+		double parent_fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
 		if(is_absolute_) {
 			res = get_font_size_table(ctx.getDPI())[static_cast<int>(absolute_)];
 		} else if(is_relative_) {
 			// XXX hack
-			double parent_fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
 			if(relative_ == FontSizeRelative::LARGER) {
 				res = parent_fs * 1.15;
 			} else {
 				res = parent_fs / 1.15;
 			}
 		} else if(is_length_) {
-			res = length_.evaluate(p, ctx).getValue<double>();
+			res = length_.compute(parent_fs);
 		} else {
 			ASSERT_LOG(false, "FontSize has no definite size defined!");
 		}
@@ -189,45 +195,45 @@ namespace css
 		fonts_.emplace_back("sans-serif");
 	}
 
-	Object BorderStyle::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object BorderStyle::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(border_style_);
 	}
 
-	Object FontFamily::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object FontFamily::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(fonts_);
 	}
 
-	Object Float::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object Float::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(float_);
 	}
 
-	Object Display::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object Display::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(display_);
 	}
 
-	Object Whitespace::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object Whitespace::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(whitespace_);
 	}
 
-	Object FontStyle::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object FontStyle::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(fs_);
 	}
 
-	Object FontVariant::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object FontVariant::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(fv_);
 	}
 
-	Object FontWeight::evaluate(Property p, const xhtml::RenderContext& ctx) const
+	Object FontWeight::evaluate(const xhtml::RenderContext& ctx) const
 	{
 		if(is_relative_) {
-			double fw = ctx.getComputedValue(p).getValue<double>();
+			double fw = ctx.getComputedValue(Property::FONT_WEIGHT).getValue<double>();
 			if(relative_ == FontWeightRelative::BOLDER) {
 				// bolder
 				fw += 100;
@@ -246,18 +252,23 @@ namespace css
 		return Object(weight_);
 	}
 
-	Object TextAlign::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object TextAlign::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(ta_);
 	}
 
-	Object Direction::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object Direction::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(dir_);
 	}
 
-	Object TextTransform::evaluate(Property p, const xhtml::RenderContext& rc) const
+	Object TextTransform::evaluate(const xhtml::RenderContext& rc) const
 	{
 		return Object(tt_);
+	}
+
+	Object Overflow::evaluate(const xhtml::RenderContext& ctx) const
+	{
+		return Object(overflow_);
 	}
 }

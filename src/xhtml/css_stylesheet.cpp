@@ -47,7 +47,7 @@ namespace css
 			}
 			ss << "\n";
 			for(auto& d : r->declaractions) {				
-				ss << "    " << d.first << " : " /*<< d.second*/ << "\n";
+				ss << "    " << get_property_name(d.first) << " : " /*<< d.second*/ << "\n";
 			}
 		}
 		return ss.str();

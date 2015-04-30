@@ -619,7 +619,7 @@ namespace xhtml
 		std::ostringstream ss;
 		ss << "Element('" << name_ << "' " << nodeToString();
 		for(auto& p : getProperties()) {
-			ss << " " << p.first;// << ":" << p.second;
+			ss << " " << css::get_property_name(p.first);// << ":" << p.second;
 		}
 		ss << ")";
 		return ss.str();

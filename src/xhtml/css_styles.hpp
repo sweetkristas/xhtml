@@ -134,7 +134,7 @@ namespace css
 		Style() : is_important_(false), is_inherited_(false) {}
 		explicit Style(bool inh) : is_important_(false), is_inherited_(inh) {}
 		virtual ~Style() {}
-		virtual Object evaluate(Property p, const xhtml::RenderContext& rc) const { return Object(); }
+		virtual Object evaluate(const xhtml::RenderContext& rc) const { return Object(); }
 		void setImportant(bool imp=true) { is_important_ = imp; }
 		void setInherited(bool inh=true) { is_inherited_ = inh; }
 		bool isImportant() const { return is_important_; }
@@ -158,7 +158,7 @@ namespace css
 		bool isTransparent() const { return param_ == CssColorParam::TRANSPARENT; }
 		bool isNone() const { return param_ == CssColorParam::NONE; }
 		bool isValue() const { return param_ == CssColorParam::VALUE; }
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 	private:
 		CssColorParam param_;
 		KRE::Color color_;
@@ -188,7 +188,8 @@ namespace css
 		bool isNumber() const { return units_ == LengthUnits::NUMBER; }
 		bool isPercent() const { return units_ == LengthUnits::PERCENT; }
 		bool isLength() const {  return units_ != LengthUnits::NUMBER && units_ != LengthUnits::PERCENT; }
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
+		double compute(double scale=1) const;
 	private:
 		double value_;
 		LengthUnits units_;
@@ -199,7 +200,7 @@ namespace css
 	public:
 		explicit Width(Length len) : is_auto_(false), width_(len) {}
 		explicit Width(bool a) : is_auto_(a), width_() {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;	
+		Object evaluate(const xhtml::RenderContext& rc) const override;	
 		bool isAuto() const { return is_auto_; }
 	private:
 		bool is_auto_;
@@ -223,7 +224,7 @@ namespace css
 	{
 		MAKE_FACTORY(BorderStyle);
 		explicit BorderStyle(CssBorderStyle bs) : border_style_(bs) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssBorderStyle border_style_;
 	};
 
@@ -233,7 +234,7 @@ namespace css
 		MAKE_FACTORY(FontFamily);
 		FontFamily();
 		explicit FontFamily(const std::vector<std::string>& fonts) : fonts_(fonts) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 	private:
 		std::vector<std::string> fonts_;
 	};
@@ -293,7 +294,7 @@ namespace css
 			length_ = len;
 			is_length_ = true;
 		}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 	private:
 		bool is_absolute_;
 		FontSizeAbsolute absolute_;
@@ -314,7 +315,7 @@ namespace css
 	{
 		MAKE_FACTORY(Float);
 		explicit Float(CssFloat f) : float_(f) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssFloat float_;
 	};
 
@@ -340,7 +341,7 @@ namespace css
 	{
 		MAKE_FACTORY(Display);
 		explicit Display(CssDisplay d) : display_(d) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssDisplay display_;
 	};
 
@@ -356,7 +357,7 @@ namespace css
 	{
 		MAKE_FACTORY(Whitespace);
 		explicit Whitespace(CssWhitespace ws) : whitespace_(ws) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssWhitespace whitespace_;
 	};
 
@@ -370,7 +371,7 @@ namespace css
 	{
 		MAKE_FACTORY(FontStyle);
 		explicit FontStyle(CssFontStyle fs) : fs_(fs) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssFontStyle fs_;
 	};
 
@@ -383,7 +384,7 @@ namespace css
 	{
 		MAKE_FACTORY(FontVariant);
 		explicit FontVariant(CssFontVariant fv) : fv_(fv) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssFontVariant fv_;
 	};
 
@@ -401,7 +402,7 @@ namespace css
 		explicit FontWeight(double fw) { is_relative_ = false; weight_ = fw; }
 		void setRelative(FontWeightRelative r) { is_relative_ = true; relative_ = r; }
 		void setWeight(double fw) { is_relative_ = false; weight_ = fw; }
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 	private:
 		bool is_relative_;
 		double weight_;
@@ -422,7 +423,7 @@ namespace css
 	{
 		MAKE_FACTORY(TextAlign);
 		explicit TextAlign(CssTextAlign ta) : ta_(ta) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssTextAlign ta_;
 	};
 
@@ -435,7 +436,7 @@ namespace css
 	{
 		MAKE_FACTORY(Direction);
 		explicit Direction(CssDirection dir) : dir_(dir) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssDirection dir_;
 	};
 
@@ -450,8 +451,23 @@ namespace css
 	{
 		MAKE_FACTORY(TextTransform);
 		explicit TextTransform(CssTextTransform tt) : tt_(tt) {}
-		Object evaluate(Property p, const xhtml::RenderContext& rc) const override;
+		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssTextTransform tt_;
+	};
+
+	enum class CssOverflow {
+		VISIBLE,
+		HIDDEN,
+		SCROLL,
+		AUTO,
+	};
+
+	struct Overflow : public Style
+	{
+		MAKE_FACTORY(Overflow);
+		explicit Overflow(CssOverflow of) : overflow_(of) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override;
+		CssOverflow overflow_;
 	};
 
 }

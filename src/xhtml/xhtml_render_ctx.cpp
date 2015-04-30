@@ -73,17 +73,16 @@ namespace xhtml
 				|| p == Property::FONT_WEIGHT 
 				|| p == Property::FONT_STYLE;
 		}
+	}
 
-		struct FontInitialisationManager
-		{
-			FontInitialisationManager()
-			{
-				// force initialisation of the stack array, then use it to create a default font.
-				auto stk = get_stack_array();
-				get_font_handle_stack().emplace(get_font_handle());
-			}
-		};
-		FontInitialisationManager fm;
+	RenderContextManager::RenderContextManager()
+	{
+		auto stk = get_stack_array();
+		get_font_handle_stack().emplace(get_font_handle());
+	}
+
+	RenderContextManager::~RenderContextManager()
+	{
 	}
 
 	RenderContext::RenderContext()
@@ -133,7 +132,7 @@ namespace xhtml
 			} else if(!style->isInherited()) {
 				// Is the property isn't marked as being inherited, we handle it here.
 				update_list.emplace_back(n);
-				Object o = style->evaluate(p, RenderContext::get());
+				Object o = style->evaluate(RenderContext::get());
 				get_stack_array()[n].emplace(o);
 				if(is_font_property(p)) {
 					pushed_font_change_ = true;

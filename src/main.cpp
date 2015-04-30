@@ -127,6 +127,7 @@ int main(int argc, char* argv[])
 	auto rman = std::make_shared<RenderManager>();
 	auto rq = rman->addQueue(0, "opaques");
 
+	xhtml::RenderContextManager rcm;
 	// layout has to happen after initialisation of graphics
 	auto layout = xhtml::LayoutBox::create(doc, display_list);
 	xhtml::Dimensions root_dimensions;
