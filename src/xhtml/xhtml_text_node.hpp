@@ -33,7 +33,6 @@ namespace xhtml
 		static TextPtr create(const std::string& txt, WeakDocumentPtr owner=WeakDocumentPtr());
 		void addText(const std::string& txt) { text_ += txt; }
 		Lines generateLines(int current_line_width, int maximum_line_width) override;
-		Object getStyle(const std::string& name) const override;
 	protected:
 		explicit Text(const std::string& txt, WeakDocumentPtr owner);
 		std::string toString() const override;

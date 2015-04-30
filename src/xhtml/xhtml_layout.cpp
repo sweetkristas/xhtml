@@ -66,98 +66,22 @@ namespace xhtml
 		  display_(display),
 		  dimensions_(),
 		  display_list_(display_list),
-		  children_(),
-		  fonts_(),
-		  font_size_(0),
-		  line_height_(0),
-		  font_style_(css::FontStyle::NORMAL),
-		  color_(),
-		  background_color_(),
-		  border_color_(),
-		  border_width_(),
-		  border_style_()
+		  children_()
 	{
 		ASSERT_LOG(display_ != css::CssDisplay::NONE, "Tried to create a layout node with a display of none.");
-		if(node != nullptr) {
-			auto fonts = node->getStyle("font-family").getValue<std::vector<std::string>>();
-			if(!fonts.empty()) {
-				setFonts(fonts);
-			}
-			auto font_size = node->getStyle("font-size");
-			if(font_size.shouldInherit()) {
-				font_size_ = parent->font_size_;
-			} else {
-				font_size_ = font_size.getValue<css::FontSize>().getFontSize(parent == nullptr ? 12.0 : parent->font_size_);
-			}
-
-			auto line_height = node->getStyle("line-height");
-			if(line_height.shouldInherit()) {
-				line_height_ = parent->line_height_;
-			} else {
-				css::CssLength& len = line_height.getValue<css::CssLength>();
-				if(len.isNumber() || len.isPercent()) {
-					line_height_ = convert_pt_to_pixels(len.evaluate(1.0) * font_size_);
-				} else {
-					line_height_ = len.evaluate(0);
-				}
-			}
-
-			auto font_style = node->getStyle("font-style");
-			if(font_style.shouldInherit()) {
-				font_style_ = parent->font_style_;
-			} else {
-				font_style_ = font_style.getValue<css::FontStyle>();
-			}
-
-			auto color = node->getStyle("color");
-			if(color.shouldInherit()) {
-				color_ = parent->color_;
-			} else {
-				color_ = color.getValue<css::CssColor>();
-			}
-
-			color = node->getStyle("background-color");
-			if(color.shouldInherit()) {
-				background_color_ = parent->background_color_;
-			} else {
-				background_color_ = color.getValue<css::CssColor>();
-			}
-
-			std::vector<std::string> directions = { "top", "left", "bottom", "right" };
-			for(int n = 0; n != 4; ++n) {
-				color = node->getStyle("border-" + directions[n] + "-color");
-				if(color.shouldInherit()) {
-					border_color_[n] = parent->border_color_[n];
-				} else {
-					border_color_[n] = color.getValue<css::CssColor>();
-				}
-
-				auto bwidth = node->getStyle("border-" + directions[n] + "-width");
-				if(bwidth.shouldInherit()) {
-					border_width_[n] = parent->border_width_[n];
-				} else {
-					border_width_[n] =  bwidth.getValue<css::CssLength>().evaluate(parent != nullptr ? parent->border_width_[n] : 0);
-				}
-
-				auto bstyle = node->getStyle("border-" + directions[n] + "-style");
-				if(bwidth.shouldInherit()) {
-					border_style_[n] = parent->border_style_[n];
-				} else {
-					border_style_[n] =  bstyle.getValue<css::BorderStyle>();
-				}
-			}
-		}
 	}
 
 	LayoutBoxPtr LayoutBox::create(NodePtr node, DisplayListPtr display_list, LayoutBoxPtr parent)
 	{
-		auto display = node->getStyle("display").getValue<css::CssDisplay>();
+		RenderContext::Manager ctx_manager(node->getProperties());
+		css::CssDisplay display = RenderContext::get().getComputedValue(css::Property::DISPLAY).getValue<css::CssDisplay>();
 		if(display != css::CssDisplay::NONE) {
 			auto root = std::make_shared<LayoutBox>(parent, node, display, display_list);
 
 			LayoutBoxPtr inline_container;
 			for(auto& c : node->getChildren()) {
-				auto disp = c->getStyle("display").getValue<css::CssDisplay>();
+				RenderContext::Manager child_ctx_manager(node->getProperties());
+				css::CssDisplay disp = RenderContext::get().getComputedValue(css::Property::DISPLAY).getValue<css::CssDisplay>();
 				if(disp == css::CssDisplay::NONE) {
 					// ignore child nodes with display none.
 				} else if(disp == css::CssDisplay::INLINE && root->display_ == css::CssDisplay::BLOCK) {
@@ -180,11 +104,18 @@ namespace xhtml
 	void LayoutBox::layout(const Dimensions& containing, point& offset)
 	{
 		// XXX need to deal with non-static positioned elements
-		if(node_.lock() == nullptr) {
+		auto node = node_.lock();
+		if(node == nullptr) {
 			// anonymous
 			layoutInline(containing, offset);
 			return;
 		}
+		std::unique_ptr<RenderContext::Manager> ctx_manager;
+		if(node->id() == NodeId::ELEMENT) {
+			// only instantiate on element nodes.
+			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
+		}
+
 		switch(display_) {
 			case css::CssDisplay::BLOCK:
 				layoutBlock(containing);
@@ -214,30 +145,10 @@ namespace xhtml
 
 	void LayoutBox::layoutBlock(const Dimensions& containing)
 	{
-		bool font_pushed = false;
-		RenderContext& rc = RenderContext::get();
-		if(!fonts_.empty() || (font_size_ != rc.getFontSize() && font_size_ != 0)) {
-			double fs = font_size_;
-			if(fs == 0) {
-				fs = rc.getFontSize();
-			}			
-			// XXX we should implement this push/pop as an RAII pattern.
-			if(fonts_.empty()) {
-				rc.pushFont(rc.getFontName(), fs);
-			} else {
-				rc.pushFont(fonts_, fs);
-			}
-			font_pushed = true;
-		}
-
 		layoutBlockWidth(containing);
 		layoutBlockPosition(containing);
 		layoutBlockChildren();
 		layoutBlockHeight(containing);
-
-		if(font_pushed) {
-			RenderContext::get().popFont();
-		}
 	}
 
 	void LayoutBox::layoutBlockWidth(const Dimensions& containing)
@@ -245,12 +156,14 @@ namespace xhtml
 		auto node = node_.lock();
 		// boxes without nodes are anonymous and thus dimensionless.
 		if(node != nullptr) {
+			RenderContext& ctx = RenderContext::get();
 			double containing_width = containing.content_.w();
-			auto css_width = node->getStyle("width").getValue<css::CssLength>();
-			double width = css_width.evaluate(containing_width);
 
-			dimensions_.border_.left = node->getStyle("border-left-width").getValue<css::CssLength>().evaluate(containing_width);
-			dimensions_.border_.right = node->getStyle("border-right-width").getValue<css::CssLength>().evaluate(containing_width);
+			auto css_width = ctx.getComputedValue(css::Property::WIDTH).getValue<css::Length>();
+			double width = css_width.evaluate(css::Property::WIDTH, ctx);
+
+			dimensions_.border_.left = ctx.getComputedValue(css::Property::BORDER_LEFT_WIDTH).getValue<css::CssLength>().evaluate(containing_width);
+			dimensions_.border_.right = ctx.getComputedValue(css::Property::BORDER_RIGHT_WIDTH).getValue<css::CssLength>().evaluate(containing_width);
 
 			dimensions_.padding_.left = node->getStyle("padding-left").getValue<css::CssLength>().evaluate(containing_width);
 			dimensions_.padding_.right = node->getStyle("padding-right").getValue<css::CssLength>().evaluate(containing_width);

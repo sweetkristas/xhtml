@@ -23,38 +23,137 @@
 
 #pragma once
 
+#include <stack>
+
 #include "xhtml_render_ctx.hpp"
 
 namespace xhtml
 {
-	RenderContext::RenderContext(const std::string& font_name, double font_size)
-		: fh_(),
-		  dpi_scale_(96.0)
+	using namespace css;
+
+	namespace 	
 	{
-		std::vector<std::string> names(1, font_name);
-		fh_.emplace(KRE::FontDriver::getFontHandle(names, font_size));
+		const int max_properties = static_cast<int>(Property::MAX_PROPERTIES);
+
+		std::stack<KRE::FontHandlePtr>& get_font_handle_stack()
+		{
+			static std::stack<KRE::FontHandlePtr> res;
+			return res;
+		}
+
+		KRE::FontHandlePtr get_font_handle()
+		{
+			RenderContext& ctx = RenderContext::get();
+			auto ff = ctx.getComputedValue(Property::FONT_FAMILY).getValue<std::vector<std::string>>();
+			auto fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
+			auto fw = ctx.getComputedValue(Property::FONT_WEIGHT).getValue<double>();
+			auto ft = ctx.getComputedValue(Property::FONT_STYLE).getValue<CssFontStyle>();
+			return KRE::FontDriver::getFontHandle(ff, static_cast<float>(fs)/*, fw, ft*/);
+		}
+
+		typedef std::vector<std::stack<Object>> stack_array;
+		stack_array& get_stack_array()
+		{
+			static stack_array res;
+			if(res.empty()) {
+				// initialise the stack array with default property values.
+				res.resize(max_properties);
+				for(int n = 0; n != max_properties; ++n) {
+					auto& pi = get_default_property_info(static_cast<Property>(n));
+					res[n].emplace(pi.obj);
+				}
+			}
+			return res;
+		}
+
+		bool is_font_property(Property p)
+		{
+			return p == Property::FONT_FAMILY 
+				|| p == Property::FONT_SIZE 
+				|| p == Property::FONT_WEIGHT 
+				|| p == Property::FONT_STYLE;
+		}
+
+		struct FontInitialisationManager
+		{
+			FontInitialisationManager()
+			{
+				// force initialisation of the stack array, then use it to create a default font.
+				auto stk = get_stack_array();
+				get_font_handle_stack().emplace(get_font_handle());
+			}
+		};
+		FontInitialisationManager fm;
 	}
 
-	void RenderContext::pushFont(const std::string& name, double size)
+	RenderContext::RenderContext()
+		: dpi_scale_(96.0)
 	{
-		std::vector<std::string> names(1, name);
-		pushFont(names, size);
-	}
-
-	void RenderContext::pushFont(const std::vector<std::string>& name, double size)
-	{
-		fh_.emplace(KRE::FontDriver::getFontHandle(name, size));
-	}
-
-	void RenderContext::popFont()
-	{
-		fh_.pop();
-		ASSERT_LOG(!fh_.empty(), "Popped too many fonts and emptied the stack");
 	}
 
 	RenderContext& RenderContext::get()
 	{
-		static RenderContext res("FreeSerif.ttf", 12);
+		static RenderContext res;
 		return res;
+	}
+
+	Object RenderContext::getComputedValue(css::Property p) const
+	{
+		int ndx = static_cast<int>(p);
+		ASSERT_LOG(ndx < max_properties, "Index in property list: " << ndx << " is outside of legal bounds: 0-" << (max_properties-1));
+		ASSERT_LOG(!get_stack_array()[ndx].empty(), "Logic error, computed value for Property " << ndx << "(" << get_property_name(p) << ") is empty.");
+		return get_stack_array()[ndx].top();
+	}
+
+	KRE::FontHandlePtr RenderContext::getFontHandle() const
+	{
+		ASSERT_LOG(!get_font_handle_stack().empty(), "Logic error, font handle stack is empty.");
+		return get_font_handle_stack().top();
+	}
+
+	RenderContext::Manager::Manager(const css::PropertyList& plist)
+		: update_list(),
+		  pushed_font_change_(false)
+	{
+		for(int n = 0; n != max_properties; ++n) {
+			const Property p = static_cast<Property>(n);
+			auto& stk = get_stack_array()[n];
+			const auto style = plist.getProperty(p);
+			if(style == nullptr) {
+				// get default property
+				auto& pinfo = get_default_property_info(p);
+				// default properties that aren't inherited pushed, if they aren't the current default.
+				if(!pinfo.inherited) {
+					update_list.emplace_back(n);
+					get_stack_array()[n].emplace(pinfo.obj);
+					if(is_font_property(p)) {
+						pushed_font_change_ = true;
+					}
+				}
+			} else if(!style->isInherited()) {
+				// Is the property isn't marked as being inherited, we handle it here.
+				update_list.emplace_back(n);
+				Object o = style->evaluate(p, RenderContext::get());
+				get_stack_array()[n].emplace(o);
+				if(is_font_property(p)) {
+					pushed_font_change_ = true;
+				}
+			}
+		}
+		// If font parameters changed that would cause a new font handle to be allocated we do it here
+		if(pushed_font_change_) {
+			get_font_handle_stack().emplace(get_font_handle());
+		}
+	}
+
+	RenderContext::Manager::~Manager()
+	{
+		for(auto n : update_list) {
+			get_stack_array()[n].pop();
+			ASSERT_LOG(!get_stack_array()[n].empty(), "Logical error, all the values in the property stack array are empty.");
+		}
+		if(pushed_font_change_) {
+			get_font_handle_stack().pop();
+		}
 	}
 }

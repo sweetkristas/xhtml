@@ -26,6 +26,7 @@
 #include "asserts.hpp"
 #include "css_parser.hpp"
 #include "xhtml_text_node.hpp"
+#include "xhtml_render_ctx.hpp"
 
 #include "filesystem.hpp"
 
@@ -197,7 +198,8 @@ namespace xhtml
 
 	void Node::processWhitespace()
 	{
-		css::CssWhitespace ws = getStyle("white-space").getValue<css::CssWhitespace>();
+		auto ctx = RenderContext::get();
+		css::CssWhitespace ws = ctx.getComputedValue(css::Property::WHITE_SPACE).getValue<css::CssWhitespace>();
 		bool collapse_whitespace = ws == css::CssWhitespace::NORMAL || ws == css::CssWhitespace::NOWRAP || ws == css::CssWhitespace::PRE_LINE;
 		if(collapse_whitespace) {
 			std::vector<NodePtr> removal_list;
@@ -281,25 +283,6 @@ namespace xhtml
 		});
 
 		LOG_DEBUG("STYLESHEET: " << ss->toString());
-	}
-
-	Object Node::getStyle(const std::string& name) const
-	{
-		auto o = properties_.getProperty(name);
-		if(o.shouldInherit()) {
-			auto p = getParent();
-			// XXX should figure a better way to handle this.
-			// i.e. font-size is always inherited.
-			if(name == "font-size" && p == nullptr) {
-				return Object(css::FontSize(css::FontSizeAbsolute::MEDIUM));
-			}
-			ASSERT_LOG(p != nullptr, "css property(" << name << ") is set to inherit but the node has no parent.");
-			return p->getStyle(name);
-		}
-		if(o.empty()) {
-			ASSERT_LOG(false, "Unimplemented style was asked for '" << name <<"'");
-		}
-		return o;
 	}
 
 	void Node::mergeProperties(const css::PropertyList& plist)

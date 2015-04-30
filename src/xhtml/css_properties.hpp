@@ -31,21 +31,33 @@
 
 namespace css
 {
+	struct PropertyInfo
+	{
+		PropertyInfo() : name(), inherited(false), obj(), is_default(false) {}
+		PropertyInfo(const std::string& n, bool inh, Object def) : name(n), inherited(inh), obj(def), is_default(false) {}
+		std::string name;
+		bool inherited;
+		Object obj;
+		bool is_default;
+	};
+
 	class PropertyList
 	{
 	public:
-		typedef std::map<std::string, Object>::iterator iterator;
-		typedef std::map<std::string, Object>::const_iterator const_iterator;
+		typedef std::map<Property, StylePtr>::iterator iterator;
+		typedef std::map<Property, StylePtr>::const_iterator const_iterator;
 		PropertyList();
-		void addProperty(const std::string& name, const Object& o);
-		Object getProperty(const std::string& name) const;
+		void addProperty(Property p, StylePtr o);
+		void addProperty(const std::string& name, StylePtr o);
+		StylePtr getProperty(Property p) const;
+		bool hasProperty(Property p) const { return properties_.find(p) != properties_.end(); }
 		void merge(const PropertyList& plist);
 		iterator begin() { return properties_.begin(); }
 		iterator end() { return properties_.end(); }
 		const_iterator begin() const { return properties_.cbegin(); }
 		const_iterator end() const { return properties_.cend(); }
 	private:
-		std::map<std::string, Object> properties_;
+		std::map<Property, StylePtr> properties_;
 	};
 
 	class PropertyParser
@@ -73,6 +85,7 @@ namespace css
 		void parseTextTransform(const std::string& name);
 		void parseLineHeight(const std::string& name);
 		void parseFontStyle(const std::string& name);
+		void parseFontVariant(const std::string& name);
 	private:
 		enum NumericParseOptions {
 			NUMBER,
@@ -89,14 +102,17 @@ namespace css
 		std::vector<TokenPtr> PropertyParser::parseCSVList(TokenId end_token);
 		void parseCSVNumberList(TokenId end_token, std::function<void(int,double,bool)> fn);
 		void parseCSVStringList(TokenId end_token, std::function<void(int, const std::string&)> fn);
-		Object parseColorInternal();
-		CssLength parseLengthInternal(NumericParseOptions opts=ALL);
-		Object parseWidthInternal();
-		Object parseBorderWidthInternal();
-		Object parseBorderStyleInternal();
+		StylePtr parseColorInternal();
+		Length parseLengthInternal(NumericParseOptions opts=ALL);
+		StylePtr parseWidthInternal();
+		StylePtr parseBorderWidthInternal();
+		StylePtr parseBorderStyleInternal();
 
 		const_iterator it_;
 		const_iterator end_;
 		PropertyList plist_;
 	};
+
+	const std::string& get_property_name(Property p);
+	const PropertyInfo& get_default_property_info(Property p);
 }

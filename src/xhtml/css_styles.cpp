@@ -50,21 +50,21 @@ namespace css
 	}
 
 	CssColor::CssColor()
-		: param_(ColorParam::VALUE),
+		: param_(CssColorParam::VALUE),
 		  color_(KRE::Color::colorWhite())
 	{
 	}
 
-	CssColor::CssColor(ColorParam param, const KRE::Color& color)
+	CssColor::CssColor(CssColorParam param, const KRE::Color& color)
 		: param_(param),
 		  color_(color)
 	{
 	}
 
-	void CssColor::setParam(ColorParam param)
+	void CssColor::setParam(CssColorParam param)
 	{
 		param_ = param;
-		if(param_ != ColorParam::VALUE) {
+		if(param_ != CssColorParam::VALUE) {
 			color_ = KRE::Color(0, 0, 0, 0);
 		}
 	}
@@ -72,31 +72,39 @@ namespace css
 	void CssColor::setColor(const KRE::Color& color)
 	{
 		color_ = color;
-		setParam(ColorParam::VALUE);
+		setParam(CssColorParam::VALUE);
 	}
 
-	CssLength::CssLength(double value, const std::string& units) 
+	Object CssColor::evaluate(Property p, const xhtml::RenderContext& ctx) const
+	{
+		if(param_ == CssColorParam::VALUE) {
+			return Object(color_);
+		}
+		return Object(KRE::Color(0, 0, 0, 0));
+	}
+
+	Length::Length(double value, const std::string& units) 
 		: value_(value), 
-		units_(CssLengthUnits::NUMBER) 
+		  units_(LengthUnits::NUMBER) 
 	{
 		if(units == "em") {
-			units_ = CssLengthUnits::EM;
+			units_ = LengthUnits::EM;
 		} else if(units == "ex") {
-			units_ = CssLengthUnits::EX;
+			units_ = LengthUnits::EX;
 		} else if(units == "in") {
-			units_ = CssLengthUnits::IN;
+			units_ = LengthUnits::IN;
 		} else if(units == "cm") {
-			units_ = CssLengthUnits::CM;
+			units_ = LengthUnits::CM;
 		} else if(units == "mm") {
-			units_ = CssLengthUnits::MM;
+			units_ = LengthUnits::MM;
 		} else if(units == "pt") {
-			units_ = CssLengthUnits::PT;
+			units_ = LengthUnits::PT;
 		} else if(units == "pc") {
-			units_ = CssLengthUnits::PC;
+			units_ = LengthUnits::PC;
 		} else if(units == "px") {
-			units_ = CssLengthUnits::PX;
+			units_ = LengthUnits::PX;
 		} else if(units == "%") {
-			units_ = CssLengthUnits::PERCENT;
+			units_ = LengthUnits::PERCENT;
 			// normalize to range 0.0 -> 1.0
 			value_ /= 100.0;
 		} else {
@@ -104,93 +112,153 @@ namespace css
 		}
 	}
 
-	CssLength::CssLength(CssLengthParam param)
+	Length::Length(LengthParam param)
 		: param_(param), 
 		  value_(0), 
-		  units_(CssLengthUnits::NUMBER)
+		  units_(LengthUnits::NUMBER)
 	{
 	}
 
-	double CssLength::evaluate(double length) const
+	Object Length::evaluate(Property p, const xhtml::RenderContext& ctx) const
 	{
 		// auto values evaluate as 0
 		if(isAuto()) {
-			return 0;
+			return Object(0);
 		}
-		auto& ctx = xhtml::RenderContext::get();
 		const double dpi = ctx.getDPI();
+		double res = 0;
 		switch(units_) {
-			case CssLengthUnits::NUMBER:
-			case CssLengthUnits::PX:
-				return value_ * dpi / 72.0 * 0.75;
-			case CssLengthUnits::EM:
-				return ctx.getFontSize() * value_ * dpi / 72.0;
-			case CssLengthUnits::EX:
-				return ctx.getFontXHeight() * value_ * dpi / 72.0;
-			case CssLengthUnits::IN:
-				return value_ * dpi;
-			case CssLengthUnits::CM:
-				return value_ * dpi * 2.54;
-			case CssLengthUnits::MM:
-				return value_ * dpi * 25.4;
-			case CssLengthUnits::PT:
-				return value_ * dpi / 72.0;
-			case CssLengthUnits::PC:
-				return 12.0 * value_ * dpi / 72.0;
-			case CssLengthUnits::PERCENT:
-				return value_* length;
-			default: break;
+			case LengthUnits::NUMBER:
+			case LengthUnits::PX:
+				res = value_ * dpi / 72.0 * 0.75;
+				break;
+			case LengthUnits::EM:
+				res = ctx.getComputedValue(Property::FONT_SIZE).getValue<double>() * value_ * dpi / 72.0;
+				break;
+			case LengthUnits::EX:
+				res = ctx.getFontHandle()->getFontXHeight() * value_ * dpi / 72.0;
+				break;
+			case LengthUnits::IN:
+				res = value_ * dpi;
+				break;
+			case LengthUnits::CM:
+				res = value_ * dpi * 2.54;
+				break;
+			case LengthUnits::MM:
+				res = value_ * dpi * 25.4;
+				break;
+			case LengthUnits::PT:
+				res = value_ * dpi / 72.0;
+				break;
+			case LengthUnits::PC:
+				res = 12.0 * value_ * dpi / 72.0;
+				break;
+			case LengthUnits::PERCENT:
+				res = value_* ctx.getComputedValue(p).getValue<double>();
+				break;
+			default: 
+				ASSERT_LOG(false, "Unrecognised units value: " << static_cast<int>(units_));
+				break;
 		}
-		ASSERT_LOG(false, "Unrecognised units value: " << static_cast<int>(units_));
-		return value_;
+		return Object(res);
 	}
 
-	double FontSize::getFontSize(double parent_fs)
+	Object FontSize::evaluate(Property p, const xhtml::RenderContext& ctx) const
 	{
 		double res = 0;
 		if(is_absolute_) {
-			res = get_font_size_table(xhtml::RenderContext::get().getDPI())[static_cast<int>(absolute_)];
+			res = get_font_size_table(ctx.getDPI())[static_cast<int>(absolute_)];
 		} else if(is_relative_) {
 			// XXX hack
+			double parent_fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
 			if(relative_ == FontSizeRelative::LARGER) {
 				res = parent_fs * 1.15;
 			} else {
 				res = parent_fs / 1.15;
 			}
 		} else if(is_length_) {
-			res = length_.evaluate(parent_fs);
+			res = length_.evaluate(p, ctx).getValue<double>();
 		} else {
 			ASSERT_LOG(false, "FontSize has no definite size defined!");
 		}
-		return res;
-	}
-
-	Border::Border() 
-		: style_(BorderStyle::NONE), 
-		  color_(), 
-		  width_(4.0) 
-	{
-	}
-
-	void Border::setWidth(const CssLength& len)
-	{
-		width_ = len;
-	}
-
-	void Border::setColor(const CssColor& color)
-	{
-		color_ = color;
-	}
-
-	void Border::setStyle(BorderStyle style)
-	{
-		style_ = style;	
+		return Object(res);
 	}
 
 	FontFamily::FontFamily() 
-		: inherit_(true), 
-		  fonts_() 
+		: fonts_() 
 	{ 
 		fonts_.emplace_back("sans-serif");
+	}
+
+	Object BorderStyle::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(border_style_);
+	}
+
+	Object FontFamily::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(fonts_);
+	}
+
+	Object Float::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(float_);
+	}
+
+	Object Display::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(display_);
+	}
+
+	Object Whitespace::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(whitespace_);
+	}
+
+	Object FontStyle::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(fs_);
+	}
+
+	Object FontVariant::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(fv_);
+	}
+
+	Object FontWeight::evaluate(Property p, const xhtml::RenderContext& ctx) const
+	{
+		if(is_relative_) {
+			double fw = ctx.getComputedValue(p).getValue<double>();
+			if(relative_ == FontWeightRelative::BOLDER) {
+				// bolder
+				fw += 100;
+			} else {
+				// lighter
+				fw -= 100;
+			}
+			if(fw > 900) {
+				fw = 900;
+			} else if(fw < 100) {
+				fw = 100;
+			}
+			fw = (fw / 100) * 100;
+			return Object(fw);
+		}		
+		return Object(weight_);
+	}
+
+	Object TextAlign::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(ta_);
+	}
+
+	Object Direction::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(dir_);
+	}
+
+	Object TextTransform::evaluate(Property p, const xhtml::RenderContext& rc) const
+	{
+		return Object(tt_);
 	}
 }

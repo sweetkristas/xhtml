@@ -27,9 +27,11 @@
 #include <map>
 #include <vector>
 
+#include "geometry.hpp"
+
+#include "css_stylesheet.hpp"
 #include "xhtml.hpp"
 #include "xhtml_element_id.hpp"
-#include "css_stylesheet.hpp"
 #include "variant_object.hpp"
 
 namespace xhtml
@@ -86,7 +88,6 @@ namespace xhtml
 		virtual bool hasTag(ElementId tag) const { return false; }
 		AttributePtr getAttribute(const std::string& name);
 		virtual const std::string& getValue() const;
-		virtual Object getStyle(const std::string& name) const;
 		void normalize();
 		void mergeProperties(const css::PropertyList& plist);
 		const css::PropertyList& getProperties() const { return properties_; }

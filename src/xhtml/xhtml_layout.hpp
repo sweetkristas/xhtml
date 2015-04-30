@@ -82,24 +82,6 @@ namespace xhtml
 		Dimensions dimensions_;
 		DisplayListPtr display_list_;
 		std::vector<LayoutBoxPtr> children_;
-
-		// XXX All this needs to be moved into the render context
-		// we also need to mark default inherit properties in the css_properties file.
-		// XXX need to move all the string look-ups to compile time constants.
-		// holder for font details, if any.
-		std::vector<std::string> fonts_;
-		double font_size_;
-		double line_height_;
-		css::FontStyle font_style_;
-		// font variant
-		// font weight
-
-		css::CssColor color_;
-		css::CssColor background_color_;
-		// background style
-		std::array<css::CssColor,4> border_color_;
-		std::array<double,4> border_width_;
-		std::array<css::BorderStyle,4> border_style_;
 	};
 
 	double convert_pt_to_pixels(double pt);

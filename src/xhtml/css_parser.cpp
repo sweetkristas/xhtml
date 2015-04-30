@@ -198,7 +198,7 @@ namespace css
 				while(isToken(TokenId::WHITESPACE)) {
 					advance();
 				}
-			
+				
 				it_ = pp->parse(property, it_, end_);
 				while(isToken(TokenId::WHITESPACE)) {
 					advance();
@@ -214,7 +214,7 @@ namespace css
 						if(ref == "important") {
 							// add important tag to the rule in plist.
 							for(auto& pl : pp->getPropertyList()) {
-								pl.second.setImportant(true);
+								pl.second->setImportant(true);
 							}
 						}
 					}

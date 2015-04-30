@@ -96,13 +96,6 @@ namespace xhtml
 		return ss.str();
 	}
 
-	Object Text::getStyle(const std::string& name) const
-	{
-		auto parent = getParent();
-		ASSERT_LOG(parent != nullptr, "Getting style from unparented Text object isn't valid.");
-		return parent->getStyle(name);
-	}
-
 	// XXX we need to add a variable to the Lines and turn it into a struct. This
 	// variable is the advance per space character.
 	Lines Text::generateLines(int current_line_width, int maximum_line_width)
@@ -112,18 +105,19 @@ namespace xhtml
 			return Lines();
 		}
 		ASSERT_LOG(parent != nullptr, "Can't un-parented Text node.");
+		auto ctx = RenderContext::get();
 
 		// adjust the current_line_width to be the space remaining on the line.
-		long font_coord_factor = RenderContext::get().getFont()->getScaleFactor();
+		long font_coord_factor = ctx.getFontHandle()->getScaleFactor();
 		current_line_width = (maximum_line_width - current_line_width) * font_coord_factor;
-
-		css::CssWhitespace ws = parent->getStyle("white-space").getValue<css::CssWhitespace>();
+		
+		css::CssWhitespace ws = ctx.getComputedValue(css::Property::WHITE_SPACE).getValue<css::CssWhitespace>();
 
 		// Apply transform text_ based on "text-transform" property		
-		css::TextTransform text_transform = parent->getStyle("text-transform").getValue<css::TextTransform>();
+		css::CssTextTransform text_transform = ctx.getComputedValue(css::Property::TEXT_TRANSFORM).getValue<css::CssTextTransform>();
 		std::string transformed_text = text_;
 		switch(text_transform) {
-			case css::TextTransform::CAPITALIZE: {
+			case css::CssTextTransform::CAPITALIZE: {
 				bool first_letter = true;
 				transformed_text.clear();
 				for(auto cp : utils::utf8_to_codepoint(text_)) {
@@ -141,13 +135,13 @@ namespace xhtml
 				}
 				break;
 			}
-			case css::TextTransform::UPPERCASE:
+			case css::CssTextTransform::UPPERCASE:
 				transformed_text = boost::locale::to_upper(text_);
 				break;
-			case css::TextTransform::LOWERCASE:
+			case css::CssTextTransform::LOWERCASE:
 				transformed_text = boost::locale::to_lower(text_);
 				break;
-			case css::TextTransform::NONE:
+			case css::CssTextTransform::NONE:
 			default: break;
 		}
 
@@ -161,16 +155,16 @@ namespace xhtml
 
 		// Apply letter-spacing and word-spacing here.
 		auto line = xhtml::tokenize_text(transformed_text, collapse_whitespace, break_at_newline);
-		long space_advance = RenderContext::get().getFont()->calculateCharAdvance(' ');
-		long word_spacing = static_cast<long>(parent->getStyle("word-spacing").getValue<css::CssLength>().evaluate(0) * font_coord_factor);
+		long space_advance = ctx.getFontHandle()->calculateCharAdvance(' ');
+		long word_spacing = static_cast<long>(ctx.getComputedValue(css::Property::WORD_SPACING).getValue<double>() * font_coord_factor);
 		space_advance += word_spacing;
-		long letter_spacing = static_cast<long>(parent->getStyle("letter-spacing").getValue<css::CssLength>().evaluate(0) * font_coord_factor);
+		long letter_spacing = static_cast<long>(ctx.getComputedValue(css::Property::LETTER_SPACING).getValue<double>() * font_coord_factor);
 		space_advance += letter_spacing;
 
-		css::Direction dir = parent->getStyle("direction").getValue<css::Direction>();
-		css::TextAlign text_align = parent->getStyle("text-align").getValue<css::TextAlign>();
-		if(text_align == css::TextAlign::NORMAL) {
-			text_align = dir == css::Direction::LTR ? css::TextAlign::LEFT : css::TextAlign::RIGHT;
+		css::CssDirection dir = ctx.getComputedValue(css::Property::DIRECTION).getValue<css::CssDirection>();
+		css::CssTextAlign text_align = ctx.getComputedValue(css::Property::TEXT_ALIGN).getValue<css::CssTextAlign>();
+		if(text_align == css::CssTextAlign::NORMAL) {
+			text_align = dir == css::CssDirection::LTR ? css::CssTextAlign::LEFT : css::CssTextAlign::RIGHT;
 		}
 
 		// accumulator for current line lenth
@@ -190,7 +184,7 @@ namespace xhtml
 				}
 				continue;
 			}
-			RenderContext::get().getFont()->getGlyphPath(word.word, &word.advance);
+			RenderContext::get().getFontHandle()->getGlyphPath(word.word, &word.advance);
 			if(letter_spacing != 0) {
 				long ls_acc = 0;
 				for(auto& pt : word.advance) {
@@ -203,7 +197,7 @@ namespace xhtml
 				// if text-align is set to justify we can add more spaces to bring the outer word aligned to the maximum_line_width
 				// XXX this code is still slightly wrong as it will make the advance of the next character align with the edge
 				// rather than the bounding box of the last glyph.
-				if(text_align == css::TextAlign::JUSTIFY) {
+				if(text_align == css::CssTextAlign::JUSTIFY) {
 					long space_to_add = current_line_width - length_acc;
 					// only add padding if more than one word per line.
 					// XXX if this is the last line we don't justify it.

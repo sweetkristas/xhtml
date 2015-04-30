@@ -100,3 +100,4 @@ private:
 
 	std::shared_ptr<AbstractObjectImpl> impl_;
 };
+

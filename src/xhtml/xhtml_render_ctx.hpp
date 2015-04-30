@@ -23,10 +23,7 @@
 
 #pragma once
 
-#include <memory>
-#include <string>
-#include <stack>
-
+#include "css_properties.hpp"
 #include "font_freetype.hpp"
 
 namespace xhtml
@@ -36,21 +33,24 @@ namespace xhtml
 	public:
 		// Returns the render context instance.
 		static RenderContext& get();
-
-		void pushFont(const std::string& name, double size);
-		void pushFont(const std::vector<std::string>& name, double size);
-		void popFont();
-		const std::string& getFontName() const { return fh_.top()->getFontName(); }
-		double getFontSize() const { return fh_.top()->getFontSize(); }
-		double getFontXHeight() const { return fh_.top()->getFontXHeight(); }
-
-		KRE::FontHandlePtr getFont() const { return fh_.top(); }
+		
+		struct Manager
+		{
+			explicit Manager(const css::PropertyList& plist);
+			~Manager();
+			std::vector<int> update_list;
+			bool pushed_font_change_;
+		};
 
 		double getDPI() const { return dpi_scale_; }
 		void setDPI(double dpi) { dpi_scale_ = dpi; }
+
+		Object getComputedValue(css::Property p) const;
+
+		// We need special case handling for the font.
+		KRE::FontHandlePtr getFontHandle() const;
 	private:
-		explicit RenderContext(const std::string& font_name, double font_size);
-		std::stack<KRE::FontHandlePtr> fh_;
+		RenderContext();
 		double dpi_scale_;
 	};
 }
