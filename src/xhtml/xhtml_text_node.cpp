@@ -104,7 +104,7 @@ namespace xhtml
 		if(parent == nullptr) {
 			return Lines();
 		}
-		ASSERT_LOG(parent != nullptr, "Can't un-parented Text node.");
+		ASSERT_LOG(parent != nullptr, "Can't run generateLines un-parented Text node.");
 		auto ctx = RenderContext::get();
 
 		// adjust the current_line_width to be the space remaining on the line.

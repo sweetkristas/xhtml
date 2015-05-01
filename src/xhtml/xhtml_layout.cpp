@@ -58,11 +58,6 @@ namespace xhtml
 		}
 	}
 
-	double convert_pt_to_pixels(double pt)
-	{
-		return pt / 72.0 * RenderContext::get().getDPI();
-	}
-
 	LayoutBox::LayoutBox(LayoutBoxPtr parent, NodePtr node, CssDisplay display, DisplayListPtr display_list)
 		: node_(node),
 		  display_(display),
@@ -75,14 +70,20 @@ namespace xhtml
 
 	LayoutBoxPtr LayoutBox::create(NodePtr node, DisplayListPtr display_list, LayoutBoxPtr parent)
 	{
-		RenderContext::Manager ctx_manager(node->getProperties());
+		std::unique_ptr<RenderContext::Manager> ctx_manager;
+		if(node->id() == NodeId::ELEMENT) {
+			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
+		}
 		CssDisplay display = RenderContext::get().getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
 		if(display != CssDisplay::NONE) {
 			auto root = std::make_shared<LayoutBox>(parent, node, display, display_list);
 
 			LayoutBoxPtr inline_container;
 			for(auto& c : node->getChildren()) {
-				RenderContext::Manager child_ctx_manager(node->getProperties());
+				std::unique_ptr<RenderContext::Manager> child_ctx_manager;
+				if(c->id() == NodeId::ELEMENT) {
+					child_ctx_manager.reset(new RenderContext::Manager(c->getProperties()));
+				}
 				CssDisplay disp = RenderContext::get().getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
 				if(disp == CssDisplay::NONE) {
 					// ignore child nodes with display none.
