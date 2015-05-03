@@ -61,7 +61,9 @@ namespace xhtml
 		Lines() : space_advance(0), lines(1, Line()) {}
 		long space_advance;
 		std::vector<Line> lines;
+		double line_height;
 	};
+	typedef std::shared_ptr<Lines> LinesPtr;
 
 	class Node : std::enable_shared_from_this<Node>
 	{
@@ -94,7 +96,7 @@ namespace xhtml
 		void processWhitespace();
 
 		// for text nodes.
-		virtual Lines generateLines(int current_line_width, int maximum_line_width) { return Lines(); }
+		virtual LinesPtr generateLines(int current_line_width, int maximum_line_width) { return nullptr; }
 	protected:
 		std::string nodeToString() const;
 	private:

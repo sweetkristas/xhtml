@@ -98,11 +98,11 @@ namespace xhtml
 
 	// XXX we need to add a variable to the Lines and turn it into a struct. This
 	// variable is the advance per space character.
-	Lines Text::generateLines(int current_line_width, int maximum_line_width)
+	LinesPtr Text::generateLines(int current_line_width, int maximum_line_width)
 	{
 		auto parent = getParent();
 		if(parent == nullptr) {
-			return Lines();
+			return nullptr;
 		}
 		ASSERT_LOG(parent != nullptr, "Can't run generateLines un-parented Text node.");
 		auto ctx = RenderContext::get();
@@ -170,8 +170,17 @@ namespace xhtml
 		// accumulator for current line lenth
 		long length_acc = 0;
 		
-		Lines lines;
-		lines.space_advance = space_advance;
+		// XXX padding-left is applied to the start of the first word
+		// and padding-right is applied to the end of the last word.
+		// padding-top/padding-bottom effect the way the background is drawn but
+		// do not effect the line-height.
+		// margins have no effect.
+		// border-left only applies to the start of the line
+		// border-top/border-bottom are drawn, but don't effect line height
+		// border-right effects the end of the last line.
+
+		auto lines = std::make_shared<Lines>();
+		lines->space_advance = space_advance;
 		bool last_line_was_auto_break = false;
 		bool is_first_line = true;
 		for(auto& word : line) {
@@ -179,7 +188,7 @@ namespace xhtml
 			if(word.word == "\n") {
 				if(!(last_line_was_auto_break && length_acc == 0)) {
 					last_line_was_auto_break = false;
-					lines.lines.emplace_back(Line());
+					lines->lines.emplace_back(Line());
 					length_acc = 0;
 				}
 				continue;
@@ -197,7 +206,7 @@ namespace xhtml
 				// if text-align is set to justify we can add more spaces to bring the outer word aligned to the maximum_line_width
 				// XXX this code is still slightly wrong as it will make the advance of the next character align with the edge
 				// rather than the bounding box of the last glyph.
-				if(text_align == css::CssTextAlign::JUSTIFY) {
+				/*if(text_align == css::CssTextAlign::JUSTIFY) {
 					long space_to_add = current_line_width - length_acc;
 					// only add padding if more than one word per line.
 					// XXX if this is the last line we don't justify it.
@@ -207,17 +216,17 @@ namespace xhtml
 							w.advance.back().x += space_to_add;
 						}
 					}
-				}
+				}*/
 
 				// XXX add new line to be rendered here.
-				lines.lines.emplace_back(Line(1, word));
+				lines->lines.emplace_back(Line(1, word));
 				length_acc = word.advance.back().x + space_advance;
 				last_line_was_auto_break = true;
 				current_line_width = maximum_line_width * font_coord_factor;
 			} else {
 				length_acc += word.advance.back().x + space_advance;
 				// XXX render word glyph here.
-				lines.lines.back().emplace_back(word);
+				lines->lines.back().emplace_back(word);
 				last_line_was_auto_break = false;
 			}		
 		}

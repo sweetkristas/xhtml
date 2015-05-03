@@ -56,76 +56,37 @@ namespace xhtml
 			}
 			return "none";
 		}
+
+		// XXX going to display_list in a singleton for now
+		// XXX better is a weak pointer in each child to the root node, then store in root node
+		DisplayListPtr& get_display_list()
+		{
+			static DisplayListPtr res = nullptr;
+			return res;
+		}
 	}
 
-	LayoutBox::LayoutBox(LayoutBoxPtr parent, NodePtr node, CssDisplay display, DisplayListPtr display_list)
+	LayoutBox::LayoutBox(LayoutBoxPtr parent, NodePtr node)
 		: node_(node),
-		  display_(display),
-		  dimensions_(),
-		  display_list_(display_list),
-		  children_()
+		  children_(),
+		  dimensions_()
 	{
-		ASSERT_LOG(display_ != CssDisplay::NONE, "Tried to create a layout node with a display of none.");
 	}
 
-	LayoutBoxPtr LayoutBox::create(NodePtr node, DisplayListPtr display_list, LayoutBoxPtr parent)
+	LayoutBoxPtr LayoutBox::factory(NodePtr node, CssDisplay display, LayoutBoxPtr parent)
 	{
-		std::unique_ptr<RenderContext::Manager> ctx_manager;
-		if(node->id() == NodeId::ELEMENT) {
-			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
-		}
-		CssDisplay display = RenderContext::get().getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
-		if(display != CssDisplay::NONE) {
-			auto root = std::make_shared<LayoutBox>(parent, node, display, display_list);
-
-			LayoutBoxPtr inline_container;
-			for(auto& c : node->getChildren()) {
-				std::unique_ptr<RenderContext::Manager> child_ctx_manager;
-				if(c->id() == NodeId::ELEMENT) {
-					child_ctx_manager.reset(new RenderContext::Manager(c->getProperties()));
-				}
-				CssDisplay disp = RenderContext::get().getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
-				if(disp == CssDisplay::NONE) {
-					// ignore child nodes with display none.
-				} else if(disp == CssDisplay::INLINE && root->display_ == CssDisplay::BLOCK) {
-					if(inline_container == nullptr) {
-						inline_container = std::make_shared<LayoutBox>(root, nullptr, CssDisplay::BLOCK, display_list);
-						root->children_.emplace_back(inline_container);
-					}
-					inline_container->children_.emplace_back(create(c, display_list, root));
-				} else {
-					inline_container.reset();
-					root->children_.emplace_back(create(c, display_list, root));
-				}
-			}
-
-			return root;
-		}
-		return nullptr;
-	}
-
-	void LayoutBox::layout(const Dimensions& containing, point& offset)
-	{
-		// XXX need to deal with non-static positioned elements
-		auto node = node_.lock();
 		if(node == nullptr) {
-			// anonymous
-			layoutInline(containing, offset);
-			return;
+			// return anonymous box if no attached node.
+			return std::make_shared<AnonymousLayoutBox>(parent);
 		}
-		std::unique_ptr<RenderContext::Manager> ctx_manager;
-		if(node->id() == NodeId::ELEMENT) {
-			// only instantiate on element nodes.
-			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
-		}
-
-		switch(display_) {
-			case CssDisplay::BLOCK:
-				layoutBlock(containing);
-				break;
+		switch(display) {
+			case CssDisplay::NONE:
+				// Do not create a box for this or it's children
+				return nullptr;
 			case CssDisplay::INLINE:
-				layoutInline(containing, offset);
-				break;
+				return std::make_shared<InlineLayoutBox>(parent, node);
+			case CssDisplay::BLOCK:
+				return std::make_shared<BlockLayoutBox>(parent, node);
 			case CssDisplay::INLINE_BLOCK:
 			case CssDisplay::LIST_ITEM:
 			case CssDisplay::TABLE:
@@ -138,15 +99,89 @@ namespace xhtml
 			case CssDisplay::TABLE_COLUMN:
 			case CssDisplay::TABLE_CELL:
 			case CssDisplay::TABLE_CAPTION:
-				ASSERT_LOG(false, "Implement display layout type: " << static_cast<int>(display_));
+				ASSERT_LOG(false, "FIXME: LayoutBox::factory(): " << display_string(display));
 				break;
-			case CssDisplay::NONE:
-			default: 
+			default:
+				ASSERT_LOG(false, "illegal display value: " << static_cast<int>(display));
 				break;
 		}
 	}
 
-	void LayoutBox::layoutBlock(const Dimensions& containing)
+	LayoutBoxPtr LayoutBox::create(NodePtr node, DisplayListPtr display_list, LayoutBoxPtr parent)
+	{
+		get_display_list() = display_list;
+		return handleCreate(node, parent);
+	}
+
+	LayoutBoxPtr LayoutBox::handleCreate(NodePtr node, LayoutBoxPtr parent)
+	{
+		std::unique_ptr<RenderContext::Manager> ctx_manager;
+		if(node->id() == NodeId::ELEMENT) {
+			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
+		}
+				// text nodes are always inline
+		CssDisplay display = node->id() == NodeId::TEXT 
+			? display = CssDisplay::INLINE
+			: RenderContext::get().getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
+		if(display != CssDisplay::NONE) {
+			auto root = factory(node, display, parent);
+
+			AnonymousLayoutBoxPtr inline_container;
+			for(auto& c : node->getChildren()) {
+				std::unique_ptr<RenderContext::Manager> child_ctx_manager;
+				if(c->id() == NodeId::ELEMENT) {
+					child_ctx_manager.reset(new RenderContext::Manager(c->getProperties()));
+				}
+				// text nodes are always inline
+				CssDisplay child_display = c->id() == NodeId::TEXT 
+					? CssDisplay::INLINE 
+					: RenderContext::get().getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
+				if(child_display == CssDisplay::NONE) {
+					// ignore child nodes with display none.
+				} else if(child_display == CssDisplay::INLINE && display == CssDisplay::BLOCK) {
+					if(inline_container == nullptr) {
+						inline_container = std::make_shared<AnonymousLayoutBox>(root);
+						root->children_.emplace_back(inline_container);
+					}
+					inline_container->children_.emplace_back(handleCreate(c, root));
+				} else {
+					inline_container.reset();
+					root->children_.emplace_back(handleCreate(c, root));
+				}
+			}
+
+			return root;
+		}
+		return nullptr;
+	}
+
+	void LayoutBox::insertChildren(const_child_iterator pos, const std::vector<LayoutBoxPtr>& children)
+	{
+		children_.insert(pos, children.begin(), children.end());
+	}
+
+	void LayoutBox::layout(const Dimensions& containing, inline_offset& offset)
+	{
+		auto node = node_.lock();
+		std::unique_ptr<RenderContext::Manager> ctx_manager;
+		if(node != nullptr && node->id() == NodeId::ELEMENT) {
+			// only instantiate on element nodes.
+			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
+		}
+		RenderContext& ctx = RenderContext::get();
+		border_style_[0] = ctx.getComputedValue(Property::BORDER_TOP_STYLE).getValue<CssBorderStyle>();
+		border_style_[1] = ctx.getComputedValue(Property::BORDER_LEFT_STYLE).getValue<CssBorderStyle>();
+		border_style_[2] = ctx.getComputedValue(Property::BORDER_BOTTOM_STYLE).getValue<CssBorderStyle>();
+		border_style_[3] = ctx.getComputedValue(Property::BORDER_RIGHT_STYLE).getValue<CssBorderStyle>();
+		border_color_[0] = ctx.getComputedValue(Property::BORDER_TOP_COLOR).getValue<KRE::Color>();
+		border_color_[1] = ctx.getComputedValue(Property::BORDER_LEFT_COLOR).getValue<KRE::Color>();
+		border_color_[2] = ctx.getComputedValue(Property::BORDER_BOTTOM_COLOR).getValue<KRE::Color>();
+		border_color_[3] = ctx.getComputedValue(Property::BORDER_RIGHT_COLOR).getValue<KRE::Color>();
+
+		handleLayout(containing, offset);
+	}
+
+	void BlockLayoutBox::handleLayout(const Dimensions& containing, inline_offset& offset)
 	{
 		layoutBlockWidth(containing);
 		layoutBlockPosition(containing);
@@ -154,138 +189,185 @@ namespace xhtml
 		layoutBlockHeight(containing);
 	}
 
-	void LayoutBox::layoutBlockWidth(const Dimensions& containing)
+	BlockLayoutBox::BlockLayoutBox(LayoutBoxPtr parent, NodePtr node)
+		: LayoutBox(parent, node)
 	{
-		auto node = node_.lock();
-		// boxes without nodes are anonymous and thus dimensionless.
-		if(node != nullptr) {
-			RenderContext& ctx = RenderContext::get();
-			double containing_width = containing.content_.w();
+	}
 
-			// XXX If the value is a percentable it needs to be relative to the containing_width.
-			auto css_width = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
-			double width = css_width.evaluate(ctx).getValue<Length>().compute(containing_width);
+	void BlockLayoutBox::layoutBlockWidth(const Dimensions& containing)
+	{
+		RenderContext& ctx = RenderContext::get();
+		double containing_width = containing.content_.w();
 
-			dimensions_.border_.left = ctx.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute();
-			dimensions_.border_.right = ctx.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute();
+		auto css_width = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
+		double width = css_width.evaluate(ctx).getValue<Length>().compute(containing_width);
 
-			dimensions_.padding_.left = ctx.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute(containing_width);
-			dimensions_.padding_.right = ctx.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute(containing_width);
+		getDims().border_.left = ctx.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute();
+		getDims().border_.right = ctx.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute();
 
-			auto css_margin_left = ctx.getComputedValue(Property::MARGIN_LEFT).getValue<Width>();
-			auto css_margin_right = ctx.getComputedValue(Property::MARGIN_RIGHT).getValue<Width>();
-			dimensions_.margin_.left = css_margin_left.evaluate(ctx).getValue<Length>().compute(containing_width);
-			dimensions_.margin_.right = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width);
+		getDims().padding_.left = ctx.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute(containing_width);
+		getDims().padding_.right = ctx.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute(containing_width);
 
-			double total = dimensions_.border_.left + dimensions_.border_.right
-				+ dimensions_.padding_.left + dimensions_.padding_.right
-				+ dimensions_.margin_.left + dimensions_.margin_.right
-				+ width;
+		auto css_margin_left = ctx.getComputedValue(Property::MARGIN_LEFT).getValue<Width>();
+		auto css_margin_right = ctx.getComputedValue(Property::MARGIN_RIGHT).getValue<Width>();
+		getDims().margin_.left = css_margin_left.evaluate(ctx).getValue<Length>().compute(containing_width);
+		getDims().margin_.right = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width);
+
+		double total = getDims().border_.left + getDims().border_.right
+			+ getDims().padding_.left + getDims().padding_.right
+			+ getDims().margin_.left + getDims().margin_.right
+			+ width;
 			
-			if(!css_width.isAuto() && total > containing.content_.w()) {
-				if(css_margin_left.isAuto()) {
-					dimensions_.margin_.left = 0;
-				}
-				if(css_margin_right.isAuto()) {
-					dimensions_.margin_.right = 0;
-				}
+		if(!css_width.isAuto() && total > containing.content_.w()) {
+			if(css_margin_left.isAuto()) {
+				getDims().margin_.left = 0;
 			}
-
-			// If negative is overflow.
-			double underflow = containing.content_.w() - total;
-
-			if(css_width.isAuto()) {
-				if(css_margin_left.isAuto()) {
-					dimensions_.margin_.left = 0;
-				}
-				if(css_margin_right.isAuto()) {
-					dimensions_.margin_.right = 0;
-				}
-				if(underflow >= 0) {
-					width = underflow;
-				} else {
-					width = 0;
-					dimensions_.margin_.right = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width) + underflow;
-				}
-				dimensions_.content_.set_w(width);
-			} else if(!css_margin_left.isAuto() && !css_margin_right.isAuto()) {
-				dimensions_.margin_.right = dimensions_.margin_.right + underflow;
-			} else if(!css_margin_left.isAuto() && css_margin_right.isAuto()) {
-				dimensions_.margin_.right = underflow;
-			} else if(css_margin_left.isAuto() && !css_margin_right.isAuto()) {
-				dimensions_.margin_.left = underflow;
-			} else if(css_margin_left.isAuto() && css_margin_right.isAuto()) {
-				dimensions_.margin_.left = underflow/2.0;
-				dimensions_.margin_.right = underflow/2.0;
-			} 
-		} else {
-			dimensions_.content_.set_w(containing.content_.w());
+			if(css_margin_right.isAuto()) {
+				getDims().margin_.right = 0;
+			}
 		}
+
+		// If negative is overflow.
+		double underflow = containing.content_.w() - total;
+
+		if(css_width.isAuto()) {
+			if(css_margin_left.isAuto()) {
+				getDims().margin_.left = 0;
+			}
+			if(css_margin_right.isAuto()) {
+				getDims().margin_.right = 0;
+			}
+			if(underflow >= 0) {
+				width = underflow;
+			} else {
+				width = 0;
+				getDims().margin_.right = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width) + underflow;
+			}
+			getDims().content_.set_w(width);
+		} else if(!css_margin_left.isAuto() && !css_margin_right.isAuto()) {
+			getDims().margin_.right = getDims().margin_.right + underflow;
+		} else if(!css_margin_left.isAuto() && css_margin_right.isAuto()) {
+			getDims().margin_.right = underflow;
+		} else if(css_margin_left.isAuto() && !css_margin_right.isAuto()) {
+			getDims().margin_.left = underflow;
+		} else if(css_margin_left.isAuto() && css_margin_right.isAuto()) {
+			getDims().margin_.left = underflow/2.0;
+			getDims().margin_.right = underflow/2.0;
+		} 
 	}
 
-	void LayoutBox::layoutBlockPosition(const Dimensions& containing)
+	void BlockLayoutBox::layoutBlockPosition(const Dimensions& containing)
 	{
-		auto node = node_.lock();
-		if(node != nullptr) {
-			RenderContext& ctx = RenderContext::get();
-			double containing_height = containing.content_.h();
+		RenderContext& ctx = RenderContext::get();
+		double containing_height = containing.content_.h();
 			
-			dimensions_.border_.top = ctx.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Length>().compute();
-			dimensions_.border_.bottom = ctx.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Length>().compute();
+		getDims().border_.top = ctx.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Length>().compute();
+		getDims().border_.bottom = ctx.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Length>().compute();
 
-			dimensions_.padding_.top = ctx.getComputedValue(Property::PADDING_TOP).getValue<Length>().compute(containing_height);
-			dimensions_.padding_.bottom = ctx.getComputedValue(Property::PADDING_BOTTOM).getValue<Length>().compute(containing_height);
+		getDims().padding_.top = ctx.getComputedValue(Property::PADDING_TOP).getValue<Length>().compute(containing_height);
+		getDims().padding_.bottom = ctx.getComputedValue(Property::PADDING_BOTTOM).getValue<Length>().compute(containing_height);
 
-			dimensions_.margin_.top = ctx.getComputedValue(Property::MARGIN_TOP).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height);
-			dimensions_.margin_.bottom = ctx.getComputedValue(Property::MARGIN_BOTTOM).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height);
+		getDims().margin_.top = ctx.getComputedValue(Property::MARGIN_TOP).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height);
+		getDims().margin_.bottom = ctx.getComputedValue(Property::MARGIN_BOTTOM).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height);
 
-			dimensions_.content_.set_x(containing.content_.x() + dimensions_.margin_.left + dimensions_.padding_.left + dimensions_.border_.left);
-			dimensions_.content_.set_y(containing.content_.y2() + dimensions_.margin_.top + dimensions_.padding_.top + dimensions_.border_.top);
-		} else {
-			dimensions_.content_.set_xy(containing.content_.x(), containing.content_.y2());
+		getDims().content_.set_x(containing.content_.x() + getDims().margin_.left + getDims().padding_.left + getDims().border_.left);
+		getDims().content_.set_y(containing.content_.y2() + getDims().margin_.top + getDims().padding_.top + getDims().border_.top);
+	}
+
+	void BlockLayoutBox::layoutBlockChildren()
+	{
+		inline_offset offs;
+		for(auto& child : getChildren()) {
+			offs.offset.x = 0;
+			offs.offset.y = getDims().content_.h();
+			child->layout(getDims(), offs);
+			getDims().content_.set_h(getDims().content_.h()
+				+ child->getDimensions().content_.h() 
+				+ child->getDimensions().margin_.top + child->getDimensions().margin_.bottom
+				+ child->getDimensions().padding_.top + child->getDimensions().padding_.bottom
+				+ child->getDimensions().border_.top + child->getDimensions().border_.bottom);
 		}
 	}
 
-	void LayoutBox::layoutBlockChildren()
-	{		
-		for(auto& child : children_) {
-			child->layout(dimensions_, point());
-			dimensions_.content_.set_h(dimensions_.content_.h()
-				+ child->dimensions_.content_.h() 
-				+ child->dimensions_.margin_.top + child->dimensions_.margin_.bottom
-				+ child->dimensions_.padding_.top + child->dimensions_.padding_.bottom
-				+ child->dimensions_.border_.top + child->dimensions_.border_.bottom);
+	void BlockLayoutBox::layoutBlockHeight(const Dimensions& containing)
+	{
+		RenderContext& ctx = RenderContext::get();
+		// a set height value overrides the calculated value.
+		auto css_h = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
+		if(!css_h.isAuto()) {
+			getDims().content_.set_h(css_h.evaluate(ctx).getValue<Length>().compute(containing.content_.h()));
 		}
 	}
 
-	void LayoutBox::layoutBlockHeight(const Dimensions& containing)
+	AnonymousLayoutBox::AnonymousLayoutBox(LayoutBoxPtr parent)
+		: LayoutBox(parent, nullptr)
 	{
-		auto node = node_.lock();
-		if(node != nullptr) {
-			RenderContext& ctx = RenderContext::get();
-			// a set height value overrides the calculated value.
-			auto css_h = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
-			if(!css_h.isAuto()) {
-				dimensions_.content_.set_h(css_h.evaluate(ctx).getValue<Length>().compute(containing.content_.h()));
-			}
-		}		
 	}
 
-	void LayoutBox::layoutInline(const Dimensions& containing, point& offset)
+	void AnonymousLayoutBox::handleLayout(const Dimensions& containing, inline_offset& offset)
 	{
-		layoutInlineWidth(containing, offset);
-		for(auto& c : children_) {
-			c->layout(containing, offset);
+		for(auto& child : getChildren()) {
+			child->layout(containing, offset);
+			getDims().content_.set_w(
+				std::max(getDims().content_.w(), child->getDimensions().content_.w())
+				);
+			getDims().content_.set_h(getDims().content_.h()
+				+ child->getDimensions().content_.h() 
+				+ child->getDimensions().margin_.top + child->getDimensions().margin_.bottom
+				+ child->getDimensions().padding_.top + child->getDimensions().padding_.bottom
+				+ child->getDimensions().border_.top + child->getDimensions().border_.bottom);
 		}
 	}
 
-	void LayoutBox::layoutInlineWidth(const Dimensions& containing, point& offset)
+	void InlineLayoutBox::handleLayout(const Dimensions& containing, inline_offset& offset)
 	{
+		auto children = layoutInlineWidth(containing, offset);
+		if(!children.empty()) {
+			insertChildren(getChildren().begin(), children);
+		}
+		for(auto& child : getChildren()) {
+			child->layout(containing, offset);
+			getDims().content_.set_w(
+				std::max(getDims().content_.w(), child->getDimensions().content_.w())
+				);
+			getDims().content_.set_h(getDims().content_.h()
+				+ child->getDimensions().content_.h() 
+				+ child->getDimensions().margin_.top + child->getDimensions().margin_.bottom
+				+ child->getDimensions().padding_.top + child->getDimensions().padding_.bottom
+				+ child->getDimensions().border_.top + child->getDimensions().border_.bottom);
+		}
+	}
+
+	InlineLayoutBox::InlineLayoutBox(LayoutBoxPtr parent, NodePtr node)
+		: LayoutBox(parent, node)
+	{
+	}
+
+	std::vector<LayoutBoxPtr> InlineLayoutBox::layoutInlineWidth(const Dimensions& containing, inline_offset& offset)
+	{
+		std::vector<LayoutBoxPtr> new_children;
 		KRE::FontRenderablePtr fontr = nullptr;
-		auto node = node_.lock();
+		auto node = getNode();
 		if(node != nullptr && node->id() == NodeId::TEXT) {
-			long font_coord_factor = RenderContext::get().getFontHandle()->getScaleFactor();
-			auto lines = node->generateLines(offset.x/font_coord_factor, containing.content_.w());
+			auto& ctx = RenderContext::get();
+			long font_coord_factor = ctx.getFontHandle()->getScaleFactor();
+
+			getDims().border_.left = ctx.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute();
+			getDims().border_.right = ctx.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute();
+			//dimensions_.border_.top = ctx.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Length>().compute();
+			//dimensions_.border_.bottom = ctx.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Length>().compute();
+
+			getDims().padding_.left = ctx.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute(containing.content_.w());
+			getDims().padding_.right = ctx.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute(containing.content_.w());
+			//dimensions_.padding_.top = ctx.getComputedValue(Property::PADDING_TOP).getValue<Length>().compute(containing.content_.w());
+			//dimensions_.padding_.bottom = ctx.getComputedValue(Property::PADDING_BOTTOM).getValue<Length>().compute(containing.content_.w());
+
+			if((getDims().border_.left + getDims().padding_.left) + offset.offset.x/font_coord_factor > containing.content_.w()) {
+				offset.offset.x = static_cast<int>(getDims().border_.left + getDims().padding_.left * font_coord_factor);
+				offset.offset.y += static_cast<int>(offset.line_height * font_coord_factor);
+			}
+
+			auto lines = node->generateLines(offset.offset.x/font_coord_factor, static_cast<int>(containing.content_.w()));
 
 			// Generate a renderable object from the lines.
 			// XXX move this to its own function.
@@ -317,41 +399,68 @@ namespace xhtml
 			// which can look kind of silly if there are only a few words being justified, when the entire 
 			// rest of the line could be used.
 
+			// computer the content width based on the generated lines.
+
+			int min_x = offset.offset.x/font_coord_factor;
+			int max_x = -1;
 
 			// since the Renderable returned from createRenderableFromPath is relative to the font baseline
 			// we offset by the line-height to start.
-			auto& ctx = RenderContext::get();
-			auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
+			const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
 			double line_height = lh.compute();
 			if(lh.isPercent() || lh.isNumber()) {
 				line_height *= ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
 			}
+			lines->line_height = line_height;
+			line_height = std::max(offset.line_height, line_height);
 			LOG_DEBUG("line-height: " << line_height);
-			if(offset.y == 0) {
-				offset.y = static_cast<long>(line_height * font_coord_factor);
+			if(offset.offset.y == 0) {
+				offset.offset.y = static_cast<long>(line_height * font_coord_factor);
 			}
-			auto last_line = lines.lines.end()-1;
-			for(auto line_it = lines.lines.begin(); line_it != lines.lines.end(); ++line_it) {
+			// XXX Break this into children added to new_children and set there
+			// border_style_/border_color_/dimensions_.margin properties appropriatly
+			// Remembering to clear them from this layout node.
+			const auto last_line = lines->lines.end()-1;
+			for(auto line_it = lines->lines.begin(); line_it != lines->lines.end(); ++line_it) {
 				auto& line = *line_it;
 				for(auto& word : line) {
 					for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
-						path.emplace_back(it->x + offset.x, it->y + offset.y);
+						path.emplace_back(it->x + offset.offset.x, it->y + offset.offset.y);
+						max_x = std::max(max_x, static_cast<int>((it->x + offset.offset.x)/font_coord_factor));
 					}
-					offset.x += word.advance.back().x + lines.space_advance;
+					offset.offset.x += word.advance.back().x + lines->space_advance;
 					text += word.word;
 				}
 				// We exclude the last line from generating a newline.
 				if(line_it != last_line) {
-					offset.y += static_cast<long>(line_height * font_coord_factor);
-					offset.x = 0;
+					offset.offset.y += static_cast<long>(line_height * font_coord_factor);
+					offset.offset.x = 0;
+					min_x = std::min(min_x, 0);
+					max_x = std::max(max_x, static_cast<int>(containing.content_.w()));
+					line_height = lines->line_height;
 				}
 			}
 
-			auto fh = ctx.getFontHandle();
-			fontr = fh->createRenderableFromPath(fontr, text, path);
-			fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<KRE::Color>());
-			display_list_->addRenderable(fontr);
+			// XXX add the right padding/border here to the advance of the last word of the last line
+
+			//if(lines->lines.size() > 0) {
+			//	last_line_height = line_height;
+			//}
+			getDims().content_.set_h(offset.offset.y);
+			getDims().content_.set_w(max_x - min_x);
+
+			lines_ = lines;
+
+			// XXX hack for the moment
+			//auto fh = ctx.getFontHandle();
+			//fontr = fh->createRenderableFromPath(fontr, text, path);
+			//fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<KRE::Color>());
+			//get_display_list()->addRenderable(fontr);
+		} else if(node != nullptr && node->id() == NodeId::ELEMENT) {
+			// Need to call a function to get element dimensions.
 		}
+
+		return new_children;
 	}
 
 	void LayoutBox::preOrderTraversal(std::function<void(LayoutBoxPtr, int)> fn, int nesting)
@@ -362,12 +471,32 @@ namespace xhtml
 		}
 	}
 
+	std::string BlockLayoutBox::toString() const
+	{
+		std::stringstream ss;
+		ss << "BlockBox(" << getNode()->toString() << ")";
+		return ss.str();
+	}
+
+	std::string InlineLayoutBox::toString() const
+	{
+		std::stringstream ss;
+		ss << "InlineBox(" << getNode()->toString() << ")";
+		return ss.str();
+	}
+
+	std::string AnonymousLayoutBox::toString() const
+	{
+		std::stringstream ss;
+		ss << "AnonymousBox()";
+		return ss.str();
+	}
+
 	std::string LayoutBox::toString() const
 	{
 		std::stringstream ss;
 		auto node = node_.lock();
-		//ss << "Box(" << (node ? display_string(display_) : "anonymous") << ", content: " << dimensions_.content_ << ")";
-		ss << "Box(" << (node ? display_string(display_) : "anonymous") << (node ? ", " + node->toString() : "") << ")";
+		//ss << "Box(" << (node ? display_string(display_) : "anonymous") << (node ? ", " + node->toString() : "") << ")";
 		return ss.str();
 	}
 }

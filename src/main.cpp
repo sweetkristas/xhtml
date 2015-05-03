@@ -132,7 +132,8 @@ int main(int argc, char* argv[])
 	auto layout = xhtml::LayoutBox::create(doc, display_list);
 	xhtml::Dimensions root_dimensions;
 	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, 0);
-	layout->layout(root_dimensions, point());
+	double ll = 0;
+	layout->layout(root_dimensions, xhtml::inline_offset());
 
 	layout->preOrderTraversal([](xhtml::LayoutBoxPtr box, int nesting) {
 		std::string indent(nesting*2, ' ');

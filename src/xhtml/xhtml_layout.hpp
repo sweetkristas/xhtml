@@ -34,6 +34,8 @@ namespace xhtml
 {
 	class LayoutBox;
 	typedef std::shared_ptr<LayoutBox> LayoutBoxPtr;
+	struct Lines;
+	typedef std::shared_ptr<Lines> LinesPtr;
 
 	struct EdgeSize
 	{
@@ -53,31 +55,80 @@ namespace xhtml
 		EdgeSize margin_;
 	};
 
+	struct inline_offset
+	{
+		inline_offset() : line_height(0), offset() {}
+		double line_height;
+		point offset;
+	};
+
 	class LayoutBox : public std::enable_shared_from_this<LayoutBox>
 	{
 	public:
-		LayoutBox(LayoutBoxPtr parent, NodePtr node, css::CssDisplay display, DisplayListPtr display_list);
+		typedef std::vector<LayoutBoxPtr>::iterator child_iterator;
+		typedef std::vector<LayoutBoxPtr>::const_iterator const_child_iterator;
+
+		LayoutBox(LayoutBoxPtr parent, NodePtr node);
+		virtual ~LayoutBox() {}
 		static LayoutBoxPtr create(NodePtr node, DisplayListPtr display_list, LayoutBoxPtr parent=nullptr);
-		void layout(const Dimensions& containing, point& offset);
+		void layout(const Dimensions& containing, inline_offset& offset);
 		
-		void layoutBlock(const Dimensions& containing);
+		void preOrderTraversal(std::function<void(LayoutBoxPtr, int)> fn, int nesting);
+		virtual std::string toString() const = 0;
+		const geometry::Rect<double>& getContentDimensions() const { return dimensions_.content_; }
+
+		const Dimensions& getDimensions() const { return dimensions_; }
+		NodePtr getNode() const { return node_.lock(); }
+
+		void insertChildren(const_child_iterator pos, const std::vector<LayoutBoxPtr>& children);
+	protected:
+		std::vector<LayoutBoxPtr>& getChildren() { return children_; }
+		Dimensions& getDims() { return dimensions_; }
+	private:
+		WeakNodePtr node_;
+		std::vector<LayoutBoxPtr> children_;
+		Dimensions dimensions_;
+
+		virtual void handleLayout(const Dimensions& containing, inline_offset& offset) = 0;
+		static LayoutBoxPtr handleCreate(NodePtr node, LayoutBoxPtr parent);
+		static LayoutBoxPtr factory(NodePtr node, css::CssDisplay display, LayoutBoxPtr parent);
+
+		std::array<CssBorderStyle, 4> border_style_;
+		std::array<KRE::Color, 4> border_color_;
+	};
+
+	class AnonymousLayoutBox : public LayoutBox
+	{
+	public:
+		AnonymousLayoutBox(LayoutBoxPtr parent);
+		std::string toString() const override;
+	private:
+		void handleLayout(const Dimensions& containing, inline_offset& offset) override;
+	};
+	typedef std::shared_ptr<AnonymousLayoutBox> AnonymousLayoutBoxPtr;
+
+	class InlineLayoutBox : public LayoutBox
+	{
+	public:
+		InlineLayoutBox(LayoutBoxPtr parent, NodePtr node);
+		std::string toString() const override;
+	private:
+		void handleLayout(const Dimensions& containing, inline_offset& offset) override;
+		std::vector<LayoutBoxPtr> layoutInlineWidth(const Dimensions& containing, inline_offset& offset);
+		LinesPtr lines_;
+	};
+
+	class BlockLayoutBox : public LayoutBox
+	{
+	public:
+		BlockLayoutBox(LayoutBoxPtr parent, NodePtr node);
+		std::string toString() const override;
+	private:
+		void handleLayout(const Dimensions& containing, inline_offset& offset) override;
 		void layoutBlockWidth(const Dimensions& containing);
 		void layoutBlockPosition(const Dimensions& containing);
 		void layoutBlockChildren();
 		void layoutBlockHeight(const Dimensions& containing);
-
-		void layoutInline(const Dimensions& containing, point& offset);
-		void layoutInlineWidth(const Dimensions& containing, point& offset);
-
-		void preOrderTraversal(std::function<void(LayoutBoxPtr, int)> fn, int nesting);
-		std::string toString() const;
-		const geometry::Rect<double>& getContentDimensions() const { return dimensions_.content_; }
-	private:
-		WeakNodePtr node_;
-		css::CssDisplay display_;
-		Dimensions dimensions_;
-		DisplayListPtr display_list_;
-		std::vector<LayoutBoxPtr> children_;
 	};
 
 	double convert_pt_to_pixels(double pt);
