@@ -651,6 +651,7 @@ namespace xhtml
 		auto& ctx = RenderContext::get();
 		double line_height = getLineHeight();
 		if(line_.empty()) {
+			getDims().content_.set_w(0);
 			getDims().content_.set_h(line_height);
 			return;
 		}
