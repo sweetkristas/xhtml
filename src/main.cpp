@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
 #else
 	const std::string data_path = "../data/";
 #endif
-	const std::string test_doc = data_path + "test3.xhtml";
+	const std::string test_doc = data_path + "test5.xhtml";
 	//const std::string test_doc = data_path + "storyboard.xhtml";
 	const std::string ua_ss = data_path + "user_agent.css";
 
@@ -129,16 +129,13 @@ int main(int argc, char* argv[])
 
 	xhtml::RenderContextManager rcm;
 	// layout has to happen after initialisation of graphics
-	auto layout = xhtml::LayoutBox::create(doc, display_list);
-	xhtml::Dimensions root_dimensions;
-	root_dimensions.content_ = geometry::Rect<double>(0, 0, width, 0);
-	double ll = 0;
-	layout->layout(root_dimensions, xhtml::inline_offset());
+	auto layout = xhtml::LayoutBox::create(doc, width);
+	layout->render(display_list);
 
-	layout->preOrderTraversal([](xhtml::LayoutBoxPtr box, int nesting) {
+	/*layout->preOrderTraversal([](xhtml::LayoutBoxPtr box, int nesting) {
 		std::string indent(nesting*2, ' ');
 		LOG_DEBUG(indent + box->toString());
-	}, 0);
+	}, 0);*/
 	// end xhtml layout
 
 	auto canvas = Canvas::getInstance();

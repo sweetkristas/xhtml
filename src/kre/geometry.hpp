@@ -142,8 +142,8 @@ namespace geometry
 		T mid_x() const { return (x1() + x2())/static_cast<T>(2); }
 		T mid_y() const { return (y1() + y2())/static_cast<T>(2); }
 
-		void set_x(const T& new_x) { top_left_.x = new_x; }
-		void set_y(const T& new_y) { top_left_.y = new_y; }
+		void set_x(const T& new_x) { top_left_.x = new_x; bottom_right_.x += new_x; }
+		void set_y(const T& new_y) { top_left_.y = new_y; bottom_right_.y += new_y; }
 		void set_w(const T& new_w) { bottom_right_.x = top_left_.x + new_w; }
 		void set_h(const T& new_h) { bottom_right_.y = top_left_.y + new_h; }
 

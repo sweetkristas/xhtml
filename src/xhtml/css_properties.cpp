@@ -111,8 +111,8 @@ namespace css
 
 		using namespace std::placeholders;
 		
-		PropertyRegistrar property000("background-color", Property::BACKGROUND_COLOR, false, Object(KRE::Color(0,0,0,0)), std::bind(&PropertyParser::parseColor, _1, _2));
-		PropertyRegistrar property001("color", Property::COLOR, true, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
+		PropertyRegistrar property000("background-color", Property::BACKGROUND_COLOR, false, Object(CssColor(CssColorParam::TRANSPARENT)), std::bind(&PropertyParser::parseColor, _1, _2));
+		PropertyRegistrar property001("color", Property::COLOR, true, Object(CssColor(CssColorParam::VALUE)), std::bind(&PropertyParser::parseColor, _1, _2));
 		PropertyRegistrar property002("padding-left", Property::PADDING_LEFT, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property003("padding-right", Property::PADDING_RIGHT, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property004("padding-top", Property::PADDING_TOP, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
@@ -123,10 +123,10 @@ namespace css
 		PropertyRegistrar property009("margin-top", Property::MARGIN_TOP, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property010("margin-bottom", Property::MARGIN_BOTTOM, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property011("margin", std::bind(&PropertyParser::parseWidthList, _1, _2));
-		PropertyRegistrar property012("border-top-color", Property::BORDER_TOP_COLOR, false, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
-		PropertyRegistrar property013("border-left-color", Property::BORDER_LEFT_COLOR, false, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
-		PropertyRegistrar property014("border-bottom-color", Property::BORDER_BOTTOM_COLOR, false, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
-		PropertyRegistrar property015("border-right-color", Property::BORDER_RIGHT_COLOR, false, Object(KRE::Color::colorWhite()), std::bind(&PropertyParser::parseColor, _1, _2));
+		PropertyRegistrar property012("border-top-color", Property::BORDER_TOP_COLOR, false, Object(CssColor(CssColorParam::CURRENT)), std::bind(&PropertyParser::parseColor, _1, _2));
+		PropertyRegistrar property013("border-left-color", Property::BORDER_LEFT_COLOR, false, Object(CssColor(CssColorParam::CURRENT)), std::bind(&PropertyParser::parseColor, _1, _2));
+		PropertyRegistrar property014("border-bottom-color", Property::BORDER_BOTTOM_COLOR, false, Object(CssColor(CssColorParam::CURRENT)), std::bind(&PropertyParser::parseColor, _1, _2));
+		PropertyRegistrar property015("border-right-color", Property::BORDER_RIGHT_COLOR, false, Object(CssColor(CssColorParam::CURRENT)), std::bind(&PropertyParser::parseColor, _1, _2));
 		//PropertyRegistrar property016("border-color", std::bind(&PropertyParser::parseColorList, _1, _2));
 		PropertyRegistrar property017("border-top-width", Property::BORDER_TOP_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, _2));
 		PropertyRegistrar property018("border-left-width", Property::BORDER_LEFT_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, _2));

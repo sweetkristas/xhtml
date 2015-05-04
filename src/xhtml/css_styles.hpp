@@ -125,6 +125,7 @@ namespace css
 		NONE,
 		TRANSPARENT,
 		VALUE,
+		CURRENT,		// use current foreground color
 	};
 
 	// This is the basee class for all other styles.
@@ -159,6 +160,7 @@ namespace css
 		bool isNone() const { return param_ == CssColorParam::NONE; }
 		bool isValue() const { return param_ == CssColorParam::VALUE; }
 		Object evaluate(const xhtml::RenderContext& rc) const override;
+		KRE::Color compute() const;
 	private:
 		CssColorParam param_;
 		KRE::Color color_;

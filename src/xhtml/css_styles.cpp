@@ -75,12 +75,29 @@ namespace css
 		setParam(CssColorParam::VALUE);
 	}
 
-	Object CssColor::evaluate(const xhtml::RenderContext& ctx) const
+	KRE::Color CssColor::compute() const
 	{
 		if(param_ == CssColorParam::VALUE) {
-			return Object(color_);
+			return color_;
+		} else if(param_ == CssColorParam::CURRENT) {
+			auto& ctx = xhtml::RenderContext::get();
+			auto current_color = ctx.getComputedValue(Property::COLOR).getValue<CssColor>();
+			ASSERT_LOG(current_color.getParam() != CssColorParam::CURRENT, "Computing color of current color would cause infinite loop.");
+			return current_color.compute();
 		}
-		return Object(KRE::Color(0, 0, 0, 0));
+		return KRE::Color(0, 0, 0, 0);
+	}
+
+	Object CssColor::evaluate(const xhtml::RenderContext& ctx) const
+	{
+		return Object(*this);
+		/*if(param_ == CssColorParam::VALUE) {
+			return Object(color_);
+		} else if(param_ == CssColorParam::CURRENT) {
+			//return ctx.getComputedValue(Property::COLOR);
+			return Object(KRE::Color(127,255,127,255));
+		}
+		return Object(KRE::Color(0, 0, 0, 0));*/
 	}
 
 	Length::Length(double value, const std::string& units) 

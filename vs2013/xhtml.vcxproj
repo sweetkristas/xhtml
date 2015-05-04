@@ -202,6 +202,8 @@
     <None Include="..\data\test1.xhtml" />
     <None Include="..\data\test2.xhtml" />
     <None Include="..\data\test3.xhtml" />
+    <None Include="..\data\test4.xhtml" />
+    <None Include="..\data\test5.xhtml" />
     <None Include="..\data\user_agent.css" />
     <None Include="..\src\kre\geometry.inl" />
   </ItemGroup>
