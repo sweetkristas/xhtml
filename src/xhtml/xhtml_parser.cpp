@@ -96,6 +96,7 @@ namespace xhtml
 			for(auto& c : children_) {
 				node->addChild(c->createNode());
 			}
+			node->init();
 			return node;
 		}
 	private:

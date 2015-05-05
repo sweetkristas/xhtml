@@ -36,6 +36,7 @@
 namespace xhtml
 {
 	class RenderContext;
+	typedef int FixedPoint;
 }
 
 namespace css
@@ -184,16 +185,16 @@ namespace css
 	public:
 		MAKE_FACTORY(Length);
 		Length() : value_(0), units_(LengthUnits::NUMBER) {}
-		explicit Length(double value, bool is_percent=false) : value_(value), units_(is_percent ? LengthUnits::PERCENT : LengthUnits::NUMBER) {}
-		explicit Length(double value, LengthUnits units) : value_(value), units_(units) {}
-		explicit Length(double value, const std::string& units);
+		explicit Length(xhtml::FixedPoint value, bool is_percent=false) : value_(value), units_(is_percent ? LengthUnits::PERCENT : LengthUnits::NUMBER) {}
+		explicit Length(xhtml::FixedPoint value, LengthUnits units) : value_(value), units_(units) {}
+		explicit Length(xhtml::FixedPoint value, const std::string& units);
 		bool isNumber() const { return units_ == LengthUnits::NUMBER; }
 		bool isPercent() const { return units_ == LengthUnits::PERCENT; }
 		bool isLength() const {  return units_ != LengthUnits::NUMBER && units_ != LengthUnits::PERCENT; }
 		Object evaluate(const xhtml::RenderContext& rc) const override;
-		double compute(double scale=1) const;
+		xhtml::FixedPoint compute(xhtml::FixedPoint scale=65536) const;
 	private:
-		double value_;
+		xhtml::FixedPoint value_;
 		LengthUnits units_;
 	};
 
@@ -401,13 +402,13 @@ namespace css
 		MAKE_FACTORY(FontWeight);
 		FontWeight() : is_relative_(false), weight_(400), relative_(FontWeightRelative::LIGHTER) {}
 		explicit FontWeight(FontWeightRelative r) { is_relative_ = true; relative_ = r; }
-		explicit FontWeight(double fw) { is_relative_ = false; weight_ = fw; }
+		explicit FontWeight(int fw) { is_relative_ = false; weight_ = fw; }
 		void setRelative(FontWeightRelative r) { is_relative_ = true; relative_ = r; }
-		void setWeight(double fw) { is_relative_ = false; weight_ = fw; }
+		void setWeight(int fw) { is_relative_ = false; weight_ = fw; }
 		Object evaluate(const xhtml::RenderContext& rc) const override;
 	private:
 		bool is_relative_;
-		double weight_;
+		int weight_;
 		FontWeightRelative relative_;
 	};
 

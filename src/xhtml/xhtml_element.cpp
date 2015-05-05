@@ -23,9 +23,15 @@
 
 #include <map>
 
+#include <boost/lexical_cast.hpp>
+
 #include "asserts.hpp"
 #include "css_parser.hpp"
 #include "xhtml_element.hpp"
+
+#include "Blittable.hpp"
+#include "Font.hpp"
+#include "Texture.hpp"
 
 namespace xhtml
 {
@@ -142,7 +148,58 @@ namespace xhtml
 
 		struct ImageElement : public Element
 		{
-			explicit ImageElement(ElementId id, const std::string& name, WeakDocumentPtr owner) : Element(id, name, owner) {}
+			explicit ImageElement(ElementId id, const std::string& name, WeakDocumentPtr owner) 
+				: Element(id, name, owner), 
+				  dims_set_(false), 
+				  tex_() 
+			{
+			}
+			void init() override {
+				if(!dims_set_) {
+					auto attr_w = getAttribute("width");
+					auto attr_h = getAttribute("height");
+					auto attr_src = getAttribute("src");
+					auto attr_alt = getAttribute("alt");
+					Rect r;
+					if(attr_src != nullptr && !attr_src->getValue().empty()) {
+						tex_ = KRE::Texture::createTexture(attr_src->getValue());					
+						r.width = tex_->width() * 65536;
+						r.height = tex_->height() * 65536;
+					} else if(attr_alt != nullptr && !attr_alt->getValue().empty()) {
+						// Render the alt text. This could be improved. 16 below represents a 12pt font.
+						tex_ = KRE::Font::getInstance()->renderText(attr_alt->getValue(), KRE::Color::colorWhite(), 16, true, "FreeSerif.ttf");
+						r.width = tex_->width() * 65536;
+						r.height = tex_->height() * 65536;
+					}
+					if(attr_w != nullptr) {
+						try {
+							r.width = boost::lexical_cast<int>(attr_w->getValue()) * 65536;
+						} catch(boost::bad_lexical_cast&) {
+							LOG_ERROR("Unable to convert 'img' tag 'width' attribute to number: " << attr_w->getValue());
+						}
+					}
+					if(attr_h != nullptr) {
+						try {
+							r.height = boost::lexical_cast<int>(attr_h->getValue()) * 65536;
+						} catch(boost::bad_lexical_cast&) {
+							LOG_ERROR("Unable to convert 'img' tag 'height' attribute to number: " << attr_h->getValue());
+						}
+					}
+					dims_set_ = true;
+					setDimensions(r);
+				}
+			}
+			KRE::SceneObjectPtr getRenderable()
+			{
+				if(tex_ != nullptr) {
+					auto b = std::make_shared<KRE::Blittable>(tex_);
+					b->setDrawRect(rect(0, 0, getDimensions().width/65536, getDimensions().height/65536));
+					return b;
+				}
+				return nullptr;
+			}
+			bool dims_set_;
+			KRE::TexturePtr tex_;
 		};
 		ElementRegistrar<ImageElement> img_element(ElementId::IMG, "img");
 

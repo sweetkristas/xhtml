@@ -45,10 +45,10 @@ namespace xhtml
 		{
 			RenderContext& ctx = RenderContext::get();
 			auto ff = ctx.getComputedValue(Property::FONT_FAMILY).getValue<std::vector<std::string>>();
-			auto fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
-			auto fw = ctx.getComputedValue(Property::FONT_WEIGHT).getValue<double>();
+			auto fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<FixedPoint>();
+			auto fw = ctx.getComputedValue(Property::FONT_WEIGHT).getValue<int>();
 			auto ft = ctx.getComputedValue(Property::FONT_STYLE).getValue<CssFontStyle>();
-			return KRE::FontDriver::getFontHandle(ff, static_cast<float>(fs)/*, fw, ft*/);
+			return KRE::FontDriver::getFontHandle(ff, static_cast<float>(fs)/65536.0f/*, fw, ft*/);
 		}
 
 		typedef std::vector<std::stack<Object>> stack_array;
@@ -86,7 +86,7 @@ namespace xhtml
 	}
 
 	RenderContext::RenderContext()
-		: dpi_scale_(96.0)
+		: dpi_scale_(96)
 	{
 	}
 

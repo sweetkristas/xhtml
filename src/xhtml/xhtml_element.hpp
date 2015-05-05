@@ -26,6 +26,8 @@
 #include <string>
 #include <vector>
 
+#include "RenderFwd.hpp"
+
 #include "xhtml_fwd.hpp"
 #include "xhtml_node.hpp"
 #include "css_styles.hpp"
@@ -44,10 +46,13 @@ namespace xhtml
 		const std::string& getName() const { return name_; }
 		bool hasTag(const std::string& tag) const { return tag == name_; }
 		bool hasTag(ElementId tag) const { return tag == tag_; }
+		virtual const Rect& getDimensions() override { return dimensions_; }
+		void setDimensions(const Rect& r) { dimensions_ = r; }
 	protected:
 		explicit Element(ElementId id, const std::string& name, WeakDocumentPtr owner);
 		std::string name_;
-		ElementId tag_; 
+		ElementId tag_;
+		Rect dimensions_;
 	};
 
 	void add_custom_element(const std::string& e);

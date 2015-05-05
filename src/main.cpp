@@ -43,6 +43,30 @@
 #include "xhtml_node.hpp"
 #include "xhtml_render_ctx.hpp"
 
+void load_xhtml(int width, const std::string& ua_ss, const std::string& test_doc, xhtml::DisplayListPtr display_list)
+{
+	auto user_agent_style_sheet = std::make_shared<css::StyleSheet>();
+	css::Parser::parse(user_agent_style_sheet, sys::read_file(ua_ss));
+
+	auto doc_frag = xhtml::parse_from_file(test_doc);
+	auto doc = xhtml::Document::create(user_agent_style_sheet);
+	doc->addChild(doc_frag);
+	//doc->normalize();
+	doc->processStyles();
+	// whitespace can only be processed after applying styles.
+	doc->processWhitespace();
+
+	doc->preOrderTraversal([](xhtml::NodePtr n) {
+		LOG_DEBUG(n->toString());
+		return true;
+	});
+
+	xhtml::RenderContextManager rcm;
+	// layout has to happen after initialisation of graphics
+	auto layout = xhtml::LayoutBox::create(doc, width);
+	layout->render(display_list, point());
+}
+
 int main(int argc, char* argv[])
 {
 	std::vector<std::string> args;
@@ -75,22 +99,6 @@ int main(int argc, char* argv[])
 	sys::get_unique_files(data_path + "fonts/", font_files);
 	KRE::FontDriver::setAvailableFonts(font_files);
 
-	auto user_agent_style_sheet = std::make_shared<css::StyleSheet>();
-	css::Parser::parse(user_agent_style_sheet, sys::read_file(ua_ss));
-
-	auto doc_frag = xhtml::parse_from_file(test_doc);
-	auto doc = xhtml::Document::create(user_agent_style_sheet);
-	doc->addChild(doc_frag);
-	//doc->normalize();
-	doc->processStyles();
-	// whitespace can only be processed after applying styles.
-	doc->processWhitespace();
-
-	doc->preOrderTraversal([](xhtml::NodePtr n) {
-		LOG_DEBUG(n->toString());
-		return true;
-	});
-
 #if 1
 	WindowManager wm("SDL");
 
@@ -119,18 +127,14 @@ int main(int argc, char* argv[])
 	SceneNodePtr root = scene->getRootNode();
 	root->setNodeName("root_node");
 
-	xhtml::DisplayListPtr display_list = std::make_shared<xhtml::DisplayList>(scene);
-	root->attachNode(display_list);
-
 	DisplayDevice::getCurrent()->setDefaultCamera(std::make_shared<Camera>("ortho1", 0, width, 0, height));
 
 	auto rman = std::make_shared<RenderManager>();
 	auto rq = rman->addQueue(0, "opaques");
 
-	xhtml::RenderContextManager rcm;
-	// layout has to happen after initialisation of graphics
-	auto layout = xhtml::LayoutBox::create(doc, width);
-	layout->render(display_list);
+	xhtml::DisplayListPtr display_list = std::make_shared<xhtml::DisplayList>(scene);
+	root->attachNode(display_list);
+	load_xhtml(width, ua_ss, test_doc, display_list);
 
 	/*layout->preOrderTraversal([](xhtml::LayoutBoxPtr box, int nesting) {
 		std::string indent(nesting*2, ' ');

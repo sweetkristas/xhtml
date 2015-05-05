@@ -32,12 +32,19 @@
 #include "SceneObject.hpp"
 #include "Shaders.hpp"
 
+
 namespace xhtml
 {
+	// This is to ensure our fixed-point type will have enough precision.
+	static_assert(sizeof(FixedPoint) < 32, "An int must be greater than or equal to 32 bits");
+
 	using namespace css;
 
 	namespace 
 	{
+		const int fixed_point_scale = 65536;
+		const float fixed_point_scale_float = static_cast<float>(fixed_point_scale);
+
 		std::string display_string(CssDisplay disp) {
 			switch(disp) {
 				case CssDisplay::BLOCK:					return "block";
@@ -70,18 +77,24 @@ namespace xhtml
 			{
 				init();
 			}
-			SolidRenderable(const rectf& r, const KRE::Color& color)
+			SolidRenderable(const rect& r, const KRE::Color& color)
 				: KRE::SceneObject("SolidRenderable")
 			{
 				init();
-				std::vector<KRE::vertex_color> vc;
-				vc.emplace_back(glm::vec2(r.x1(), r.y2()), color.as_u8vec4());
-				vc.emplace_back(glm::vec2(r.x1(), r.y1()), color.as_u8vec4());
-				vc.emplace_back(glm::vec2(r.x2(), r.y1()), color.as_u8vec4());
 
-				vc.emplace_back(glm::vec2(r.x2(), r.y1()), color.as_u8vec4());
-				vc.emplace_back(glm::vec2(r.x2(), r.y2()), color.as_u8vec4());
-				vc.emplace_back(glm::vec2(r.x1(), r.y2()), color.as_u8vec4());
+				const float vx1 = static_cast<float>(r.x1())/fixed_point_scale_float;
+				const float vy1 = static_cast<float>(r.y1())/fixed_point_scale_float;
+				const float vx2 = static_cast<float>(r.x2())/fixed_point_scale_float;
+				const float vy2 = static_cast<float>(r.y2())/fixed_point_scale_float;
+
+				std::vector<KRE::vertex_color> vc;
+				vc.emplace_back(glm::vec2(vx1, vy2), color.as_u8vec4());
+				vc.emplace_back(glm::vec2(vx1, vy1), color.as_u8vec4());
+				vc.emplace_back(glm::vec2(vx2, vy1), color.as_u8vec4());
+
+				vc.emplace_back(glm::vec2(vx2, vy1), color.as_u8vec4());
+				vc.emplace_back(glm::vec2(vx2, vy2), color.as_u8vec4());
+				vc.emplace_back(glm::vec2(vx1, vy2), color.as_u8vec4());
 				attribs_->update(&vc);
 			}
 			void init()
@@ -105,6 +118,21 @@ namespace xhtml
 		private:
 			std::shared_ptr<KRE::Attribute<KRE::vertex_color>> attribs_;
 		};
+
+		std::string fp_to_str(const FixedPoint& fp)
+		{
+			std::ostringstream ss;
+			ss << (static_cast<float>(fp)/fixed_point_scale_float);
+			return ss.str();
+		}
+	}
+
+
+
+	std::ostream& operator<<(std::ostream& os, const Rect& r)
+	{
+		os << "(" << fp_to_str(r.x) << ", " << fp_to_str(r.y) << ", " << fp_to_str(r.width) << ", " << fp_to_str(r.height) << ")";
+		return os;
 	}
 
 	LayoutBox::LayoutBox(LayoutBoxPtr parent, NodePtr node)
@@ -152,8 +180,9 @@ namespace xhtml
 	{
 		auto lb = handleCreate(node, nullptr);
 		Dimensions root;
-		root.content_ = geometry::Rect<double>(0, 0, containing_width, 0);
-		lb->layout(root, inline_offset());
+		root.content_.width = containing_width * fixed_point_scale;
+		FixedPoint width = 0;
+		lb->layout(root, width);
 		return lb;
 	}
 
@@ -204,7 +233,7 @@ namespace xhtml
 		children_.insert(pos, children.begin(), children.end());
 	}
 
-	void LayoutBox::setBorder(Side n, double value)
+	void LayoutBox::setBorder(Side n, FixedPoint value)
 	{
 		switch(n) {
 			case Side::TOP:		dimensions_.border_.top = value; break;
@@ -216,7 +245,7 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::setPadding(Side n, double value)
+	void LayoutBox::setPadding(Side n, FixedPoint value)
 	{
 		switch(n) {
 			case Side::TOP:		dimensions_.padding_.top = value; break;
@@ -228,7 +257,7 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::setMargins(Side n, double value)
+	void LayoutBox::setMargins(Side n, FixedPoint value)
 	{
 		switch(n) {
 			case Side::TOP:		dimensions_.margin_.top = value; break;
@@ -240,7 +269,35 @@ namespace xhtml
 		}
 	}
 
-	void LayoutBox::layout(const Dimensions& containing, inline_offset& offset)
+	FixedPoint LayoutBox::getBorder(Side n)
+	{
+		FixedPoint res = 0;
+		switch(n) {
+			case Side::TOP:		res = dimensions_.border_.top; break;
+			case Side::LEFT:	res = dimensions_.border_.left; break;
+			case Side::BOTTOM:	res = dimensions_.border_.bottom; break;
+			case Side::RIGHT:	res = dimensions_.border_.right; break;
+			default:
+				ASSERT_LOG(false, "Unrecognised index for setBorder(): " << static_cast<int>(n));
+		}
+		return res;
+	}
+
+	FixedPoint LayoutBox::getPadding(Side n)
+	{
+		FixedPoint res = 0;
+		switch(n) {
+			case Side::TOP:		res = dimensions_.padding_.top; break;
+			case Side::LEFT:	res = dimensions_.padding_.left; break;
+			case Side::BOTTOM:	res = dimensions_.padding_.bottom; break;
+			case Side::RIGHT:	res = dimensions_.padding_.right; break;
+			default:
+				ASSERT_LOG(false, "Unrecognised index for getPadding(): " << static_cast<int>(n));
+		}
+		return res;
+	}
+
+	void LayoutBox::layout(const Dimensions& containing, FixedPoint& width)
 	{
 		auto node = node_.lock();
 		std::unique_ptr<RenderContext::Manager> ctx_manager;
@@ -260,43 +317,51 @@ namespace xhtml
 
 		background_color_ = ctx.getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute();
 
-		handleLayout(containing, offset);
+		handleLayout(containing, width);
 
 		LOG_DEBUG(toString() << " content: " << dimensions_.content_);
 	}
 
-	void LayoutBox::render(DisplayListPtr display_list) const
+	void LayoutBox::render(DisplayListPtr display_list, const point& offset) const
 	{
-		renderBackground(display_list);
-		renderBorder(display_list);
-		handleRender(display_list);
+		auto node = node_.lock();
+		std::unique_ptr<RenderContext::Manager> ctx_manager;
+		if(node != nullptr && node->id() == NodeId::ELEMENT) {
+			// only instantiate on element nodes.
+			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
+		}
+
+		point offs = offset + point(dimensions_.content_.x, dimensions_.content_.y);
+		renderBackground(display_list, offs);
+		renderBorder(display_list, offs);
+		handleRender(display_list, offs);
 		for(auto& child : children_) {
-			child->render(display_list);
+			child->render(display_list, offs);
 		}
 	}
 
-	void LayoutBox::renderBackground(DisplayListPtr display_list) const
+	void LayoutBox::renderBackground(DisplayListPtr display_list, const point& offset) const
 	{
 		if(background_color_.ai() != 0) {
-			rectf r(dimensions_.content_.x() - dimensions_.padding_.left,
-				dimensions_.content_.y() - dimensions_.padding_.top,
-				dimensions_.content_.w() + dimensions_.padding_.left + dimensions_.padding_.right,
-				dimensions_.content_.h() + dimensions_.padding_.top + dimensions_.padding_.bottom);
+			rect r(offset.x + dimensions_.content_.x - dimensions_.padding_.left,
+				offset.y + dimensions_.content_.y - dimensions_.padding_.top,
+				dimensions_.content_.width + dimensions_.padding_.left + dimensions_.padding_.right,
+				dimensions_.content_.height + dimensions_.padding_.top + dimensions_.padding_.bottom);
 			display_list->addRenderable(std::make_shared<SolidRenderable>(r, background_color_));
 		}
 	}
 
-	void LayoutBox::renderBorder(DisplayListPtr display_list) const
+	void LayoutBox::renderBorder(DisplayListPtr display_list, const point& offset) const
 	{
 		// XXX
 		
 	}
 
-	void BlockLayoutBox::handleLayout(const Dimensions& containing, inline_offset& offset)
+	void BlockLayoutBox::handleLayout(const Dimensions& containing, FixedPoint& width)
 	{
 		layoutBlockWidth(containing);
 		layoutBlockPosition(containing);
-		layoutBlockChildren();
+		layoutBlockChildren(width);
 		layoutBlockHeight(containing);
 	}
 
@@ -308,11 +373,12 @@ namespace xhtml
 	void BlockLayoutBox::layoutBlockWidth(const Dimensions& containing)
 	{
 		RenderContext& ctx = RenderContext::get();
-		double containing_width = containing.content_.w();
+		const FixedPoint containing_width = containing.content_.width;
 
 		auto css_width = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
-		double width = css_width.evaluate(ctx).getValue<Length>().compute(containing_width);
+		FixedPoint width = css_width.evaluate(ctx).getValue<Length>().compute(containing_width);
 
+		// XXX convert css::Length to a FixedPoint format.
 		getDims().border_.left = ctx.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute();
 		getDims().border_.right = ctx.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute();
 
@@ -324,12 +390,12 @@ namespace xhtml
 		getDims().margin_.left = css_margin_left.evaluate(ctx).getValue<Length>().compute(containing_width);
 		getDims().margin_.right = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width);
 
-		double total = getDims().border_.left + getDims().border_.right
+		FixedPoint total = getDims().border_.left + getDims().border_.right
 			+ getDims().padding_.left + getDims().padding_.right
 			+ getDims().margin_.left + getDims().margin_.right
 			+ width;
 			
-		if(!css_width.isAuto() && total > containing.content_.w()) {
+		if(!css_width.isAuto() && total > containing.content_.width) {
 			if(css_margin_left.isAuto()) {
 				getDims().margin_.left = 0;
 			}
@@ -339,7 +405,7 @@ namespace xhtml
 		}
 
 		// If negative is overflow.
-		double underflow = containing.content_.w() - total;
+		FixedPoint underflow = containing.content_.width - total;
 
 		if(css_width.isAuto()) {
 			if(css_margin_left.isAuto()) {
@@ -352,9 +418,10 @@ namespace xhtml
 				width = underflow;
 			} else {
 				width = 0;
-				getDims().margin_.right = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width) + underflow;
+				const auto rmargin = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width);
+				getDims().margin_.right = rmargin + underflow;
 			}
-			getDims().content_.set_w(width);
+			getDims().content_.width = width;
 		} else if(!css_margin_left.isAuto() && !css_margin_right.isAuto()) {
 			getDims().margin_.right = getDims().margin_.right + underflow;
 		} else if(!css_margin_left.isAuto() && css_margin_right.isAuto()) {
@@ -362,15 +429,15 @@ namespace xhtml
 		} else if(css_margin_left.isAuto() && !css_margin_right.isAuto()) {
 			getDims().margin_.left = underflow;
 		} else if(css_margin_left.isAuto() && css_margin_right.isAuto()) {
-			getDims().margin_.left = underflow/2.0;
-			getDims().margin_.right = underflow/2.0;
+			getDims().margin_.left = underflow / 2;
+			getDims().margin_.right = underflow / 2;
 		} 
 	}
 
 	void BlockLayoutBox::layoutBlockPosition(const Dimensions& containing)
 	{
 		RenderContext& ctx = RenderContext::get();
-		double containing_height = containing.content_.h();
+		const FixedPoint containing_height = containing.content_.height;
 			
 		getDims().border_.top = ctx.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Length>().compute();
 		getDims().border_.bottom = ctx.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Length>().compute();
@@ -381,25 +448,21 @@ namespace xhtml
 		getDims().margin_.top = ctx.getComputedValue(Property::MARGIN_TOP).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height);
 		getDims().margin_.bottom = ctx.getComputedValue(Property::MARGIN_BOTTOM).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height);
 
-		getDims().content_.set_x(containing.content_.x() + getDims().margin_.left + getDims().padding_.left + getDims().border_.left);
-		getDims().content_.set_y(containing.content_.y2() + getDims().margin_.top + getDims().padding_.top + getDims().border_.top);
+		getDims().content_.x = getDims().margin_.left + getDims().padding_.left + getDims().border_.left;
+		getDims().content_.y = containing.content_.height + getDims().margin_.top + getDims().padding_.top + getDims().border_.top;
 	}
 
-	void BlockLayoutBox::layoutBlockChildren()
+	void BlockLayoutBox::layoutBlockChildren(FixedPoint& width)
 	{
 		auto& ctx = RenderContext::get();
-		long font_coord_factor = ctx.getFontHandle()->getScaleFactor();
 
-		inline_offset offs;
 		for(auto& child : getChildren()) {
-			offs.offset.x = 0;
-			offs.offset.y = static_cast<long>(getDims().content_.h() * font_coord_factor);
-			child->layout(getDims(), offs);
-			getDims().content_.set_h(getDims().content_.h()
-				+ child->getDimensions().content_.h() 
+			child->layout(getDims(), width);
+			getDims().content_.height += 
+				  child->getDimensions().content_.height 
 				+ child->getDimensions().margin_.top + child->getDimensions().margin_.bottom
 				+ child->getDimensions().padding_.top + child->getDimensions().padding_.bottom
-				+ child->getDimensions().border_.top + child->getDimensions().border_.bottom);
+				+ child->getDimensions().border_.top + child->getDimensions().border_.bottom;
 		}
 	}
 
@@ -409,7 +472,7 @@ namespace xhtml
 		// a set height value overrides the calculated value.
 		auto css_h = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
 		if(!css_h.isAuto()) {
-			getDims().content_.set_h(css_h.evaluate(ctx).getValue<Length>().compute(containing.content_.h()));
+			getDims().content_.height = css_h.evaluate(ctx).getValue<Length>().compute(containing.content_.height);
 		}
 	}
 
@@ -418,54 +481,61 @@ namespace xhtml
 	{
 	}
 
-	void AnonymousLayoutBox::handleLayout(const Dimensions& containing, inline_offset& offset)
+	void AnonymousLayoutBox::handleLayout(const Dimensions& containing, FixedPoint& width)
 	{
+		point offset;
 		for(auto& child : getChildren()) {
-			child->layout(containing, offset);
-			getDims().content_.set_w(std::max(getDims().content_.w(), child->getDimensions().content_.w()));			
-			getDims().content_.set_h(std::max(getDims().content_.h(), child->getDimensions().content_.h()));
+			offset = child->reflow(offset);
 		}
+
+		setContentX(0);
+		setContentY(containing.content_.height);
+		FixedPoint y2 = 0;
+		for(auto& child : getChildren()) {
+			child->layout(containing, width);
+			getDims().content_.width = std::max(getDims().content_.width, child->getDimensions().content_.width);
+			y2 = std::max(y2, child->getDimensions().content_.y + child->getDimensions().content_.height);
+		}
+		getDims().content_.height = y2 - getDims().content_.y;
 	}
 
-	void InlineLayoutBox::handleLayout(const Dimensions& containing, inline_offset& offset)
+	void InlineLayoutBox::handleLayout(const Dimensions& containing, FixedPoint& width)
 	{
 		auto& ctx = RenderContext::get();
 		long font_coord_factor = ctx.getFontHandle()->getScaleFactor();
 
-		auto children = layoutInlineWidth(containing, offset);
+		auto children = layoutInlineWidth(containing, width);
 		if(!children.empty()) {
 			insertChildren(getChildren().begin(), children);
 		}
-		double line_h = 0;
-		double line_w = 0;
-		double max_w = 0;
-		setContentX(static_cast<double>(offset.offset.x) / font_coord_factor); 
-		setContentY(containing.content_.y());
+		FixedPoint line_w = 0;
+		FixedPoint max_w = 0;
+		getDims().content_.x = 0; 
+		getDims().content_.y = 0;
+		getDims().content_.width = containing.content_.width;
+		getDims().content_.height = containing.content_.height;
+
 		for(auto& child : getChildren()) {
-			child->layout(containing, offset);
-			double child_w = child->getDimensions().content_.w()
+			child->layout(getDimensions(), width);
+			FixedPoint child_w = child->getDimensions().content_.width
 				+ child->getDimensions().padding_.left + child->getDimensions().padding_.right
 				+ child->getDimensions().border_.left + child->getDimensions().border_.right;
-			double w = getDims().content_.w();
+			FixedPoint w = getDims().content_.width;
 				
-			if(line_w + child_w > containing.content_.w()) {
-				getDims().content_.set_h(getDims().content_.h() + line_h);
-				child->setContentY(getDims().content_.y2());
-				offset.offset.x = static_cast<long>(child_w * font_coord_factor);
-				offset.offset.y += static_cast<long>(line_h * font_coord_factor);
+			getDims().content_.height += child->getDimensions().content_.height;
+
+			if(line_w + child_w > containing.content_.width) {
+				width = child_w;
 
 				line_w = child_w;
-				line_h = 0;
-				max_w = containing.content_.w();
+				max_w = containing.content_.width;
 			} else {
 				line_w += child_w;
 				max_w = std::max(max_w, line_w);
-				offset.offset.x += static_cast<long>(child_w * font_coord_factor);
-				child->setContentY(containing.content_.y());
+				width += child_w;
 			}
-			line_h = std::max(line_h, child->getDimensions().content_.h());
 		}
-		getDims().content_.set_w(max_w);
+		getDims().content_.width = max_w;
 	}
 
 	InlineLayoutBox::InlineLayoutBox(LayoutBoxPtr parent, NodePtr node)
@@ -473,7 +543,7 @@ namespace xhtml
 	{
 	}
 
-	std::vector<LayoutBoxPtr> InlineLayoutBox::layoutInlineWidth(const Dimensions& containing, inline_offset& offset)
+	std::vector<LayoutBoxPtr> InlineLayoutBox::layoutInlineWidth(const Dimensions& containing, FixedPoint& width)
 	{
 		std::vector<LayoutBoxPtr> new_children;
 		KRE::FontRenderablePtr fontr = nullptr;
@@ -482,27 +552,21 @@ namespace xhtml
 			auto& ctx = RenderContext::get();
 			long font_coord_factor = ctx.getFontHandle()->getScaleFactor();
 
-			auto left_border = ctx.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute();
-			auto right_border = ctx.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute();
-			auto top_border = ctx.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Length>().compute();
-			auto bottom_border = ctx.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Length>().compute();
+			const auto left_border = getBorder(Side::LEFT);
+			const auto right_border = getBorder(Side::RIGHT);
+			const auto top_border = getBorder(Side::TOP);
+			const auto bottom_border = getBorder(Side::BOTTOM);
 
-			auto left_padding = ctx.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute(containing.content_.w());
-			auto right_padding = ctx.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute(containing.content_.w());
+			auto left_padding = ctx.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute(containing.content_.width);
+			auto right_padding = ctx.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute(containing.content_.width);
 			auto top_padding = ctx.getComputedValue(Property::PADDING_TOP).getValue<Length>().compute();
 			auto bottom_padding = ctx.getComputedValue(Property::PADDING_BOTTOM).getValue<Length>().compute();
 
-			if((getDims().border_.left + getDims().padding_.left) + offset.offset.x/font_coord_factor > containing.content_.w()) {
-				offset.offset.x = static_cast<int>(getDims().border_.left + getDims().padding_.left * font_coord_factor);
-				offset.offset.y += static_cast<int>(offset.line_height * font_coord_factor);
+			if((getDims().border_.left + getDims().padding_.left) + width > containing.content_.width) {
+				width = static_cast<int>(getDims().border_.left + getDims().padding_.left * font_coord_factor);
 			}
 
-			auto lines = node->generateLines(offset.offset.x/font_coord_factor, static_cast<int>(containing.content_.w()));
-
-			auto left_border_style = ctx.getComputedValue(Property::BORDER_LEFT_STYLE).getValue<CssBorderStyle>();
-			//auto top_border_style = ctx.getComputedValue(Property::BORDER_TOP_STYLE).getValue<CssBorderStyle>();
-			auto right_border_style = ctx.getComputedValue(Property::BORDER_RIGHT_STYLE).getValue<CssBorderStyle>();
-			//auto bottom_border_style = ctx.getComputedValue(Property::BORDER_BOTTOM_STYLE).getValue<CssBorderStyle>();
+			auto lines = node->generateLines(width, containing.content_.width);
 
 			// XXX we need to store in RenderContext a variable specifying the max-line-height of the last line
 			// to account for the case that we have mixed fonts on one line.
@@ -535,9 +599,9 @@ namespace xhtml
 			// since the Renderable returned from createRenderableFromPath is relative to the font baseline
 			// we offset by the line-height to start.
 			/*const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
-			double line_height = lh.compute();
+			FixedPoint line_height = lh.compute();
 			if(lh.isPercent() || lh.isNumber()) {
-				line_height *= ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
+				line_height *= ctx.getComputedValue(Property::FONT_SIZE).getValue<FixedPoint>();
 			}
 			lines->line_height = line_height;
 			line_height = std::max(offset.line_height, line_height);
@@ -579,16 +643,16 @@ namespace xhtml
 				new_children.back()->setBorder(Side::RIGHT, right_border);
 
 				// Apply the border styles/colors
-				new_children.front()->setBorderStyle(Side::LEFT, left_border_style);
+				new_children.front()->setBorderStyle(Side::LEFT, getBorderStyle(Side::LEFT));
 				new_children.front()->setBorderStyle(Side::RIGHT, CssBorderStyle::NONE);
-				new_children.back()->setBorderStyle(Side::RIGHT, right_border_style);
+				new_children.back()->setBorderStyle(Side::RIGHT, getBorderStyle(Side::RIGHT));
 				new_children.back()->setBorderStyle(Side::LEFT, CssBorderStyle::NONE);
 
 				for(auto& child : new_children) {
-					//child->setBorderStyle(Side::TOP, top_border_style);
-					//child->setBorderStyle(Side::BOTTOM, bottom_border_style);
-					//child->setBorderColor(Side::TOP, top_border_color);
-					//child->setBorderColor(Side::BOTTOM, bottom_border_color);
+					child->setBorderStyle(Side::TOP, getBorderStyle(Side::TOP));
+					child->setBorderStyle(Side::BOTTOM, getBorderStyle(Side::BOTTOM));
+					child->setBorderColor(Side::TOP, getBorderColor(Side::TOP));
+					child->setBorderColor(Side::BOTTOM, getBorderColor(Side::BOTTOM));
 
 					// N.B. though we set values for these they are *not* used for the parents 
 					// calculations of the height needed to contain the node. They are however
@@ -623,6 +687,9 @@ namespace xhtml
 			//get_display_list()->addRenderable(fontr);
 		} else if(node != nullptr && node->id() == NodeId::ELEMENT) {
 			// Need to call a function to get element dimensions.
+			const Rect& r = node->getDimensions();
+			getDims().content_.width = r.width;
+			getDims().content_.height = r.height;
 		}
 
 		return new_children;
@@ -635,41 +702,33 @@ namespace xhtml
 	{
 	}
 
-	double LayoutBox::getLineHeight() const
+	FixedPoint LayoutBox::getLineHeight() const
 	{
 		auto& ctx = RenderContext::get();
 		const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
-		double line_height = lh.compute();
+		FixedPoint line_height = lh.compute();
 		if(lh.isPercent() || lh.isNumber()) {
-			line_height *= ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
+			line_height = static_cast<FixedPoint>(line_height / fixed_point_scale_float
+				* ctx.getComputedValue(Property::FONT_SIZE).getValue<FixedPoint>());
 		}
 		return line_height;
 	}
 
-	void InlineTextBox::handleLayout(const Dimensions& containing, inline_offset& offset)
+	point InlineLayoutBox::reflow(const point& offset)
 	{
-		auto& ctx = RenderContext::get();
-		double line_height = getLineHeight();
-		if(line_.empty()) {
-			getDims().content_.set_w(0);
-			getDims().content_.set_h(line_height);
-			return;
+		point new_offset(offset);
+		FixedPoint max_w = 0;
+		for(auto& child : getChildren()) {
+			new_offset = child->reflow(new_offset);
+			max_w = std::max(max_w, new_offset.x);
 		}
-		long font_coord_factor = ctx.getFontHandle()->getScaleFactor();
-		
-		// margins/border/padding should already be set. We just need to calculate content size.
-		long w = offset.offset.x != 0 ? space_advance_ : 0;
-		for(auto it = line_.begin(); it != line_.end() && it != line_.end()-1; ++it) {
-			auto& word = *it;
-			w += word.advance.back().x + space_advance_;
-		}
-		// don't add a final space.
-		w += line_.back().advance.back().x;
+		getDims().content_.width = max_w;
+		getDims().content_.height = new_offset.y - offset.y;
+		return new_offset;
+	}
 
-		getDims().content_.set_w(static_cast<double>(w) / static_cast<double>(font_coord_factor));
-		getDims().content_.set_h(line_height);
-
-		getDims().content_.set_x(containing.content_.x() + getDims().padding_.left + getDims().border_.left);
+	void InlineTextBox::handleLayout(const Dimensions& containing, FixedPoint& width)
+	{
 	}
 
 	void LayoutBox::preOrderTraversal(std::function<void(LayoutBoxPtr, int)> fn, int nesting)
@@ -690,7 +749,7 @@ namespace xhtml
 	std::string InlineLayoutBox::toString() const
 	{
 		std::stringstream ss;
-		ss << "InlineBox(" << getNode()->toString() << ")";
+		ss << "InlineBox()";
 		return ss.str();
 	}
 
@@ -713,32 +772,45 @@ namespace xhtml
 	{
 		std::stringstream ss;
 		ss << "InlineText(\"";
-		for(auto& word : line_) {
+		for(auto& word : line_.line) {
 			ss << " " << word.word;
 		}
 		ss << "\")";
 		return ss.str();
 	}
 
-	void BlockLayoutBox::handleRender(DisplayListPtr display_list) const
+	void BlockLayoutBox::handleRender(DisplayListPtr display_list, const point& offset) const
 	{
 		// do nothing
+		auto node = getNode();
+		if(node != nullptr && node->id() == NodeId::ELEMENT) {
+			auto r = node->getRenderable();
+			if(r != nullptr) {
+				r->setPosition(glm::vec3(offset.x/fixed_point_scale_float, offset.y/fixed_point_scale_float, 0.0f));
+				display_list->addRenderable(r);
+			}
+		}
 	}
 
-	void InlineLayoutBox::handleRender(DisplayListPtr display_list) const 
+	void InlineLayoutBox::handleRender(DisplayListPtr display_list, const point& offset) const 
 	{
-		// do nothing
+		auto node = getNode();
+		if(node != nullptr && node->id() == NodeId::ELEMENT) {
+			auto r = node->getRenderable();
+			if(r != nullptr) {
+				r->setPosition(glm::vec3(offset.x/fixed_point_scale_float, offset.y/fixed_point_scale_float, 0.0f));
+				display_list->addRenderable(r);
+			}
+		}
 	}
 
-	void InlineTextBox::handleRender(DisplayListPtr display_list) const
+	void InlineTextBox::handleRender(DisplayListPtr display_list, const point& offset) const
 	{
-		std::vector<geometry::Point<long>> path;
+		std::vector<point> path;
 		std::string text;
-		auto& ctx = RenderContext::get();
-		long font_coord_factor = ctx.getFontHandle()->getScaleFactor();
-		int dim_x = static_cast<long>(getDimensions().content_.x() * font_coord_factor);
-		int dim_y = static_cast<long>(getDimensions().content_.y() * font_coord_factor);
-		for(auto& word : line_) {
+		int dim_x = getDimensions().content_.x + offset.x;
+		int dim_y = getDimensions().content_.y + offset.y;
+		for(auto& word : line_.line) {
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);
 			}
@@ -746,19 +818,33 @@ namespace xhtml
 			text += word.word;
 		}
 
+		auto& ctx = RenderContext::get();
 		auto fh = ctx.getFontHandle();
 		auto fontr = fh->createRenderableFromPath(nullptr, text, path);
 		fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute());
 		display_list->addRenderable(fontr);
 	}
 
-	void InlineLayoutBox::renderBackground(DisplayListPtr display_list) const
-	{
-		// do nothing
-	}
-
-	void InlineLayoutBox::renderBorder(DisplayListPtr display_list) const
-	{
-		// do nothing
+	point InlineTextBox::reflow(const point& offset)
+	{		
+		if(line_.line.empty()) {
+			return point(offset.x, offset.y + line_.is_end_line ? getLineHeight() : 0);
+		}
+		// margins/border/padding should already be set. We just need to calculate content size.
+		FixedPoint w = offset.x != 0 ? space_advance_ : 0;
+		for(auto it = line_.line.begin(); it != line_.line.end() && it != line_.line.end()-1; ++it) {
+			auto& word = *it;
+			w += word.advance.back().x + space_advance_;
+		}
+		w += line_.line.back().advance.back().x;
+		getDims().content_.width = w;
+		getDims().content_.height = getLineHeight();
+		getDims().content_.x = getDims().padding_.left + getDims().border_.left + offset.x;
+		getDims().content_.y = offset.y;
+		// don't add a final space.
+		if(line_.is_end_line) {
+			return point(0, offset.y + getDims().content_.height);
+		}
+		return point(offset.x + w, offset.y);
 	}
 }

@@ -30,9 +30,15 @@ namespace css
 {
 	namespace 
 	{
-		const double border_width_thin = 2.0;
-		const double border_width_medium = 4.0;
-		const double border_width_thick = 10.0;
+		const int fixed_point_scale = 65536;
+
+		const xhtml::FixedPoint border_width_thin = 2 * fixed_point_scale;
+		const xhtml::FixedPoint border_width_medium = 4 * fixed_point_scale;
+		const xhtml::FixedPoint border_width_thick = 10 * fixed_point_scale;
+
+		const xhtml::FixedPoint line_height_scale = (115 * fixed_point_scale) / 100;
+
+		const xhtml::FixedPoint default_font_size = 12 * fixed_point_scale;
 
 		typedef std::function<void(PropertyParser*, const std::string&)> ParserFunction;
 		struct PropertyNameInfo
@@ -70,27 +76,27 @@ namespace css
 			return res;
 		}
 
-		KRE::Color hsla_to_color(double h, double s, double l, double a)
+		KRE::Color hsla_to_color(float h, float s, float l, float a)
 		{
-			const float hue_upper_limit = 360.0;
-			double c = 0.0, m = 0.0, x = 0.0;
-			c = (1.0 - std::abs(2 * l - 1.0)) * s;
-			m = 1.0 * (l - 0.5 * c);
-			x = c * (1.0 - std::abs(std::fmod(h / 60.0, 2) - 1.0));
-			if (h >= 0.0 && h < (hue_upper_limit / 6.0)) {
-				return KRE::Color(static_cast<float>(c+m), static_cast<float>(x+m), static_cast<float>(m), static_cast<float>(a));
-			} else if (h >= (hue_upper_limit / 6.0) && h < (hue_upper_limit / 3.0)) {
-				return KRE::Color(static_cast<float>(x+m), static_cast<float>(c+m), static_cast<float>(m), static_cast<float>(a));
-			} else if (h < (hue_upper_limit / 3.0) && h < (hue_upper_limit / 2.0)) {
-				return KRE::Color(static_cast<float>(m), static_cast<float>(c+m), static_cast<float>(x+m), static_cast<float>(a));
-			} else if (h >= (hue_upper_limit / 2.0) && h < (2.0f * hue_upper_limit / 3.0)) {
-				return KRE::Color(static_cast<float>(m), static_cast<float>(x+m), static_cast<float>(c+m), static_cast<float>(a));
-			} else if (h >= (2.0 * hue_upper_limit / 3.0) && h < (5.0 * hue_upper_limit / 6.0)) {
-				return KRE::Color(static_cast<float>(x+m), static_cast<float>(m), static_cast<float>(c+m), static_cast<float>(a));
-			} else if (h >= (5.0 * hue_upper_limit / 6.0) && h < hue_upper_limit) {
-				return KRE::Color(static_cast<float>(c+m), static_cast<float>(m), static_cast<float>(x+m), static_cast<float>(a));
+			const float hue_upper_limit = 360.0f;
+			float c = 0.0f, m = 0.0f, x = 0.0f;
+			c = (1.0f - std::abs(2.f * l - 1.0f)) * s;
+			m = 1.0f * (l - 0.5f * c);
+			x = c * (1.0f - std::abs(std::fmod(h / 60.0f, 2.f) - 1.0f));
+			if (h >= 0.0f && h < (hue_upper_limit / 6.0f)) {
+				return KRE::Color(c+m, x+m, m, a);
+			} else if (h >= (hue_upper_limit / 6.0f) && h < (hue_upper_limit / 3.0f)) {
+				return KRE::Color(x+m, c+m, m, a);
+			} else if (h < (hue_upper_limit / 3.0f) && h < (hue_upper_limit / 2.0f)) {
+				return KRE::Color(m, c+m, x+m, a);
+			} else if (h >= (hue_upper_limit / 2.0f) && h < (2.0f * hue_upper_limit / 3.0f)) {
+				return KRE::Color(m, x+m, c+m, a);
+			} else if (h >= (2.0 * hue_upper_limit / 3.0f) && h < (5.0f * hue_upper_limit / 6.0f)) {
+				return KRE::Color(x+m, m, c+m, a);
+			} else if (h >= (5.0 * hue_upper_limit / 6.0f) && h < hue_upper_limit) {
+				return KRE::Color(c+m, m, x+m, a);
 			}
-			return KRE::Color(static_cast<float>(m), static_cast<float>(m), static_cast<float>(m), static_cast<float>(a));
+			return KRE::Color(m, m, m, a);
 		}
 
 		struct PropertyRegistrar
@@ -144,17 +150,17 @@ namespace css
 		PropertyRegistrar property028("height", Property::HEIGHT, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property029("white-space", Property::WHITE_SPACE, true, Object(CssWhitespace::NORMAL), std::bind(&PropertyParser::parseWhitespace, _1, _2));	
 		PropertyRegistrar property030("font-family", Property::FONT_FAMILY, true, Object(get_default_fonts()), std::bind(&PropertyParser::parseFontFamily, _1, _2));	
-		PropertyRegistrar property031("font-size", Property::FONT_SIZE, true, Object(12.0), std::bind(&PropertyParser::parseFontSize, _1, _2));
+		PropertyRegistrar property031("font-size", Property::FONT_SIZE, true, Object(default_font_size), std::bind(&PropertyParser::parseFontSize, _1, _2));
 		PropertyRegistrar property032("font-style", Property::FONT_STYLE, true, Object(CssFontStyle::NORMAL), std::bind(&PropertyParser::parseFontStyle, _1, _2));
 		PropertyRegistrar property033("font-variant", Property::FONT_VARIANT, true, Object(CssFontVariant::NORMAL), std::bind(&PropertyParser::parseFontVariant, _1, _2));
-		PropertyRegistrar property034("font-weight", Property::FONT_WEIGHT, true, Object(400.0), std::bind(&PropertyParser::parseFontWeight, _1, _2));
+		PropertyRegistrar property034("font-weight", Property::FONT_WEIGHT, true, Object(400), std::bind(&PropertyParser::parseFontWeight, _1, _2));
 		//PropertyRegistrar property035("font", Object(Font), std::bind(&PropertyParser::parseFont, _1, _2));
 		PropertyRegistrar property036("letter-spacing", Property::LETTER_SPACING, true, Object(Length(0)), std::bind(&PropertyParser::parseSpacing, _1, _2));
 		PropertyRegistrar property037("word-spacing", Property::WORD_SPACING, true, Object(Length(0)), std::bind(&PropertyParser::parseSpacing, _1, _2));
 		PropertyRegistrar property038("text-align", Property::TEXT_ALIGN, true, Object(CssTextAlign::NORMAL), std::bind(&PropertyParser::parseTextAlign, _1, _2));
 		PropertyRegistrar property039("direction", Property::DIRECTION, true, Object(CssDirection::LTR), std::bind(&PropertyParser::parseDirection, _1, _2));
 		PropertyRegistrar property040("text-transform", Property::TEXT_TRANSFORM, true, Object(CssTextTransform::NONE), std::bind(&PropertyParser::parseTextTransform, _1, _2));
-		PropertyRegistrar property041("line-height", Property::LINE_HEIGHT, true, Object(Length(1.15)), std::bind(&PropertyParser::parseLineHeight, _1, _2));
+		PropertyRegistrar property041("line-height", Property::LINE_HEIGHT, true, Object(Length(line_height_scale)), std::bind(&PropertyParser::parseLineHeight, _1, _2));
 		PropertyRegistrar property042("overflow", Property::CSS_OVERFLOW, false, Object(CssOverflow::VISIBLE), std::bind(&PropertyParser::parseOverflow, _1, _2));
 	}
 
@@ -290,15 +296,15 @@ namespace css
 		return res;
 	}
 
-	void PropertyParser::parseCSVNumberList(TokenId end_token, std::function<void(int,double,bool)> fn)
+	void PropertyParser::parseCSVNumberList(TokenId end_token, std::function<void(int, float, bool)> fn)
 	{
 		auto toks = parseCSVList(end_token);
 		int n = 0;
 		for(auto& t : toks) {
 			if(t->id() == TokenId::PERCENT) {
-				fn(n, t->getNumericValue(), true);
+				fn(n, static_cast<float>(t->getNumericValue()), true);
 			} else if(t->id() == TokenId::NUMBER) {
-				fn(n, t->getNumericValue(), false);
+				fn(n, static_cast<float>(t->getNumericValue()), false);
 			} else {
 				throw ParserError("Expected percent or numeric value while parsing numeric list.");
 			}
@@ -341,10 +347,10 @@ namespace css
 			advance();
 			if(ref == "rgb") {
 				int values[3] = { 255, 255, 255 };
-				parseCSVNumberList(TokenId::RPAREN, [&values](int n, double value, bool is_percent) {
+				parseCSVNumberList(TokenId::RPAREN, [&values](int n, float value, bool is_percent) {
 					if(n < 3) {
 						if(is_percent) {
-							value *= 255.0 / 100.0;
+							value *= 255.0f / 100.0f;
 						}
 						values[n] = std::min(255, std::max(0, static_cast<int>(value)));
 					}
@@ -352,34 +358,34 @@ namespace css
 				color->setColor(KRE::Color(values[0], values[1], values[2]));
 			} else if(ref == "rgba") {
 				int values[4] = { 255, 255, 255, 255 };
-				parseCSVNumberList(TokenId::RPAREN, [&values](int n, double value, bool is_percent) {
+				parseCSVNumberList(TokenId::RPAREN, [&values](int n, float value, bool is_percent) {
 					if(n < 4) {
 						if(is_percent) {
-							value *= 255.0 / 100.0;
+							value *= 255.0f / 100.0f;
 						}
 						values[n] = std::min(255, std::max(0, static_cast<int>(value)));
 					}
 				});
 				color->setColor(KRE::Color(values[0], values[1], values[2], values[3]));
 			} else if(ref == "hsl") {
-				double values[3];
-				const double multipliers[3] = { 360.0, 1.0, 1.0 };
-				parseCSVNumberList(TokenId::RPAREN, [&values, &multipliers](int n, double value, bool is_percent) {
+				float values[3];
+				const float multipliers[3] = { 360.0f, 1.0f, 1.0f };
+				parseCSVNumberList(TokenId::RPAREN, [&values, &multipliers](int n, float value, bool is_percent) {
 					if(n < 3) {
 						if(is_percent) {
-							value *= multipliers[n] / 100.0;
+							value *= multipliers[n] / 100.0f;
 						}
 						values[n] = value;
 					}
 				});					
 				color->setColor(hsla_to_color(values[0], values[1], values[2], 1.0));
 			} else if(ref == "hsla") {
-				double values[4];
-				const double multipliers[4] = { 360.0, 1.0, 1.0, 1.0 };
-				parseCSVNumberList(TokenId::RPAREN, [&values, &multipliers](int n, double value, bool is_percent) {
+				float values[4];
+				const float multipliers[4] = { 360.0f, 1.0f, 1.0f, 1.0f };
+				parseCSVNumberList(TokenId::RPAREN, [&values, &multipliers](int n, float value, bool is_percent) {
 					if(n < 4) {
 						if(is_percent) {
-							value *= multipliers[n] / 100.0;
+							value *= multipliers[n] / 100.0f;
 						}
 						values[n] = value;
 					}
@@ -416,15 +422,15 @@ namespace css
 		skipWhitespace();
 		if(isToken(TokenId::DIMENSION) && (opts & LENGTH)) {
 			const std::string units = (*it_)->getStringValue();
-			double value = (*it_)->getNumericValue();
+			xhtml::FixedPoint value = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
 			return Length(value, units);
 		} else if(isToken(TokenId::PERCENT) && (opts & PERCENTAGE)) {
-			double d = (*it_)->getNumericValue();
+			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
 			return Length(d, true);
 		} else if(isToken(TokenId::NUMBER) && (opts & NUMBER)) {
-			double d = (*it_)->getNumericValue();
+			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
 			return Length(d);
 		}
@@ -665,15 +671,15 @@ namespace css
 			}
 		} else if(isToken(TokenId::DIMENSION)) {
 			const std::string units = (*it_)->getStringValue();
-			double value = (*it_)->getNumericValue();
+			xhtml::FixedPoint value = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
 			fs.setFontSize(Length(value, units));
 		} else if(isToken(TokenId::PERCENT)) {
-			double d = (*it_)->getNumericValue();
+			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
 			fs.setFontSize(Length(d, true));
 		} else if(isToken(TokenId::NUMBER)) {
-			double d = (*it_)->getNumericValue();
+			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
 			fs.setFontSize(Length(d));
 		} else {
@@ -703,7 +709,7 @@ namespace css
 				throw ParserError(formatter() << "Unrecognised identifier for '" << name << "' property: " << ref);
 			}
 		} else if(isToken(TokenId::NUMBER)) {
-			fw.setWeight((*it_)->getNumericValue());
+			fw.setWeight(static_cast<int>((*it_)->getNumericValue()));
 			advance();
 		} else {
 			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
@@ -727,11 +733,11 @@ namespace css
 			}
 		} else if(isToken(TokenId::DIMENSION)) {
 			const std::string units = (*it_)->getStringValue();
-			double value = (*it_)->getNumericValue();
+			xhtml::FixedPoint value = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
 			spacing = Length(value, units);
 		} else if(isToken(TokenId::NUMBER)) {
-			double d = (*it_)->getNumericValue();
+			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
 			spacing = Length(d);
 		} else {
@@ -816,7 +822,7 @@ namespace css
 
 	void PropertyParser::parseLineHeight(const std::string& name)
 	{
-		Length lh(1.1);
+		Length lh(static_cast<xhtml::FixedPoint>(1.1f * fixed_point_scale));
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();

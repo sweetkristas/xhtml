@@ -35,35 +35,23 @@ namespace xhtml
 {
 	class LayoutBox;
 	typedef std::shared_ptr<LayoutBox> LayoutBoxPtr;
-	//struct Lines;
-	//typedef std::shared_ptr<Lines> LinesPtr;
 
-	typedef long FixedPoint;
-
-	// XXX convert these from double to 16.16 long based fixed point format.
 	struct EdgeSize
 	{
 		EdgeSize() : left(0), top(0), right(0), bottom(0) {}
-		EdgeSize(double l, double t, double r, double b) : left(l), top(t), right(r), bottom(b) {}
-		double left;
-		double top;
-		double right;
-		double bottom;
+		EdgeSize(FixedPoint l, FixedPoint t, FixedPoint r, FixedPoint b) : left(l), top(t), right(r), bottom(b) {}
+		FixedPoint left;
+		FixedPoint top;
+		FixedPoint right;
+		FixedPoint bottom;
 	};
 
 	struct Dimensions
 	{
-		geometry::Rect<double> content_;
+		Rect content_;
 		EdgeSize padding_;
 		EdgeSize border_;
 		EdgeSize margin_;
-	};
-
-	struct inline_offset
-	{
-		inline_offset() : line_height(0), offset() {}
-		double line_height;
-		point offset;
 	};
 
 	enum class Side {
@@ -82,11 +70,11 @@ namespace xhtml
 		LayoutBox(LayoutBoxPtr parent, NodePtr node);
 		virtual ~LayoutBox() {}
 		static LayoutBoxPtr create(NodePtr node, int containing_width);
-		void layout(const Dimensions& containing, inline_offset& offset);
+		void layout(const Dimensions& containing, FixedPoint& width);
 		
 		void preOrderTraversal(std::function<void(LayoutBoxPtr, int)> fn, int nesting);
 		virtual std::string toString() const = 0;
-		const geometry::Rect<double>& getContentDimensions() const { return dimensions_.content_; }
+		const Rect& getContentDimensions() const { return dimensions_.content_; }
 
 		const Dimensions& getDimensions() const { return dimensions_; }
 		NodePtr getNode() const { return node_.lock(); }
@@ -94,15 +82,20 @@ namespace xhtml
 		void insertChildren(const_child_iterator pos, const std::vector<LayoutBoxPtr>& children);
 		void setBorderStyle(Side n, css::CssBorderStyle bs) { border_style_[static_cast<int>(n)] = bs; }
 		void setBorderColor(Side n, const KRE::Color& color) { border_color_[static_cast<int>(n)] = color; }
-		void setBorder(Side n, double value);
-		void setPadding(Side n, double value);
-		void setMargins(Side n, double value);
-		void setContentX(double value) { dimensions_.content_.set_x(value); }
-		void setContentY(double value) { dimensions_.content_.set_y(value); }
+		void setBorder(Side n, FixedPoint value);
+		FixedPoint getBorder(Side n);
+		FixedPoint getPadding(Side n);
+		css::CssBorderStyle getBorderStyle(Side n) { return border_style_[static_cast<int>(n)]; }
+		const KRE::Color& getBorderColor(Side n) { return border_color_[static_cast<int>(n)]; }
+		void setPadding(Side n, FixedPoint value);
+		void setMargins(Side n, FixedPoint value);
+		void setContentX(FixedPoint value) { dimensions_.content_.x = value; }
+		void setContentY(FixedPoint value) { dimensions_.content_.y = value; }
 
-		double getLineHeight() const;
+		FixedPoint getLineHeight() const;
 
-		void render(DisplayListPtr display_list) const;
+		void render(DisplayListPtr display_list, const point& offset) const;
+		virtual point reflow(const point& offset) { return offset; }
 	protected:
 		std::vector<LayoutBoxPtr>& getChildren() { return children_; }
 		Dimensions& getDims() { return dimensions_; }
@@ -111,11 +104,11 @@ namespace xhtml
 		std::vector<LayoutBoxPtr> children_;
 		Dimensions dimensions_;
 
-		virtual void renderBackground(DisplayListPtr display_list) const;
-		virtual void renderBorder(DisplayListPtr display_list) const;
-		virtual void handleRender(DisplayListPtr display_list) const = 0;
+		virtual void renderBackground(DisplayListPtr display_list, const point& offset) const;
+		virtual void renderBorder(DisplayListPtr display_list, const point& offset) const;
+		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 
-		virtual void handleLayout(const Dimensions& containing, inline_offset& offset) = 0;
+		virtual void handleLayout(const Dimensions& containing, FixedPoint& width) = 0;
 		static LayoutBoxPtr handleCreate(NodePtr node, LayoutBoxPtr parent);
 		static LayoutBoxPtr factory(NodePtr node, css::CssDisplay display, LayoutBoxPtr parent);
 
@@ -131,10 +124,10 @@ namespace xhtml
 		AnonymousLayoutBox(LayoutBoxPtr parent);
 		std::string toString() const override;
 	private:
-		void handleLayout(const Dimensions& containing, inline_offset& offset) override;
-		void handleRender(DisplayListPtr display_list) const override {}
-		void renderBackground(DisplayListPtr display_list) const override {}
-		void renderBorder(DisplayListPtr display_list) const override {}
+		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
+		void handleRender(DisplayListPtr display_list, const point& offset) const override {}
+		void renderBackground(DisplayListPtr display_list, const point& offset) const override {}
+		void renderBorder(DisplayListPtr display_list, const point& offset) const override {}
 	};
 	typedef std::shared_ptr<AnonymousLayoutBox> AnonymousLayoutBoxPtr;
 
@@ -143,12 +136,13 @@ namespace xhtml
 	public:
 		InlineLayoutBox(LayoutBoxPtr parent, NodePtr node);
 		std::string toString() const override;
+		point reflow(const point& offset) override;
 	private:
-		void handleLayout(const Dimensions& containing, inline_offset& offset) override;
-		std::vector<LayoutBoxPtr> layoutInlineWidth(const Dimensions& containing, inline_offset& offset);
-		void handleRender(DisplayListPtr display_list) const override;
-		void renderBackground(DisplayListPtr display_list) const override;
-		void renderBorder(DisplayListPtr display_list) const override;
+		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
+		std::vector<LayoutBoxPtr> layoutInlineWidth(const Dimensions& containing, FixedPoint& width);
+		void handleRender(DisplayListPtr display_list, const point& offset) const override;
+		void renderBackground(DisplayListPtr display_list, const point& offset) const override {}
+		void renderBorder(DisplayListPtr display_list, const point& offset) const override {}
 		LinesPtr lines_;
 	};
 	
@@ -158,13 +152,25 @@ namespace xhtml
 	public:
 		InlineTextBox(LayoutBoxPtr parent, const Line& line, long space_advance);
 		std::string toString() const override;
+		point reflow(const point& offset) override;
 	private:
-		void handleLayout(const Dimensions& containing, inline_offset& offset) override;
-		void handleRender(DisplayListPtr display_list) const override;
+		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
+		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		Line line_;
 		long space_advance_;
 	};
 
+	// Wraps a single line of InlineTextBoxes.
+	class LineBox : public LayoutBox
+	{
+	public:
+		LineBox(LayoutBoxPtr parent);
+		std::string toString() const override;
+		point reflow(const point& offset) override;
+	private:
+		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
+		void handleRender(DisplayListPtr display_list, const point& offset) const override;
+	};
 
 	class BlockLayoutBox : public LayoutBox
 	{
@@ -172,13 +178,13 @@ namespace xhtml
 		BlockLayoutBox(LayoutBoxPtr parent, NodePtr node);
 		std::string toString() const override;
 	private:
-		void handleLayout(const Dimensions& containing, inline_offset& offset) override;
+		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
 		void layoutBlockWidth(const Dimensions& containing);
 		void layoutBlockPosition(const Dimensions& containing);
-		void layoutBlockChildren();
+		void layoutBlockChildren(FixedPoint& width);
 		void layoutBlockHeight(const Dimensions& containing);
-		void handleRender(DisplayListPtr display_list) const override;
+		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 	};
 
-	double convert_pt_to_pixels(double pt);
+	FixedPoint convert_pt_to_pixels(double pt);
 }

@@ -101,7 +101,7 @@ namespace css
 		bool isToken(TokenId tok) const;
 		bool isTokenDelimiter(const std::string& delim);
 		std::vector<TokenPtr> PropertyParser::parseCSVList(TokenId end_token);
-		void parseCSVNumberList(TokenId end_token, std::function<void(int,double,bool)> fn);
+		void parseCSVNumberList(TokenId end_token, std::function<void(int, float, bool)> fn);
 		void parseCSVStringList(TokenId end_token, std::function<void(int, const std::string&)> fn);
 		StylePtr parseColorInternal();
 		Length parseLengthInternal(NumericParseOptions opts=ALL);

@@ -48,8 +48,8 @@ namespace xhtml
 			bool pushed_font_change_;
 		};
 
-		double getDPI() const { return dpi_scale_; }
-		void setDPI(double dpi) { dpi_scale_ = dpi; }
+		int getDPI() const { return dpi_scale_; }
+		void setDPI(int dpi) { dpi_scale_ = dpi; }
 
 		Object getComputedValue(css::Property p) const;
 
@@ -57,6 +57,6 @@ namespace xhtml
 		KRE::FontHandlePtr getFontHandle() const;
 	private:
 		RenderContext();
-		double dpi_scale_;
+		int dpi_scale_;
 	};
 }

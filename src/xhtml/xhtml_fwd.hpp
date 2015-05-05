@@ -27,6 +27,8 @@
 
 namespace xhtml
 {
+	typedef int FixedPoint;
+
 	class RenderContext;
 
 	class Node;
@@ -48,4 +50,13 @@ namespace xhtml
 
 	class Attribute;
 	typedef std::shared_ptr<Attribute> AttributePtr;
+
+	struct Rect {
+		Rect() : x(0), y(0), width(0), height(0) {}
+		Rect(FixedPoint xx, FixedPoint yy, FixedPoint ww, FixedPoint hh) : x(xx), y(yy), width(ww), height(hh) {}
+		FixedPoint x;
+		FixedPoint y;
+		FixedPoint width;
+		FixedPoint height;
+	};
 }

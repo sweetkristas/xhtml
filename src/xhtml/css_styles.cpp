@@ -30,20 +30,22 @@ namespace css
 {
 	namespace 
 	{
-		std::vector<double>& get_font_size_table(double ppi)
+		const int fixed_point_scale = 65536;
+
+		std::vector<float>& get_font_size_table(float ppi)
 		{
-			static std::vector<double> res;
+			static std::vector<float> res;
 			if(res.empty()) {
 				// First guess implementation.
-				double min_size = 9.0 / 72.0 * ppi;
+				float min_size = 9.0f / 72.0f * ppi;
 				res.emplace_back(min_size);
-				res.emplace_back(std::ceil(min_size * 1.1));
-				res.emplace_back(std::ceil(min_size * 1.3));
-				res.emplace_back(std::ceil(min_size * 1.45));
-				res.emplace_back(std::ceil(min_size * 1.6));
-				res.emplace_back(std::ceil(min_size * 1.8));
-				res.emplace_back(std::ceil(min_size * 2.0));
-				res.emplace_back(std::ceil(min_size * 2.3));
+				res.emplace_back(std::ceil(min_size * 1.1f));
+				res.emplace_back(std::ceil(min_size * 1.3f));
+				res.emplace_back(std::ceil(min_size * 1.45f));
+				res.emplace_back(std::ceil(min_size * 1.6f));
+				res.emplace_back(std::ceil(min_size * 1.8f));
+				res.emplace_back(std::ceil(min_size * 2.0f));
+				res.emplace_back(std::ceil(min_size * 2.3f));
 			}
 			return res;
 		}
@@ -91,16 +93,9 @@ namespace css
 	Object CssColor::evaluate(const xhtml::RenderContext& ctx) const
 	{
 		return Object(*this);
-		/*if(param_ == CssColorParam::VALUE) {
-			return Object(color_);
-		} else if(param_ == CssColorParam::CURRENT) {
-			//return ctx.getComputedValue(Property::COLOR);
-			return Object(KRE::Color(127,255,127,255));
-		}
-		return Object(KRE::Color(0, 0, 0, 0));*/
 	}
 
-	Length::Length(double value, const std::string& units) 
+	Length::Length(xhtml::FixedPoint value, const std::string& units) 
 		: value_(value), 
 		  units_(LengthUnits::NUMBER) 
 	{
@@ -123,7 +118,7 @@ namespace css
 		} else if(units == "%") {
 			units_ = LengthUnits::PERCENT;
 			// normalize to range 0.0 -> 1.0
-			value_ /= 100.0;
+			value_ /= 100 * fixed_point_scale;
 		} else {
 			LOG_ERROR("unrecognised units value: '" << units << "'");
 		}
@@ -137,41 +132,41 @@ namespace css
 		return Object(width_);
 	}
 
-	double Length::compute(double scale) const
+	xhtml::FixedPoint Length::compute(xhtml::FixedPoint scale) const
 	{
 		auto& ctx = xhtml::RenderContext::get();
-		const double dpi = ctx.getDPI();
-		double res = 0;
+		const int dpi = ctx.getDPI();
+		xhtml::FixedPoint res = 0;
 		switch(units_) {
 			case LengthUnits::NUMBER:
 				res = value_;
 				break;
 			case LengthUnits::PX:
-				res = value_ * dpi / 72.0 * 0.75;
+				res = ((value_ * 3 * dpi) / (72 * 4));
 				break;
 			case LengthUnits::EM:
-				res = ctx.getComputedValue(Property::FONT_SIZE).getValue<double>() * value_ * dpi / 72.0;
+				res = static_cast<xhtml::FixedPoint>((ctx.getComputedValue(Property::FONT_SIZE).getValue<xhtml::FixedPoint>() / 72.0f) * (value_ * dpi));
 				break;
 			case LengthUnits::EX:
-				res = ctx.getFontHandle()->getFontXHeight() * value_ * dpi / 72.0;
+				res = static_cast<xhtml::FixedPoint>(ctx.getFontHandle()->getFontXHeight() / 72.0f * (value_ * dpi));
 				break;
 			case LengthUnits::IN:
 				res = value_ * dpi;
 				break;
 			case LengthUnits::CM:
-				res = value_ * dpi * 2.54;
+				res = (value_ * dpi * 254) / 100;
 				break;
 			case LengthUnits::MM:
-				res = value_ * dpi * 25.4;
+				res = (value_ * dpi * 254) / 10;
 				break;
 			case LengthUnits::PT:
-				res = value_ * dpi / 72.0;
+				res = (value_ * dpi) / 72;
 				break;
 			case LengthUnits::PC:
-				res = 12.0 * value_ * dpi / 72.0;
+				res = (12 * value_ * dpi) / 72;
 				break;
 			case LengthUnits::PERCENT:
-				res = value_ * scale;
+				res = static_cast<xhtml::FixedPoint>((static_cast<float>(value_)/fixed_point_scale) * scale);
 				break; 
 			default: 
 				ASSERT_LOG(false, "Unrecognised units value: " << static_cast<int>(units_));
@@ -187,23 +182,23 @@ namespace css
 
 	Object FontSize::evaluate(const xhtml::RenderContext& ctx) const
 	{
-		double res = 0;
-		double parent_fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<double>();
+		float res = 0;
+		xhtml::FixedPoint parent_fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<xhtml::FixedPoint>();
 		if(is_absolute_) {
-			res = get_font_size_table(ctx.getDPI())[static_cast<int>(absolute_)];
+			res = get_font_size_table(static_cast<float>(ctx.getDPI()))[static_cast<int>(absolute_)];
 		} else if(is_relative_) {
 			// XXX hack
 			if(relative_ == FontSizeRelative::LARGER) {
-				res = parent_fs * 1.15;
+				res = parent_fs * 1.15f;
 			} else {
-				res = parent_fs / 1.15;
+				res = parent_fs / 1.15f;
 			}
 		} else if(is_length_) {
-			res = length_.compute(parent_fs);
+			return Object(length_.compute(parent_fs));
 		} else {
 			ASSERT_LOG(false, "FontSize has no definite size defined!");
 		}
-		return Object(res);
+		return Object(xhtml::FixedPoint(res * fixed_point_scale));
 	}
 
 	FontFamily::FontFamily() 
@@ -250,7 +245,7 @@ namespace css
 	Object FontWeight::evaluate(const xhtml::RenderContext& ctx) const
 	{
 		if(is_relative_) {
-			double fw = ctx.getComputedValue(Property::FONT_WEIGHT).getValue<double>();
+			int fw = ctx.getComputedValue(Property::FONT_WEIGHT).getValue<int>();
 			if(relative_ == FontWeightRelative::BOLDER) {
 				// bolder
 				fw += 100;

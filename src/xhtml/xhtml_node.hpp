@@ -28,6 +28,7 @@
 #include <vector>
 
 #include "geometry.hpp"
+#include "SceneFwd.hpp"
 
 #include "css_stylesheet.hpp"
 #include "xhtml.hpp"
@@ -51,10 +52,16 @@ namespace xhtml
 	{
 		explicit Word(const std::string& w) : word(w), advance() {}
 		std::string word;
-		std::vector<geometry::Point<long>> advance;
+		std::vector<geometry::Point<FixedPoint>> advance;
 	};
 
-	typedef std::vector<Word> Line;
+	struct Line
+	{
+		Line() : line(), is_end_line(false) {}
+		Line(int cnt, const Word& w) : line(cnt, w), is_end_line(false) {}
+		std::vector<Word> line;
+		bool is_end_line;
+	};
 
 	struct Lines
 	{
@@ -74,6 +81,8 @@ namespace xhtml
 		void addChild(NodePtr child);
 		void removeChild(NodePtr child);
 		void addAttribute(AttributePtr a);
+		// Called after children and attributes have been added.
+		virtual void init() {}
 		NodePtr getLeft() const { return left_.lock(); }
 		NodePtr getRight() const { return right_.lock(); }
 		NodePtr getParent() const { return parent_.lock(); }
@@ -97,6 +106,9 @@ namespace xhtml
 
 		// for text nodes.
 		virtual LinesPtr generateLines(int current_line_width, int maximum_line_width) { return nullptr; }
+		// for elements
+		virtual const Rect& getDimensions() { static Rect res; return res; }
+		virtual KRE::SceneObjectPtr getRenderable() { return nullptr; }
 	protected:
 		std::string nodeToString() const;
 	private:

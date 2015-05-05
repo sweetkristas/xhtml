@@ -282,7 +282,7 @@ namespace KRE
 			*h = (pen.y - slot->linearHoriAdvance + slot->metrics.height*65536L);
 		}
 
-		void getGlyphPath(const std::string& text, std::vector<geometry::Point<long>>* path)
+		void getGlyphPath(const std::string& text, std::vector<point>* path)
 		{
 			FT_Vector pen = { 0, 0 };
 			FT_Error error;
@@ -325,7 +325,7 @@ namespace KRE
 		// text is a utf-8 string, path is expected to have at least has many data points as there
 		// are codepoints in the string. path should be in units consist with FT_Pos
 		// N.B. the origin of the Renderable object created is the baseline of the font
-		FontRenderablePtr createRenderableFromPath(FontRenderablePtr font_renderable, const std::string& text, const std::vector<geometry::Point<long>>& path)
+		FontRenderablePtr createRenderableFromPath(FontRenderablePtr font_renderable, const std::string& text, const std::vector<point>& path)
 		{
 			auto cp_string = utils::utf8_to_codepoint(text);
 			int glyphs_in_text = 0;
@@ -558,7 +558,7 @@ namespace KRE
 	{
 	}
 
-	void FontHandle::getGlyphPath(const std::string& text, std::vector<geometry::Point<long>>* path)
+	void FontHandle::getGlyphPath(const std::string& text, std::vector<point>* path)
 	{
 		impl_->getGlyphPath(text, path);
 	}
@@ -568,12 +568,12 @@ namespace KRE
 		return rect();
 	}
 
-	FontRenderablePtr FontHandle::createRenderableFromPath(FontRenderablePtr r, const std::string& text, const std::vector<geometry::Point<long>>& path)
+	FontRenderablePtr FontHandle::createRenderableFromPath(FontRenderablePtr r, const std::string& text, const std::vector<point>& path)
 	{
 		return impl_->createRenderableFromPath(r, text, path);
 	}
 
-	long FontHandle::calculateCharAdvance(char32_t cp)
+	int FontHandle::calculateCharAdvance(char32_t cp)
 	{
 		return impl_->calculateCharAdvance(cp);
 	}
