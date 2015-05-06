@@ -283,4 +283,9 @@ namespace css
 	{
 		return Object(overflow_);
 	}
+
+	Object Position::evaluate(const xhtml::RenderContext& rc) const
+	{
+		return Object(position_);
+	}
 }

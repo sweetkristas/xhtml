@@ -162,6 +162,9 @@ namespace css
 		PropertyRegistrar property040("text-transform", Property::TEXT_TRANSFORM, true, Object(CssTextTransform::NONE), std::bind(&PropertyParser::parseTextTransform, _1, _2));
 		PropertyRegistrar property041("line-height", Property::LINE_HEIGHT, true, Object(Length(line_height_scale)), std::bind(&PropertyParser::parseLineHeight, _1, _2));
 		PropertyRegistrar property042("overflow", Property::CSS_OVERFLOW, false, Object(CssOverflow::VISIBLE), std::bind(&PropertyParser::parseOverflow, _1, _2));
+		PropertyRegistrar property043("position", Property::POSITION, false, Object(CssPosition::STATIC), std::bind(&PropertyParser::parsePosition, _1, _2));
+		//transition -- transition-property, transition-duration, transition-timing-function, transition-delay
+		//text-shadow
 	}
 
 	PropertyList::PropertyList()
@@ -910,5 +913,31 @@ namespace css
 			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
 		}
 		plist_.addProperty(name, Overflow::create(of));
+	}
+
+	void PropertyParser::parsePosition(const std::string& name)
+	{
+		CssPosition p = CssPosition::STATIC;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, std::make_shared<Style>(true));
+				return;
+			} else if(ref == "satic") {
+				p = CssPosition::STATIC;
+			} else if(ref == "absolute") {
+				p = CssPosition::ABSOLUTE;
+			} else if(ref == "relative") {
+				p = CssPosition::RELATIVE;
+			} else if(ref == "fixed") {
+				p = CssPosition::FIXED;
+			} else {
+				throw ParserError(formatter() << "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else {
+			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(name, Position::create(p));
 	}
 }

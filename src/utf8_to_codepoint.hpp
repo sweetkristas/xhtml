@@ -110,12 +110,15 @@ namespace utils
 			const uint8_t utf8_bitmask_4;
 		};
 
-		iterator begin() const { return iterator(utf8_.begin()); }
-		iterator end() const { return iterator(utf8_.end()); }
+		iterator begin() const { return iterator(start_); }
+		iterator end() const { return iterator(end_); }
 
-		utf8_to_codepoint(const std::string& s) : utf8_(s) {}
+		utf8_to_codepoint(const std::string& s) : utf8_(s), start_(utf8_.begin()), end_(utf8_.end()) {}
+		utf8_to_codepoint(std::string::const_iterator start, std::string::const_iterator end) : utf8_(), start_(start), end_(end) {}
 	private:
 		std::string utf8_;
+		std::string::const_iterator start_;
+		std::string::const_iterator end_;
 		utf8_to_codepoint();
 	};
     

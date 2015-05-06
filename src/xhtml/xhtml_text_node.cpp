@@ -44,9 +44,8 @@ namespace xhtml
 
 		bool is_white_space(char32_t cp) {  return cp == '\r' || cp == '\t' || cp == ' ' || cp == '\n'; }
 
-		Line tokenize_text(const std::string& text, bool collapse_ws, bool break_at_newline) 
+		void tokenize_text(const std::string& text, bool collapse_ws, bool break_at_newline, Line& res) 
 		{
-			Line res;
 			bool in_ws = false;
 			for(auto cp : utils::utf8_to_codepoint(text)) {
 				if(cp == '\n' && break_at_newline) {
@@ -75,14 +74,15 @@ namespace xhtml
 					res.line.back().word += utils::codepoint_to_utf8(cp);
 				}
 			}
-			return res;
 		}
 
 	}
 
 	Text::Text(const std::string& txt, WeakDocumentPtr owner)
 		: Node(NodeId::TEXT, owner),
-		  text_(txt)
+		  transformed_(false),
+		  text_(txt),
+		  break_at_line_(false)
 	{
 	}
 
@@ -98,21 +98,12 @@ namespace xhtml
 		return ss.str();
 	}
 
-	// XXX we need to add a variable to the Lines and turn it into a struct. This
-	// variable is the advance per space character.
-	LinesPtr Text::generateLines(FixedPoint current_line_width, FixedPoint maximum_line_width)
+	void Text::transformText(bool non_zero_width)
 	{
-		auto parent = getParent();
-		if(parent == nullptr) {
-			return nullptr;
+		if(transformed_) {
+			return;
 		}
-		ASSERT_LOG(parent != nullptr, "Can't run generateLines un-parented Text node.");
 		auto ctx = RenderContext::get();
-
-		// adjust the current_line_width to be the space remaining on the line.
-		current_line_width = maximum_line_width - current_line_width;
-		
-		css::CssWhitespace ws = ctx.getComputedValue(css::Property::WHITE_SPACE).getValue<css::CssWhitespace>();
 
 		// Apply transform text_ based on "text-transform" property		
 		css::CssTextTransform text_transform = ctx.getComputedValue(css::Property::TEXT_TRANSFORM).getValue<css::CssTextTransform>();
@@ -146,31 +137,43 @@ namespace xhtml
 			default: break;
 		}
 
+		css::CssWhitespace ws = ctx.getComputedValue(css::Property::WHITE_SPACE).getValue<css::CssWhitespace>();
+
 		// indicates whitespace should be collapsed together.
 		bool collapse_whitespace = ws == css::CssWhitespace::NORMAL || ws == css::CssWhitespace::NOWRAP || ws == css::CssWhitespace::PRE_LINE;
 		// indicates we should break at the boxes line width
-		bool break_at_line = maximum_line_width >= 0 &&
+		break_at_line_ = non_zero_width &&
 			(ws == css::CssWhitespace::NORMAL || ws == css::CssWhitespace::PRE_LINE || ws == css::CssWhitespace::PRE_WRAP);
 		// indicates we should break on newline characters.
 		bool break_at_newline = ws == css::CssWhitespace::PRE || ws == css::CssWhitespace::PRE_LINE || ws == css::CssWhitespace::PRE_WRAP;
 
 		// Apply letter-spacing and word-spacing here.
-		auto line = xhtml::tokenize_text(transformed_text, collapse_whitespace, break_at_newline);
-		FixedPoint space_advance = ctx.getFontHandle()->calculateCharAdvance(' ');
-		FixedPoint word_spacing = static_cast<FixedPoint>(ctx.getComputedValue(css::Property::WORD_SPACING).getValue<css::Length>().compute() * fixed_point_scale);
-		space_advance += word_spacing;
-		FixedPoint letter_spacing = static_cast<FixedPoint>(ctx.getComputedValue(css::Property::LETTER_SPACING).getValue<css::Length>().compute() * fixed_point_scale);
-		space_advance += letter_spacing;
+		xhtml::tokenize_text(transformed_text, collapse_whitespace, break_at_newline, line_);
 
+		transformed_ = true;
+	}
+
+	LinePtr Text::reflowText(iterator& start, FixedPoint remaining_line_width)
+	{
+		auto parent = getParent();
+		if(parent == nullptr) {
+			return nullptr;
+		}
+		ASSERT_LOG(transformed_ == true, "Text must be transformed before reflowing.");
+		auto ctx = RenderContext::get();
+
+		line_.space_advance = ctx.getFontHandle()->calculateCharAdvance(' ');
+		FixedPoint word_spacing = ctx.getComputedValue(css::Property::WORD_SPACING).getValue<css::Length>().compute();
+		line_.space_advance += word_spacing;
+		FixedPoint letter_spacing = ctx.getComputedValue(css::Property::LETTER_SPACING).getValue<css::Length>().compute();
+		line_.space_advance += letter_spacing;
+		
 		css::CssDirection dir = ctx.getComputedValue(css::Property::DIRECTION).getValue<css::CssDirection>();
 		css::CssTextAlign text_align = ctx.getComputedValue(css::Property::TEXT_ALIGN).getValue<css::CssTextAlign>();
 		if(text_align == css::CssTextAlign::NORMAL) {
 			text_align = dir == css::CssDirection::LTR ? css::CssTextAlign::LEFT : css::CssTextAlign::RIGHT;
 		}
 
-		// accumulator for current line lenth
-		FixedPoint length_acc = 0;
-		
 		// XXX padding-left is applied to the start of the first word
 		// and padding-right is applied to the end of the last word.
 		// padding-top/padding-bottom effect the way the background is drawn but
@@ -180,18 +183,19 @@ namespace xhtml
 		// border-top/border-bottom are drawn, but don't effect line height
 		// border-right effects the end of the last line.
 
-		auto lines = std::make_shared<Lines>();
-		lines->space_advance = space_advance;
-		bool last_line_was_auto_break = false;
-		bool is_first_line = true;
-		for(auto& word : line.line) {
+		LinePtr current_line = std::make_shared<Line>();
+		current_line->space_advance = line_.space_advance;
+
+		// accumulator for current line lenth
+		FixedPoint length_acc = 0;
+
+		for(; start != end(); ++start) {
+			auto& word = *start;
 			// "\n" by itself in the word stream indicates a forced line break.
 			if(word.word == "\n") {
-				if(!(last_line_was_auto_break && length_acc == 0)) {
-					last_line_was_auto_break = false;
-					lines->lines.back().is_end_line = true;
-					lines->lines.emplace_back(Line());
-					length_acc = 0;
+				if(length_acc != 0) {
+					current_line->is_end_line = true;
+					return current_line;
 				}
 				continue;
 			}
@@ -204,7 +208,7 @@ namespace xhtml
 				}
 			}
 			// XXX we should enforce a minimum of one-word per line even if it overflows.
-			if(break_at_line && length_acc + word.advance.back().x + space_advance > current_line_width) {
+			if(break_at_line_ && length_acc + word.advance.back().x + line_.space_advance > remaining_line_width) {
 				// if text-align is set to justify we can add more spaces to bring the outer word aligned to the maximum_line_width
 				// XXX this code is still slightly wrong as it will make the advance of the next character align with the edge
 				// rather than the bounding box of the last glyph.
@@ -220,24 +224,18 @@ namespace xhtml
 					}
 				}*/
 
-				// XXX add new line to be rendered here.
-				lines->lines.back().is_end_line = true;
-				lines->lines.emplace_back(Line(1, word));
-				length_acc = word.advance.back().x + space_advance;
-				last_line_was_auto_break = true;
-				current_line_width = maximum_line_width;
+				current_line->is_end_line = true;
+				return current_line;
 			} else {
-				length_acc += word.advance.back().x + space_advance;
-				// XXX render word glyph here.
-				lines->lines.back().line.emplace_back(word);
-				last_line_was_auto_break = false;
+				length_acc += word.advance.back().x + line_.space_advance;
+				current_line->line.emplace_back(word);
 			}
 		}
 
 		// XXX Do we need to add a catch here so that if the last line width + space_advance > maximum_line_width
 		// then we set is_end_line=true?
 
-		return lines;
+		return current_line;
 	}
 }
 

@@ -30,14 +30,21 @@ namespace xhtml
 	class Text : public Node
 	{
 	public:
+		typedef std::vector<Word>::iterator iterator;
 		static TextPtr create(const std::string& txt, WeakDocumentPtr owner=WeakDocumentPtr());
 		void addText(const std::string& txt) { text_ += txt; }
-		LinesPtr generateLines(FixedPoint current_line_width, FixedPoint maximum_line_width) override;
+		iterator begin() { return line_.line.begin(); }
+		iterator end() { return line_.line.end(); }
+		LinePtr reflowText(iterator& start, FixedPoint maximum_line_width);
+		void transformText(bool non_zero_width);
 	protected:
 		explicit Text(const std::string& txt, WeakDocumentPtr owner);
 		std::string toString() const override;
 		const std::string& getValue() const override { return text_; }
 	private:
+		bool transformed_;
 		std::string text_;
+		Line line_;
+		bool break_at_line_;
 	};
 }

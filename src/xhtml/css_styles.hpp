@@ -473,4 +473,18 @@ namespace css
 		CssOverflow overflow_;
 	};
 
+	enum class CssPosition {
+		STATIC,
+		RELATIVE,
+		ABSOLUTE,
+		FIXED,
+	};
+
+	struct Position : public Style
+	{
+		MAKE_FACTORY(Position);
+		explicit Position(CssPosition p) : position_(p) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override;
+		CssPosition position_;
+	};
 }

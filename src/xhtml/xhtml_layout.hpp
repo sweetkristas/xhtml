@@ -33,8 +33,8 @@
 
 namespace xhtml
 {
-	class LayoutBox;
-	typedef std::shared_ptr<LayoutBox> LayoutBoxPtr;
+	class Box;
+	typedef std::shared_ptr<Box> BoxPtr;
 
 	struct EdgeSize
 	{
@@ -61,6 +61,62 @@ namespace xhtml
 		RIGHT,
 	};
 
+	enum class BoxId {
+		BLOCK,
+		LINE,
+		TEXT,
+	};
+
+	class Box : public std::enable_shared_from_this<Box>
+	{
+	public:
+		Box(BoxId id, BoxPtr parent, NodePtr node);
+		virtual ~Box() {}
+		BoxId id() const { return id_; }
+		const Dimensions& getDimensions() const { return dimensions_; }
+		const std::vector<BoxPtr>& getChildren() const { return children_; }
+
+		void setContentX(FixedPoint x) { dimensions_.content_.x = x; }
+		void setContentY(FixedPoint y) { dimensions_.content_.y = y; }
+		void setContentWidth(FixedPoint w) { dimensions_.content_.width = w; }
+		void setContentHeight(FixedPoint h) { dimensions_.content_.height = h; }
+
+		void setPadding(const EdgeSize& e) { dimensions_.padding_ = e; }
+		void setBorder(const EdgeSize& e) { dimensions_.border_ = e; }
+		void setMargin(const EdgeSize& e) { dimensions_.margin_ = e; }
+
+		static BoxPtr createLayout(NodePtr node, int containing_width);
+	private:
+		static BoxPtr handleCreate(NodePtr node, int containing_width);
+		BoxId id_;
+		WeakNodePtr node_;
+		std::weak_ptr<Box> parent_;
+		Dimensions dimensions_;
+		std::vector<BoxPtr> children_;
+	};
+
+	class BlockBox : public Box
+	{
+	public:
+		BlockBox(BoxPtr parent, NodePtr node);
+	private:
+	};
+
+	class LineBox : public Box
+	{
+	public:
+		LineBox(BoxPtr parent, NodePtr node);
+	};
+
+	class TextBox : public Box
+	{
+	public:
+		TextBox(BoxPtr parent, NodePtr node);
+	};
+
+	
+	
+	/*
 	class LayoutBox : public std::enable_shared_from_this<LayoutBox>
 	{
 	public:
@@ -185,6 +241,6 @@ namespace xhtml
 		void layoutBlockHeight(const Dimensions& containing);
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 	};
-
+	*/
 	FixedPoint convert_pt_to_pixels(double pt);
 }

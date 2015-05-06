@@ -56,15 +56,20 @@ void load_xhtml(int width, const std::string& ua_ss, const std::string& test_doc
 	// whitespace can only be processed after applying styles.
 	doc->processWhitespace();
 
-	doc->preOrderTraversal([](xhtml::NodePtr n) {
-		LOG_DEBUG(n->toString());
-		return true;
-	});
+	//doc->preOrderTraversal([](xhtml::NodePtr n) {
+	//	LOG_DEBUG(n->toString());
+	//	return true;
+	//});
 
-	xhtml::RenderContextManager rcm;
+	//xhtml::RenderContextManager rcm;
 	// layout has to happen after initialisation of graphics
-	auto layout = xhtml::LayoutBox::create(doc, width);
-	layout->render(display_list, point());
+	auto layout = xhtml::Box::createLayout(doc, width);
+	//layout->render(display_list, point());
+
+	/*layout->preOrderTraversal([](xhtml::LayoutBoxPtr box, int nesting) {
+		std::string indent(nesting*2, ' ');
+		LOG_DEBUG(indent + box->toString());
+	}, 0);*/
 }
 
 int main(int argc, char* argv[])
@@ -135,12 +140,6 @@ int main(int argc, char* argv[])
 	xhtml::DisplayListPtr display_list = std::make_shared<xhtml::DisplayList>(scene);
 	root->attachNode(display_list);
 	load_xhtml(width, ua_ss, test_doc, display_list);
-
-	/*layout->preOrderTraversal([](xhtml::LayoutBoxPtr box, int nesting) {
-		std::string indent(nesting*2, ' ');
-		LOG_DEBUG(indent + box->toString());
-	}, 0);*/
-	// end xhtml layout
 
 	auto canvas = Canvas::getInstance();
 

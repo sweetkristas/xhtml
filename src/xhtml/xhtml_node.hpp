@@ -57,11 +57,13 @@ namespace xhtml
 
 	struct Line
 	{
-		Line() : line(), is_end_line(false) {}
-		Line(int cnt, const Word& w) : line(cnt, w), is_end_line(false) {}
+		Line() : line(), is_end_line(false), space_advance(0) {}
+		Line(int cnt, const Word& w) : line(cnt, w), is_end_line(false), space_advance(0) {}
 		std::vector<Word> line;
 		bool is_end_line;
+		FixedPoint space_advance;
 	};
+	typedef std::shared_ptr<Line> LinePtr;
 
 	struct Lines
 	{
@@ -104,8 +106,6 @@ namespace xhtml
 		const css::PropertyList& getProperties() const { return properties_; }
 		void processWhitespace();
 
-		// for text nodes.
-		virtual LinesPtr generateLines(int current_line_width, int maximum_line_width) { return nullptr; }
 		// for elements
 		virtual const Rect& getDimensions() { static Rect res; return res; }
 		virtual KRE::SceneObjectPtr getRenderable() { return nullptr; }
