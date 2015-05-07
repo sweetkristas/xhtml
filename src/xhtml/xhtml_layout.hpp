@@ -150,6 +150,8 @@ namespace xhtml
 		std::vector<BoxPtr> absolute_boxes_;
 		std::vector<BoxPtr> fixed_boxes_;
 		std::vector<BoxPtr> float_boxes_to_be_placed_;
+		std::vector<BoxPtr> left_floats_;
+		std::vector<BoxPtr> right_floats_;
 	};
 
 	class BlockBox : public Box

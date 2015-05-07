@@ -158,6 +158,7 @@ namespace xhtml
 							// Do not create a box for this or it's children
 							return nullptr;
 						case CssDisplay::INLINE: {
+							// XXX if parent has any left/right pending floated elements and we're starting a new box apply them here.
 							BoxPtr open = nullptr;
 							if(boxes.empty() || (!boxes.empty() && boxes.back()->id() == BoxId::BLOCK)) {
 								open = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
@@ -194,6 +195,7 @@ namespace xhtml
 				}
 			} else if(node->id() == NodeId::TEXT) {
 				// these nodes are inline/static by definition.
+				// XXX if parent has any left/right pending floated elements and we're starting a new box apply them here.
 				BoxPtr open = nullptr;
 				if(boxes.empty() || (!boxes.empty() && boxes.back()->id() != BoxId::LINE)) {
 					// add a line box.
