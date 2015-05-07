@@ -163,6 +163,7 @@ namespace css
 		PropertyRegistrar property041("line-height", Property::LINE_HEIGHT, true, Object(Length(line_height_scale)), std::bind(&PropertyParser::parseLineHeight, _1, _2));
 		PropertyRegistrar property042("overflow", Property::CSS_OVERFLOW, false, Object(CssOverflow::VISIBLE), std::bind(&PropertyParser::parseOverflow, _1, _2));
 		PropertyRegistrar property043("position", Property::POSITION, false, Object(CssPosition::STATIC), std::bind(&PropertyParser::parsePosition, _1, _2));
+		PropertyRegistrar property044("float", Property::FLOAT, false, Object(CssFloat::NONE), std::bind(&PropertyParser::parseFloat, _1, _2));
 		//transition -- transition-property, transition-duration, transition-timing-function, transition-delay
 		//text-shadow
 	}
@@ -939,5 +940,29 @@ namespace css
 			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
 		}
 		plist_.addProperty(name, Position::create(p));
+	}
+
+	void PropertyParser::parseFloat(const std::string& name)
+	{
+		CssFloat p = CssFloat::NONE;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, std::make_shared<Style>(true));
+				return;
+			} else if(ref == "none") {
+				p = CssFloat::NONE;
+			} else if(ref == "left") {
+				p = CssFloat::LEFT;
+			} else if(ref == "right") {
+				p = CssFloat::RIGHT;
+			} else {
+				throw ParserError(formatter() << "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else {
+			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(name, Float::create(p));
 	}
 }

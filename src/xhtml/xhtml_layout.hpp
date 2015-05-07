@@ -35,6 +35,7 @@ namespace xhtml
 {
 	class Box;
 	typedef std::shared_ptr<Box> BoxPtr;
+	class LayoutEngine;
 
 	struct EdgeSize
 	{
@@ -65,6 +66,9 @@ namespace xhtml
 		BLOCK,
 		LINE,
 		TEXT,
+		INLINE_ELEMENT,
+		ABSOLUTE,
+		FIXED,
 	};
 
 	class Box : public std::enable_shared_from_this<Box>
@@ -74,8 +78,12 @@ namespace xhtml
 		virtual ~Box() {}
 		BoxId id() const { return id_; }
 		const Dimensions& getDimensions() const { return dimensions_; }
-		const std::vector<BoxPtr>& getChildren() const { return children_; }
+		const std::vector<BoxPtr>& getChildren() const { return boxes_; }
 
+		NodePtr getNode() const { return node_.lock(); }
+		BoxPtr getParent() const { return parent_.lock(); }
+
+		void setContentRect(const Rect& r) { dimensions_.content_ = r; }
 		void setContentX(FixedPoint x) { dimensions_.content_.x = x; }
 		void setContentY(FixedPoint y) { dimensions_.content_.y = y; }
 		void setContentWidth(FixedPoint w) { dimensions_.content_.width = w; }
@@ -85,33 +93,103 @@ namespace xhtml
 		void setBorder(const EdgeSize& e) { dimensions_.border_ = e; }
 		void setMargin(const EdgeSize& e) { dimensions_.margin_ = e; }
 
+		void setBorderLeft(FixedPoint fp) { dimensions_.border_.left = fp; }
+		void setBorderTop(FixedPoint fp) { dimensions_.border_.top = fp; }
+		void setBorderRight(FixedPoint fp) { dimensions_.border_.right = fp; }
+		void setBorderBottom(FixedPoint fp) { dimensions_.border_.bottom = fp; }
+
+		void setPaddingLeft(FixedPoint fp) { dimensions_.padding_.left = fp; }
+		void setPaddingTop(FixedPoint fp) { dimensions_.padding_.top = fp; }
+		void setPaddingRight(FixedPoint fp) { dimensions_.padding_.right = fp; }
+		void setPaddingBottom(FixedPoint fp) { dimensions_.padding_.bottom = fp; }
+
+		void setMarginLeft(FixedPoint fp) { dimensions_.margin_.left = fp; }
+		void setMarginTop(FixedPoint fp) { dimensions_.margin_.top = fp; }
+		void setMarginRight(FixedPoint fp) { dimensions_.margin_.right = fp; }
+		void setMarginBottom(FixedPoint fp) { dimensions_.margin_.bottom = fp; }
+
+		FixedPoint getMBPWidth() { 
+			return dimensions_.margin_.left + dimensions_.margin_.right
+				+ dimensions_.padding_.left + dimensions_.padding_.right
+				+ dimensions_.border_.left + dimensions_.border_.right;
+		}
+
+		FixedPoint getMBPHeight() { 
+			return dimensions_.margin_.top + dimensions_.margin_.bottom
+				+ dimensions_.padding_.top + dimensions_.padding_.bottom
+				+ dimensions_.border_.top + dimensions_.border_.bottom;
+		}
+
+		FixedPoint getMPBLeft() {
+			return dimensions_.margin_.left
+				+ dimensions_.padding_.left
+				+ dimensions_.border_.left;
+		}
+
+		FixedPoint getMPBTop() {
+			return dimensions_.margin_.top
+				+ dimensions_.padding_.top
+				+ dimensions_.border_.top;
+		}
+
 		static BoxPtr createLayout(NodePtr node, int containing_width);
+
+		virtual void layout(LayoutEngine& eng, const Dimensions& containing) = 0;
+
+		BoxPtr addAbsoluteElement(NodePtr node);
+		BoxPtr addFixedElement(NodePtr node);
+		BoxPtr addInlineElement(NodePtr node);
+
+		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); return box; }
 	private:
-		static BoxPtr handleCreate(NodePtr node, int containing_width);
 		BoxId id_;
 		WeakNodePtr node_;
 		std::weak_ptr<Box> parent_;
 		Dimensions dimensions_;
-		std::vector<BoxPtr> children_;
+		std::vector<BoxPtr> boxes_;
+		std::vector<BoxPtr> absolute_boxes_;
+		std::vector<BoxPtr> fixed_boxes_;
+		std::vector<BoxPtr> float_boxes_to_be_placed_;
 	};
 
 	class BlockBox : public Box
 	{
 	public:
 		BlockBox(BoxPtr parent, NodePtr node);
+		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 	private:
+		void layoutWidth(const Dimensions& containing);
+		void layoutPosition(const Dimensions& containing);
+		void layoutChildren(LayoutEngine& eng);
+		void layoutHeight(const Dimensions& containing);
+	};
+
+	class AbsoluteBox : public Box
+	{
+	public:
+		AbsoluteBox(BoxPtr parent, NodePtr node);
+		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 	};
 
 	class LineBox : public Box
 	{
 	public:
 		LineBox(BoxPtr parent, NodePtr node);
+		void layout(LayoutEngine& eng, const Dimensions& containing) override;
+	};
+
+	class InlineElementBox : public Box
+	{
+	public:
+		InlineElementBox(BoxPtr parent, NodePtr node);
+		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 	};
 
 	class TextBox : public Box
 	{
 	public:
 		TextBox(BoxPtr parent, NodePtr node);
+		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 	};
 
 	

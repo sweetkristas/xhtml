@@ -88,6 +88,7 @@ namespace css
 		void parseFontVariant(const std::string& name);
 		void parseOverflow(const std::string& name);
 		void parsePosition(const std::string& name);
+		void parseFloat(const std::string& name);
 	private:
 		enum NumericParseOptions {
 			NUMBER,
