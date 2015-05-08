@@ -131,7 +131,17 @@ namespace xhtml
 	class LayoutEngine
 	{
 	public:
-		explicit LayoutEngine() : root_(nullptr), cursor_(), dims_(), ctx_(RenderContext::get()) {}
+		explicit LayoutEngine() : root_(nullptr), dims_(), ctx_(RenderContext::get()) {}
+
+		void formatNode(NodePtr node, BoxPtr parent, const point& container) {
+			if(root_ == nullptr) {
+				root_ = std::make_shared<BlockBox>(nullptr, node);
+				dims_.content_ = Rect(0, 0, container.x, container.y);
+				root_->layout(*this, dims_);
+				return;
+			}
+		}
+
 		BoxPtr formatNode(NodePtr node, BoxPtr parent, const Dimensions& container) {
 			auto& boxes = parent->getChildren();
 			if(node->id() == NodeId::ELEMENT) {
@@ -158,16 +168,8 @@ namespace xhtml
 							// Do not create a box for this or it's children
 							return nullptr;
 						case CssDisplay::INLINE: {
-							// XXX if parent has any left/right pending floated elements and we're starting a new box apply them here.
-							BoxPtr open = nullptr;
-							if(boxes.empty() || (!boxes.empty() && boxes.back()->id() == BoxId::BLOCK)) {
-								open = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
-							} else {
-								open = boxes.back();
-							}
-							open->addInlineElement(node);
-							open->layout(*this, container);
-							return open;
+							layoutInlineElement(node, parent);
+							return nullptr;
 						}
 						case CssDisplay::BLOCK: {
 							auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
@@ -186,7 +188,7 @@ namespace xhtml
 						case CssDisplay::TABLE_COLUMN:
 						case CssDisplay::TABLE_CELL:
 						case CssDisplay::TABLE_CAPTION:
-							ASSERT_LOG(false, "FIXME: LayoutBox::factory(): " << display_string(display));
+							ASSERT_LOG(false, "FIXME: LayoutEngine::formatNode(): " << display_string(display));
 							break;
 						default:
 							ASSERT_LOG(false, "illegal display value: " << static_cast<int>(display));
@@ -196,33 +198,45 @@ namespace xhtml
 			} else if(node->id() == NodeId::TEXT) {
 				// these nodes are inline/static by definition.
 				// XXX if parent has any left/right pending floated elements and we're starting a new box apply them here.
-				BoxPtr open = nullptr;
-				if(boxes.empty() || (!boxes.empty() && boxes.back()->id() != BoxId::LINE)) {
-					// add a line box.
-					open = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
-				} else {
-					open = boxes.back();
-				}
-				auto box = open->addInlineElement(node);
-				box->layout(*this, container);
-				return open;
+				layoutInlineText(node, parent);
+				return nullptr;
 			} else {
 				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(node->id()));
 			}
 			return nullptr;
 		}
-		void formatNode(NodePtr node, BoxPtr parent, const point& container) {
-			if(root_ == nullptr) {
-				root_ = std::make_shared<BlockBox>(nullptr, node);
-				dims_.content_ = Rect(0, 0, container.x, container.y);
-				root_->layout(*this, dims_);
-				return;
+
+		void layoutInlineElement(NodePtr node, BoxPtr parent)
+		{
+			BoxPtr open = parent->getOpenBox();
+			
+			auto inline_element_box = open->addInlineElement(node);
+			inline_element_box->layout(*this, open->getDimensions());
+		}
+
+		void layoutInlineText(NodePtr node, BoxPtr parent)
+		{
+			TextPtr tnode = std::dynamic_pointer_cast<Text>(node);
+			ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
+
+			BoxPtr open = parent->getOpenBox();
+			FixedPoint width = open->getDimensions().content_.width;
+
+			tnode->transformText(width >= 0);
+			auto it = tnode->begin();
+			while(it != tnode->end()) {
+				LinePtr line = tnode->reflowText(it, width);
+				if(line->is_end_line) {
+					parent->closeOpenBox(*this);	// XXX this should trigger layout and positioning
+					open = parent->getOpenBox();
+					width = open->getDimensions().content_.width;
+				}
+				BoxPtr txt = open->addChild(std::make_shared<TextBox>(parent, line));
 			}
 		}
 		BoxPtr getRoot() const { return root_; }
 	private:
 		BoxPtr root_;
-		point cursor_;
 		Dimensions dims_;
 		RenderContext& ctx_;
 	};
@@ -239,7 +253,13 @@ namespace xhtml
 		  node_(node),
 		  parent_(parent),
 		  dimensions_(),
-		  boxes_()
+		  boxes_(),
+		  absolute_boxes_(),
+		  fixed_boxes_(),
+		  float_boxes_to_be_placed_(),
+		  left_floats_(),
+		  right_floats_(),
+		  cursor_()
 	{
 	}
 
@@ -257,6 +277,49 @@ namespace xhtml
 		return e.getRoot();
 	}
 
+	FixedPoint Box::getWidthAtCursor() const
+	{
+		FixedPoint width = dimensions_.content_.width;
+		// since we expect only a small number of floats per element
+		// a linear search through them seems fine at this point.
+		for(auto& lf : left_floats_) {
+			auto& dims = lf->getDimensions();
+			if(cursor_.y > lf->getMPBTop() && cursor_.x <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height)) {
+				width -= lf->getMBPWidth() + dims.content_.width;
+			}
+		}
+		for(auto& rf : right_floats_) {
+			auto& dims = rf->getDimensions();
+			if(cursor_.y > rf->getMPBTop() && cursor_.x <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height)) {
+				width -= rf->getMBPWidth() + dims.content_.width;
+			}
+		}
+		return width < 0 ? 0 : width;
+	}
+
+	FixedPoint Box::getXAtCursor() const
+	{
+		FixedPoint x = 0;
+		// since we expect only a small number of floats per element
+		// a linear search through them seems fine at this point.
+		for(auto& lf : left_floats_) {
+			auto& dims = lf->getDimensions();
+			if(cursor_.y > lf->getMPBTop() && cursor_.x <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height)) {
+				x = std::max(x, lf->getMBPWidth() + dims.content_.width);
+			}
+		}
+		return x;
+	}
+
+	void Box::preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting)
+	{
+		fn(shared_from_this(), nesting);
+		// floats, absolutes
+		for(auto& child : boxes_) {
+			child->preOrderTraversal(fn, nesting+1);
+		}
+	}
+
 	BoxPtr Box::addAbsoluteElement(NodePtr node)
 	{
 		absolute_boxes_.emplace_back(std::make_shared<AbsoluteBox>(shared_from_this(), node));
@@ -269,15 +332,49 @@ namespace xhtml
 		return fixed_boxes_.back();
 	}
 
+	BoxPtr Box::getOpenBox()
+	{
+		BoxPtr open = nullptr;
+		if(boxes_.empty() || (!boxes_.empty() && boxes_.back()->id() != BoxId::LINE)) {
+			// add a line box.
+			open = addChild(std::make_shared<LineBox>(shared_from_this(), nullptr));
+			open->setContentWidth(getDimensions().content_.width);
+			// XXX move the cursor so the open box can hold it's contents.
+		} else {
+			open = boxes_.back();
+		}
+		open->setContentX(cursor_.x);
+		open->setContentY(cursor_.y);
+		open->setContentWidth(getWidthAtCursor());
+		return open;
+	}
+
+	void Box::closeOpenBox(LayoutEngine& eng)
+	{
+		ASSERT_LOG(!boxes_.empty(), "Tried to close a non-existant box.");
+		auto open = boxes_.back();
+		open->layout(eng, getDimensions());
+		cursor_.y += open->getDimensions().content_.height;
+		cursor_.x = getXAtCursor();
+	}
+
 	BoxPtr Box::addInlineElement(NodePtr node)
 	{
 		ASSERT_LOG(id() == BoxId::LINE, "Tried to add inline element to non-line box.");
-		if(node->id() == NodeId::TEXT) {
-			boxes_.emplace_back(std::make_shared<TextBox>(shared_from_this(), node));
-		} else {
-			boxes_.emplace_back(std::make_shared<InlineElementBox>(shared_from_this(), node));
-		}
+		boxes_.emplace_back(std::make_shared<InlineElementBox>(shared_from_this(), node));
 		return boxes_.back();
+	}
+
+	FixedPoint Box::getLineHeight() const
+	{
+		auto& ctx = RenderContext::get();
+		const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
+		FixedPoint line_height = lh.compute();
+		if(lh.isPercent() || lh.isNumber()) {
+			line_height = static_cast<FixedPoint>(line_height / fixed_point_scale_float
+				* ctx.getComputedValue(Property::FONT_SIZE).getValue<FixedPoint>());
+		}
+		return line_height;
 	}
 
 	BlockBox::BlockBox(BoxPtr parent, NodePtr node)
@@ -382,11 +479,12 @@ namespace xhtml
 		NodePtr node = getNode();
 		if(node != nullptr) {
 			for(auto& child : node->getChildren()) {
-				auto box = eng.formatNode(node, shared_from_this(), getDimensions());
-				if(box) {
-					setContentHeight(box->getDimensions().content_.height + box->getMBPHeight());
-				}
+				eng.formatNode(child, shared_from_this(), getDimensions());
 			}
+		}
+		// XXX We should assign margin/padding/border as appropriate here.
+		for(auto& child : getChildren()) {
+			setContentHeight(child->getDimensions().content_.height + child->getMBPHeight());
 		}
 	}
 
@@ -419,16 +517,29 @@ namespace xhtml
 
 	void LineBox::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		FixedPoint max_height = 0;
+		FixedPoint width = 0;
+		for(auto& child : getChildren()) {
+			width += child->getMBPWidth() + child->getDimensions().content_.width;
+			max_height = std::max(max_height, child->getDimensions().content_.height);
+		}
+		setContentWidth(width);
+		setContentHeight(max_height);
 	}
 
-	TextBox::TextBox(BoxPtr parent, NodePtr node)
-		: Box(BoxId::TEXT, parent, node)
+	TextBox::TextBox(BoxPtr parent, LinePtr line)
+		: Box(BoxId::TEXT, parent, nullptr),
+		  line_(line),
+		  space_advance_(line->space_advance)
 	{
+		setContentX(parent->getCursor().x);
+		setContentY(parent->getCursor().y);
+		setContentWidth(line->line.back().advance.back().x);
+		setContentHeight(getLineHeight());
 	}
 
 	void TextBox::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
-
 	}
 
 	AbsoluteBox::AbsoluteBox(BoxPtr parent, NodePtr node)
@@ -447,5 +558,136 @@ namespace xhtml
 
 	void InlineElementBox::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		setContentWidth(containing.content_.width);
+		NodePtr node = getNode();
+		if(node != nullptr) {
+			for(auto& child : node->getChildren()) {
+				eng.formatNode(child, shared_from_this(), getDimensions());
+			}
+		}
+		// XXX We should assign margin/padding/border as appropriate here.
+		for(auto& child : getChildren()) {
+			setContentHeight(child->getDimensions().content_.height + child->getMBPHeight());
+		}
+		setContentWidth(containing.content_.width);
+	}
+
+	std::string BlockBox::toString() const
+	{
+		std::ostringstream ss;
+		ss << "BlockBox: " << getDimensions().content_;
+		return ss.str();
+	}
+
+	std::string LineBox::toString() const
+	{
+		std::ostringstream ss;
+		ss << "LineBox: " << getDimensions().content_;
+		return ss.str();
+	}
+
+	std::string TextBox::toString() const
+	{
+		std::ostringstream ss;
+		ss << "TextBox: " << getDimensions().content_;
+		return ss.str();
+	}
+
+	std::string AbsoluteBox::toString() const
+	{
+		std::ostringstream ss;
+		ss << "AbsoluteBox: " << getDimensions().content_;
+		return ss.str();
+	}
+
+	std::string InlineElementBox::toString() const
+	{
+		std::ostringstream ss;
+		ss << "InlineElementBox: " << getDimensions().content_;
+		return ss.str();
+	}
+
+	void Box::render(DisplayListPtr display_list, const point& offset) const
+	{
+		auto node = node_.lock();
+		std::unique_ptr<RenderContext::Manager> ctx_manager;
+		if(node != nullptr && node->id() == NodeId::ELEMENT) {
+			// only instantiate on element nodes.
+			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
+		}
+
+		point offs = offset + point(dimensions_.content_.x, dimensions_.content_.y);
+		handleRenderBackground(display_list, offs);
+		handleRenderBorder(display_list, offs);
+		handleRender(display_list, offs);
+		for(auto& child : getChildren()) {
+			child->render(display_list, offs);
+		}
+		// render absolute boxes.
+		// render fixed boxes.
+	}
+
+	void Box::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
+	{
+		/*if(background_color_.ai() != 0) {
+			rect r(offset.x + dimensions_.content_.x - dimensions_.padding_.left,
+				offset.y + dimensions_.content_.y - dimensions_.padding_.top,
+				dimensions_.content_.width + dimensions_.padding_.left + dimensions_.padding_.right,
+				dimensions_.content_.height + dimensions_.padding_.top + dimensions_.padding_.bottom);
+			display_list->addRenderable(std::make_shared<SolidRenderable>(r, background_color_));
+		}*/
+	}
+
+	void Box::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
+	{
+		// XXX
+	}
+
+	void BlockBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	{
+		// do nothing
+	}
+
+	void LineBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	{
+		// do nothing
+	}
+
+	void TextBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	{
+		std::vector<point> path;
+		std::string text;
+		int dim_x = getDimensions().content_.x + offset.x;
+		int dim_y = getDimensions().content_.y + offset.y;
+		for(auto& word : line_->line) {
+			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
+				path.emplace_back(it->x + dim_x, it->y + dim_y);
+			}
+			dim_x += word.advance.back().x + space_advance_;
+			text += word.word;
+		}
+
+		auto& ctx = RenderContext::get();
+		auto fh = ctx.getFontHandle();
+		auto fontr = fh->createRenderableFromPath(nullptr, text, path);
+		fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute());
+		display_list->addRenderable(fontr);
+	}
+
+	void AbsoluteBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	{
+		// do nothing
+	}
+
+	void InlineElementBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	{
+		auto node = getNode();
+		if(node != nullptr) {
+			auto r = node->getRenderable();
+			if(r != nullptr) {
+				r->setPosition(glm::vec3(offset.x/fixed_point_scale_float, offset.y/fixed_point_scale_float, 0.0f));
+				display_list->addRenderable(r);
+			}
+		}
 	}
 }

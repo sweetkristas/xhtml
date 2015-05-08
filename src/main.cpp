@@ -61,15 +61,15 @@ void load_xhtml(int width, const std::string& ua_ss, const std::string& test_doc
 	//	return true;
 	//});
 
-	//xhtml::RenderContextManager rcm;
+	xhtml::RenderContextManager rcm;
 	// layout has to happen after initialisation of graphics
 	auto layout = xhtml::Box::createLayout(doc, width);
-	//layout->render(display_list, point());
+	layout->render(display_list, point());
 
-	/*layout->preOrderTraversal([](xhtml::LayoutBoxPtr box, int nesting) {
+	layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
 		std::string indent(nesting*2, ' ');
 		LOG_DEBUG(indent + box->toString());
-	}, 0);*/
+	}, 0);
 }
 
 int main(int argc, char* argv[])
