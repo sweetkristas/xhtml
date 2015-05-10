@@ -29,6 +29,7 @@
 #include "display_list.hpp"
 #include "xhtml.hpp"
 #include "xhtml_node.hpp"
+#include "xhtml_render_ctx.hpp"
 #include "variant_object.hpp"
 
 namespace xhtml
@@ -140,19 +141,18 @@ namespace xhtml
 		BoxPtr addAbsoluteElement(NodePtr node);
 		BoxPtr addFixedElement(NodePtr node);
 		BoxPtr addInlineElement(NodePtr node);
+		void addFloatBox(BoxPtr box, css::CssFloat cfloat);
 		
-		void closeOpenBox(LayoutEngine& eng);
+		void addWaitingFloat(LayoutEngine& eng, css::CssFloat cfloat, NodePtr node);
 
 		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); return box; }
-		BoxPtr getOpenBox();
-		FixedPoint getWidthAtCursor() const;
-		FixedPoint getXAtCursor() const;
-		const point& getCursor() const { return cursor_; }
-		FixedPoint getLineHeight() const;
+		FixedPoint getWidthAtCursor(const point& cursor) const;
+		FixedPoint getXAtCursor(const point& cursor) const;
 
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
 
 		void render(DisplayListPtr display_list, const point& offset) const;
+		KRE::FontHandlePtr getFont() const { return font_handle_; }
 	private:
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
@@ -168,7 +168,8 @@ namespace xhtml
 		std::vector<BoxPtr> float_boxes_to_be_placed_;
 		std::vector<BoxPtr> left_floats_;
 		std::vector<BoxPtr> right_floats_;
-		point cursor_;
+		css::CssFloat cfloat_;
+		KRE::FontHandlePtr font_handle_;
 	};
 
 	class BlockBox : public Box

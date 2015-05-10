@@ -131,7 +131,7 @@ namespace xhtml
 	class LayoutEngine
 	{
 	public:
-		explicit LayoutEngine() : root_(nullptr), dims_(), ctx_(RenderContext::get()) {}
+		explicit LayoutEngine() : root_(nullptr), dims_(), ctx_(RenderContext::get()), open_box_(), cursor_() {}
 
 		void formatNode(NodePtr node, BoxPtr parent, const point& container) {
 			if(root_ == nullptr) {
@@ -163,6 +163,16 @@ namespace xhtml
 					box->layout(*this, container);
 					return nullptr;
 				} else {
+					if(cfloat != CssFloat::NONE) {
+						if(isOpenBox()) {
+							parent->addWaitingFloat(*this, cfloat, node);
+							return nullptr;
+						}
+						// no open box so just add it.
+						auto box = std::make_shared<BlockBox>(parent, node);
+						box->layout(*this, parent->getDimensions());
+						parent->addFloatBox(box, cfloat);
+					}
 					switch(display) {
 						case CssDisplay::NONE:
 							// Do not create a box for this or it's children
@@ -206,39 +216,83 @@ namespace xhtml
 			return nullptr;
 		}
 
-		void layoutInlineElement(NodePtr node, BoxPtr parent)
-		{
-			BoxPtr open = parent->getOpenBox();
-			
+		void layoutInlineElement(NodePtr node, BoxPtr parent) {
+			BoxPtr open = getOpenBox(parent);
+			// This should be adding to the currently open box.
 			auto inline_element_box = open->addInlineElement(node);
 			inline_element_box->layout(*this, open->getDimensions());
 		}
 
-		void layoutInlineText(NodePtr node, BoxPtr parent)
-		{
+		void layoutInlineText(NodePtr node, BoxPtr parent) {
 			TextPtr tnode = std::dynamic_pointer_cast<Text>(node);
 			ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 
-			BoxPtr open = parent->getOpenBox();
-			FixedPoint width = open->getDimensions().content_.width;
+			BoxPtr open = getOpenBox(parent);
+			FixedPoint width = open->getDimensions().content_.width - cursor_.x;
 
 			tnode->transformText(width >= 0);
 			auto it = tnode->begin();
 			while(it != tnode->end()) {
 				LinePtr line = tnode->reflowText(it, width);
+				if(!line->line.empty()) {
+					BoxPtr txt = open->addChild(std::make_shared<TextBox>(parent, line));
+					txt->setContentX(cursor_.x);
+					txt->setContentY(cursor_.y);
+					txt->setContentHeight(getLineHeight());
+					FixedPoint x_inc = txt->getDimensions().content_.width + txt->getMBPWidth();
+					cursor_.x += x_inc;
+					width -= x_inc;
+				}
 				if(line->is_end_line) {
-					parent->closeOpenBox(*this);	// XXX this should trigger layout and positioning
-					open = parent->getOpenBox();
+					closeOpenBox(parent);	// XXX this should trigger layout and positioning
+					open = getOpenBox(parent);
 					width = open->getDimensions().content_.width;
 				}
-				BoxPtr txt = open->addChild(std::make_shared<TextBox>(parent, line));
 			}
 		}
+		
+		BoxPtr getOpenBox(BoxPtr parent) {
+			if(open_box_ == nullptr) {
+				open_box_ = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
+				open_box_->setContentX(getLineHeight());
+				//open_box_->setContentX(cursor_.x);
+				//open_box_->setContentY(cursor_.y);
+				open_box_->setContentWidth(parent->getWidthAtCursor(cursor_));
+			}
+			return open_box_;
+		}
+
+		void closeOpenBox(BoxPtr parent) {
+			ASSERT_LOG(open_box_ != nullptr, "Tried to close a non-existant box.");
+			open_box_->layout(*this, parent->getDimensions());
+			setCursor(point(parent->getXAtCursor(cursor_),
+				open_box_->getDimensions().content_.height + cursor_.y));
+			open_box_ = nullptr;
+		}
+
+		FixedPoint getLineHeight() const {
+			const auto lh = ctx_.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
+			FixedPoint line_height = lh.compute();
+			if(lh.isPercent() || lh.isNumber()) {
+				line_height = static_cast<FixedPoint>(line_height / fixed_point_scale_float
+					* ctx_.getComputedValue(Property::FONT_SIZE).getValue<FixedPoint>());
+			}
+			return line_height;
+		}
+
+		bool isOpenBox() const { return open_box_ != nullptr; }
+
 		BoxPtr getRoot() const { return root_; }
+		
+		const point& getCursor() const { return cursor_; }
+		void setCursor(const point& cursor) { cursor_ = cursor; }
+		void incrCursor(FixedPoint x) { cursor_.x += x; }
 	private:
 		BoxPtr root_;
 		Dimensions dims_;
 		RenderContext& ctx_;
+		BoxPtr open_box_;
+		point cursor_;
 	};
 
 
@@ -259,7 +313,8 @@ namespace xhtml
 		  float_boxes_to_be_placed_(),
 		  left_floats_(),
 		  right_floats_(),
-		  cursor_()
+		  cfloat_(CssFloat::NONE),
+		  font_handle_(xhtml::RenderContext::get().getFontHandle())
 	{
 	}
 
@@ -277,34 +332,53 @@ namespace xhtml
 		return e.getRoot();
 	}
 
-	FixedPoint Box::getWidthAtCursor() const
+	void Box::addWaitingFloat(LayoutEngine& eng, CssFloat cfloat, NodePtr node)
+	{
+		auto box = std::make_shared<BlockBox>(shared_from_this(), node);
+		box->cfloat_ = cfloat;
+		box->layout(eng, getDimensions());
+		float_boxes_to_be_placed_.emplace_back(box);
+	}
+	
+	void Box::addFloatBox(BoxPtr box, CssFloat cfloat)
+	{
+		if(cfloat == CssFloat::LEFT) {
+			// XXX Calculate position of box here
+			left_floats_.emplace_back(box);
+		} else {
+			// XXX Calculate position of box here
+			right_floats_.emplace_back(box);
+		}
+	}
+
+	FixedPoint Box::getWidthAtCursor(const point& cursor) const
 	{
 		FixedPoint width = dimensions_.content_.width;
 		// since we expect only a small number of floats per element
 		// a linear search through them seems fine at this point.
 		for(auto& lf : left_floats_) {
 			auto& dims = lf->getDimensions();
-			if(cursor_.y > lf->getMPBTop() && cursor_.x <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height)) {
+			if(cursor.y > lf->getMPBTop() && cursor.x <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height)) {
 				width -= lf->getMBPWidth() + dims.content_.width;
 			}
 		}
 		for(auto& rf : right_floats_) {
 			auto& dims = rf->getDimensions();
-			if(cursor_.y > rf->getMPBTop() && cursor_.x <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height)) {
+			if(cursor.y > rf->getMPBTop() && cursor.x <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height)) {
 				width -= rf->getMBPWidth() + dims.content_.width;
 			}
 		}
 		return width < 0 ? 0 : width;
 	}
 
-	FixedPoint Box::getXAtCursor() const
+	FixedPoint Box::getXAtCursor(const point& cursor) const
 	{
 		FixedPoint x = 0;
 		// since we expect only a small number of floats per element
 		// a linear search through them seems fine at this point.
 		for(auto& lf : left_floats_) {
 			auto& dims = lf->getDimensions();
-			if(cursor_.y > lf->getMPBTop() && cursor_.x <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height)) {
+			if(cursor.y > lf->getMPBTop() && cursor.x <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height)) {
 				x = std::max(x, lf->getMBPWidth() + dims.content_.width);
 			}
 		}
@@ -332,49 +406,11 @@ namespace xhtml
 		return fixed_boxes_.back();
 	}
 
-	BoxPtr Box::getOpenBox()
-	{
-		BoxPtr open = nullptr;
-		if(boxes_.empty() || (!boxes_.empty() && boxes_.back()->id() != BoxId::LINE)) {
-			// add a line box.
-			open = addChild(std::make_shared<LineBox>(shared_from_this(), nullptr));
-			open->setContentWidth(getDimensions().content_.width);
-			// XXX move the cursor so the open box can hold it's contents.
-		} else {
-			open = boxes_.back();
-		}
-		open->setContentX(cursor_.x);
-		open->setContentY(cursor_.y);
-		open->setContentWidth(getWidthAtCursor());
-		return open;
-	}
-
-	void Box::closeOpenBox(LayoutEngine& eng)
-	{
-		ASSERT_LOG(!boxes_.empty(), "Tried to close a non-existant box.");
-		auto open = boxes_.back();
-		open->layout(eng, getDimensions());
-		cursor_.y += open->getDimensions().content_.height;
-		cursor_.x = getXAtCursor();
-	}
-
 	BoxPtr Box::addInlineElement(NodePtr node)
 	{
 		ASSERT_LOG(id() == BoxId::LINE, "Tried to add inline element to non-line box.");
 		boxes_.emplace_back(std::make_shared<InlineElementBox>(shared_from_this(), node));
 		return boxes_.back();
-	}
-
-	FixedPoint Box::getLineHeight() const
-	{
-		auto& ctx = RenderContext::get();
-		const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
-		FixedPoint line_height = lh.compute();
-		if(lh.isPercent() || lh.isNumber()) {
-			line_height = static_cast<FixedPoint>(line_height / fixed_point_scale_float
-				* ctx.getComputedValue(Property::FONT_SIZE).getValue<FixedPoint>());
-		}
-		return line_height;
 	}
 
 	BlockBox::BlockBox(BoxPtr parent, NodePtr node)
@@ -532,10 +568,12 @@ namespace xhtml
 		  line_(line),
 		  space_advance_(line->space_advance)
 	{
-		setContentX(parent->getCursor().x);
-		setContentY(parent->getCursor().y);
-		setContentWidth(line->line.back().advance.back().x);
-		setContentHeight(getLineHeight());
+		FixedPoint width = 0;
+		for(auto& word : line->line) {
+			width += word.advance.back().x;
+		}
+		width += space_advance_ * (line_->line.size()-1);
+		setContentWidth(width);
 	}
 
 	void TextBox::layout(LayoutEngine& eng, const Dimensions& containing)
@@ -558,6 +596,8 @@ namespace xhtml
 
 	void InlineElementBox::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		setContentY(eng.getCursor().y);
+		setContentX(0);
 		setContentWidth(containing.content_.width);
 		NodePtr node = getNode();
 		if(node != nullptr) {
@@ -569,7 +609,6 @@ namespace xhtml
 		for(auto& child : getChildren()) {
 			setContentHeight(child->getDimensions().content_.height + child->getMBPHeight());
 		}
-		setContentWidth(containing.content_.width);
 	}
 
 	std::string BlockBox::toString() const
@@ -590,6 +629,9 @@ namespace xhtml
 	{
 		std::ostringstream ss;
 		ss << "TextBox: " << getDimensions().content_;
+		for(auto& word : line_->line) {
+			ss << " " << word.word;
+		}
 		return ss.str();
 	}
 
@@ -616,7 +658,7 @@ namespace xhtml
 			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
 		}
 
-		point offs = offset + point(dimensions_.content_.x, dimensions_.content_.y);
+		point offs = offset;//+ point(dimensions_.content_.x, dimensions_.content_.y);
 		handleRenderBackground(display_list, offs);
 		handleRenderBorder(display_list, offs);
 		handleRender(display_list, offs);
@@ -666,17 +708,19 @@ namespace xhtml
 			dim_x += word.advance.back().x + space_advance_;
 			text += word.word;
 		}
+		LOG_DEBUG((getDimensions().content_.x + offset.x)/65536.0 << "," << (getDimensions().content_.y + offset.y)/65536.0 << ": " << text);
 
 		auto& ctx = RenderContext::get();
-		auto fh = ctx.getFontHandle();
-		auto fontr = fh->createRenderableFromPath(nullptr, text, path);
+		//auto fh = ctx.getFontHandle();
+		//auto fontr = fh->createRenderableFromPath(nullptr, text, path);
+		auto fontr = getFont()->createRenderableFromPath(nullptr, text, path);
 		fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute());
 		display_list->addRenderable(fontr);
 	}
 
 	void AbsoluteBox::handleRender(DisplayListPtr display_list, const point& offset) const
 	{
-		// do nothing
+		// XXX
 	}
 
 	void InlineElementBox::handleRender(DisplayListPtr display_list, const point& offset) const

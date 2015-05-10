@@ -199,6 +199,7 @@ namespace xhtml
 				}
 				continue;
 			}
+			word.advance.clear();
 			RenderContext::get().getFontHandle()->getGlyphPath(word.word, &word.advance);
 			if(letter_spacing != 0) {
 				long ls_acc = 0;
