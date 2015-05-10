@@ -189,6 +189,7 @@ namespace xhtml
 					setDimensions(r);
 				}
 			}
+			bool isReplaced() const override { return true; }
 			KRE::SceneObjectPtr getRenderable()
 			{
 				if(tex_ != nullptr) {
@@ -206,6 +207,7 @@ namespace xhtml
 		struct ObjectElement : public Element
 		{
 			explicit ObjectElement(ElementId id, const std::string& name, WeakDocumentPtr owner) : Element(id, name, owner) {}
+			bool isReplaced() const override { return true; }
 		};
 		ElementRegistrar<ObjectElement> object_element(ElementId::OBJECT, "object");
 
@@ -251,6 +253,7 @@ namespace xhtml
 		struct SelectElement : public Element
 		{
 			explicit SelectElement(ElementId id, const std::string& name, WeakDocumentPtr owner) : Element(id, name, owner) {}
+			bool isReplaced() const override { return true; }
 		};
 		ElementRegistrar<SelectElement> select_element(ElementId::SELECT, "select");
 
@@ -269,18 +272,21 @@ namespace xhtml
 		struct InputElement : public Element
 		{
 			explicit InputElement(ElementId id, const std::string& name, WeakDocumentPtr owner) : Element(id, name, owner) {}
+			bool isReplaced() const override { return true; }
 		};
 		ElementRegistrar<InputElement> input_element(ElementId::INPUT, "input");
 
 		struct TextAreaElement : public Element
 		{
 			explicit TextAreaElement(ElementId id, const std::string& name, WeakDocumentPtr owner) : Element(id, name, owner) {}
+			bool isReplaced() const override { return true; }
 		};
 		ElementRegistrar<TextAreaElement> text_area_element(ElementId::TEXTAREA, "textarea");
 
 		struct ButtonElement : public Element
 		{
 			explicit ButtonElement(ElementId id, const std::string& name, WeakDocumentPtr owner) : Element(id, name, owner) {}
+			bool isReplaced() const override { return true; }
 		};
 		ElementRegistrar<ButtonElement> button_element(ElementId::BUTTON, "button");
 

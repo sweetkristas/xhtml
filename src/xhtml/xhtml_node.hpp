@@ -109,6 +109,8 @@ namespace xhtml
 		// for elements
 		virtual const Rect& getDimensions() { static Rect res; return res; }
 		virtual KRE::SceneObjectPtr getRenderable() { return nullptr; }
+		// is this element replaced, replaced elements generate a seperate box during layout.
+		virtual bool isReplaced() const { return false; }
 	protected:
 		std::string nodeToString() const;
 	private:

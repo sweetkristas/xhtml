@@ -52,7 +52,7 @@ namespace KRE
 		unsigned short tex_y;
 		// Width of glyph in texture.
 		unsigned short width;
-		// Hidth of glyph in texture.
+		// Height of glyph in texture.
 		unsigned short height;
 		// X advance (i.e. distance to start of next glyph on X axis)
 		long advance_x;
