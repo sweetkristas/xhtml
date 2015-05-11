@@ -130,11 +130,7 @@ namespace xhtml
 		}
 	}
 	
-	// XXX todo: floats should be owned by the root element and positioned relative to that, more or less.
-	// this requires that the getWidthAtCursor/getXAtcursor functions be moved into LayoutEngine, which is
-	// reasonable. They will still need to know about the parent->getDimensions().content_.width for the
-	// calculation.
-	// We're not handling text alignment or justification yet.
+	// XXX We're not handling text alignment or justification yet.
 	class LayoutEngine
 	{
 	public:
@@ -174,19 +170,15 @@ namespace xhtml
 						bool saved_open = false;
 						FixedPoint y = 0;
 						if(isOpenBox()) {
-							//parent->addWaitingFloat(*this, cfloat, node);
-							//return nullptr;
 							y = open_.top().cursor_.y;
 							saved_open = true;
 							pushOpenBox();
 						}
-						// no open box so just add it.
-						parent->addFloatBox(*this, std::make_shared<BlockBox>(parent, node), cfloat, y);
+						// XXX need to add an offset to position for the float box based on body margin.
+						root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, node), cfloat, y);
 						if(saved_open) {
 							popOpenBox();
-							open_.top().open_box_->setContentX(open_.top().open_box_->getDimensions().content_.x
-								+ parent->getXAtCursor(open_.top().cursor_));
-							//open_.top().cursor_.x = parent->getXAtCursor(open_.top().cursor_);
+							open_.top().open_box_->setContentX(open_.top().open_box_->getDimensions().content_.x + getXAtCursor());
 						}
 						return;
 					}
@@ -253,7 +245,7 @@ namespace xhtml
 			ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 
 			BoxPtr open = getOpenBox(parent);
-			FixedPoint width = parent->getWidthAtCursor(open_.top().cursor_) - open_.top().cursor_.x;
+			FixedPoint width = getWidthAtCursor(parent->getDimensions().content_.width) - open_.top().cursor_.x;
 
 			tnode->transformText(width >= 0);
 			auto it = tnode->begin();
@@ -271,7 +263,7 @@ namespace xhtml
 				if(line->is_end_line) {
 					closeOpenBox(parent);
 					open = getOpenBox(parent);
-					width = parent->getWidthAtCursor(open_.top().cursor_);
+					width = getWidthAtCursor(parent->getDimensions().content_.width);
 				}
 			}
 		}
@@ -289,9 +281,9 @@ namespace xhtml
 			}
 			if(open_.top().open_box_ == nullptr) {
 				open_.top().open_box_ = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
-				open_.top().open_box_->setContentX(parent->getXAtCursor(open_.top().cursor_));
+				open_.top().open_box_->setContentX(getXAtCursor());
 				open_.top().open_box_->setContentY(open_.top().cursor_.y);
-				open_.top().open_box_->setContentWidth(parent->getWidthAtCursor(open_.top().cursor_));
+				open_.top().open_box_->setContentWidth(getWidthAtCursor(parent->getDimensions().content_.width));
 			}
 			return open_.top().open_box_;
 		}
@@ -330,6 +322,39 @@ namespace xhtml
 		const point& getCursor() const { return open_.top().cursor_; }
 		void setCursor(const point& cursor) { open_.top().cursor_ = cursor; }
 		void incrCursor(FixedPoint x) { open_.top().cursor_.x += x; }
+
+		FixedPoint getWidthAtCursor(FixedPoint width) const {
+			// since we expect only a small number of floats per element
+			// a linear search through them seems fine at this point.
+			for(auto& lf : root_->getLeftFloats()) {
+				auto& dims = lf->getDimensions();
+				if(getCursor().y > (lf->getMPBTop() + dims.content_.y) && getCursor().y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+					width -= lf->getMBPWidth() + dims.content_.width;
+				}
+			}
+			for(auto& rf : root_->getRightFloats()) {
+				auto& dims = rf->getDimensions();
+				if(getCursor().y > (rf->getMPBTop() + dims.content_.y) && getCursor().y <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+					width -= rf->getMBPWidth() + dims.content_.width;
+				}
+			}
+			return width < 0 ? 0 : width;
+		}
+
+		FixedPoint getXAtCursor() const {
+			FixedPoint x = 0;
+			// since we expect only a small number of floats per element
+			// a linear search through them seems fine at this point.
+			for(auto& lf : root_->getLeftFloats()) {
+				auto& dims = lf->getDimensions();
+				if(getCursor().y > (lf->getMPBTop() + dims.content_.y) && getCursor().y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+					x = std::max(x, lf->getMBPWidth() + dims.content_.width);
+				}
+			}
+			return x;
+		}
+
+
 	private:
 		BoxPtr root_;
 		Dimensions dims_;
@@ -395,8 +420,8 @@ namespace xhtml
 			// XXX Calculate position of box here
 			// XXX need to come up with a decent algorithm to move float boxes down
 			// if they can't be positioned at the current cursor.
-			FixedPoint x = getXAtCursor(eng.getCursor());
-			FixedPoint w = getWidthAtCursor(eng.getCursor());
+			FixedPoint x = eng.getXAtCursor();
+			FixedPoint w = eng.getWidthAtCursor(dimensions_.content_.width);
 			box->layout(eng, getDimensions());
 			box->setContentX(x);
 			box->setContentY(y - dimensions_.content_.y);
@@ -413,8 +438,8 @@ namespace xhtml
 			if(fb->cfloat_ == CssFloat::LEFT) {
 				// XXX need to come up with a decent algorithm to move float boxes down
 				// if they can't be positioned at the current cursor.
-				FixedPoint x = getXAtCursor(eng.getCursor());
-				FixedPoint w = getWidthAtCursor(eng.getCursor());
+				FixedPoint x = eng.getXAtCursor();
+				FixedPoint w = eng.getWidthAtCursor(dimensions_.content_.width);
 				fb->layout(eng, getDimensions());
 				fb->setContentX(x);
 				fb->setContentY(eng.getCursor().y  - dimensions_.content_.y);
@@ -424,40 +449,6 @@ namespace xhtml
 			}
 		}
 		float_boxes_to_be_placed_.clear();
-	}
-
-	FixedPoint Box::getWidthAtCursor(const point& cursor) const
-	{
-		FixedPoint width = dimensions_.content_.width;
-		// since we expect only a small number of floats per element
-		// a linear search through them seems fine at this point.
-		for(auto& lf : left_floats_) {
-			auto& dims = lf->getDimensions();
-			if(cursor.y > (lf->getMPBTop() + dims.content_.y) && cursor.y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
-				width -= lf->getMBPWidth() + dims.content_.width;
-			}
-		}
-		for(auto& rf : right_floats_) {
-			auto& dims = rf->getDimensions();
-			if(cursor.y > (rf->getMPBTop() + dims.content_.y) && cursor.y <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
-				width -= rf->getMBPWidth() + dims.content_.width;
-			}
-		}
-		return width < 0 ? 0 : width;
-	}
-
-	FixedPoint Box::getXAtCursor(const point& cursor) const
-	{
-		FixedPoint x = 0;
-		// since we expect only a small number of floats per element
-		// a linear search through them seems fine at this point.
-		for(auto& lf : left_floats_) {
-			auto& dims = lf->getDimensions();
-			if(cursor.y > (lf->getMPBTop() + dims.content_.y) && cursor.y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
-				x = std::max(x, lf->getMBPWidth() + dims.content_.width);
-			}
-		}
-		return x;
 	}
 
 	void Box::preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting)

@@ -147,13 +147,13 @@ namespace xhtml
 		void positionWaitingFloats(LayoutEngine& eng);
 
 		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); return box; }
-		FixedPoint getWidthAtCursor(const point& cursor) const;
-		FixedPoint getXAtCursor(const point& cursor) const;
 
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
 
 		void render(DisplayListPtr display_list, const point& offset) const;
 		KRE::FontHandlePtr getFont() const { return font_handle_; }
+		const std::vector<BoxPtr>& getLeftFloats() const { return left_floats_; }
+		const std::vector<BoxPtr>& getRightFloats() const { return right_floats_; }
 	private:
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
