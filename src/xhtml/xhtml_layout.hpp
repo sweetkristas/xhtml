@@ -141,9 +141,10 @@ namespace xhtml
 		BoxPtr addAbsoluteElement(NodePtr node);
 		BoxPtr addFixedElement(NodePtr node);
 		BoxPtr addInlineElement(NodePtr node);
-		void addFloatBox(BoxPtr box, css::CssFloat cfloat);
+		void addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y);
 		
 		void addWaitingFloat(LayoutEngine& eng, css::CssFloat cfloat, NodePtr node);
+		void positionWaitingFloats(LayoutEngine& eng);
 
 		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); return box; }
 		FixedPoint getWidthAtCursor(const point& cursor) const;
@@ -178,6 +179,7 @@ namespace xhtml
 		BlockBox(BoxPtr parent, NodePtr node);
 		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 		std::string toString() const override;
+		void setMBP(FixedPoint containing_width);
 	private:
 		void layoutWidth(const Dimensions& containing);
 		void layoutPosition(const Dimensions& containing);

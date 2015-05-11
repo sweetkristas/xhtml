@@ -129,7 +129,12 @@ namespace xhtml
 			return ss.str();
 		}
 	}
-
+	
+	// XXX todo: floats should be owned by the root element and positioned relative to that, more or less.
+	// this requires that the getWidthAtCursor/getXAtcursor functions be moved into LayoutEngine, which is
+	// reasonable. They will still need to know about the parent->getDimensions().content_.width for the
+	// calculation.
+	// We're not handling text alignment or justification yet.
 	class LayoutEngine
 	{
 	public:
@@ -144,7 +149,7 @@ namespace xhtml
 			}
 		}
 
-		BoxPtr formatNode(NodePtr node, BoxPtr parent, const Dimensions& container) {
+		void formatNode(NodePtr node, BoxPtr parent, const Dimensions& container) {
 			auto& boxes = parent->getChildren();
 			if(node->id() == NodeId::ELEMENT) {
 				std::unique_ptr<RenderContext::Manager> ctx_manager;
@@ -158,35 +163,45 @@ namespace xhtml
 					// absolute positioned elements are taken out of the normal document flow
 					auto box = parent->addAbsoluteElement(node);
 					box->layout(*this, container);
-					return nullptr;
+					return;
 				} else if(position == CssPosition::FIXED) {
 					// fixed positioned elements are taken out of the normal document flow
 					auto box = root_->addFixedElement(node);
 					box->layout(*this, container);
-					return nullptr;
+					return;
 				} else {
 					if(cfloat != CssFloat::NONE) {
+						bool saved_open = false;
+						FixedPoint y = 0;
 						if(isOpenBox()) {
-							parent->addWaitingFloat(*this, cfloat, node);
-							return nullptr;
+							//parent->addWaitingFloat(*this, cfloat, node);
+							//return nullptr;
+							y = open_.top().cursor_.y;
+							saved_open = true;
+							pushOpenBox();
 						}
 						// no open box so just add it.
-						auto box = std::make_shared<BlockBox>(parent, node);
-						box->layout(*this, parent->getDimensions());
-						parent->addFloatBox(box, cfloat);
+						parent->addFloatBox(*this, std::make_shared<BlockBox>(parent, node), cfloat, y);
+						if(saved_open) {
+							popOpenBox();
+							open_.top().open_box_->setContentX(open_.top().open_box_->getDimensions().content_.x
+								+ parent->getXAtCursor(open_.top().cursor_));
+							//open_.top().cursor_.x = parent->getXAtCursor(open_.top().cursor_);
+						}
+						return;
 					}
 					switch(display) {
 						case CssDisplay::NONE:
 							// Do not create a box for this or it's children
-							return nullptr;
+							return;
 						case CssDisplay::INLINE: {
 							layoutInlineElement(node, parent);
-							return nullptr;
+							return;
 						}
 						case CssDisplay::BLOCK: {
 							auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
 							box->layout(*this, container);
-							return box;
+							return;
 						}
 						case CssDisplay::INLINE_BLOCK:
 						case CssDisplay::LIST_ITEM:
@@ -211,11 +226,10 @@ namespace xhtml
 				// these nodes are inline/static by definition.
 				// XXX if parent has any left/right pending floated elements and we're starting a new box apply them here.
 				layoutInlineText(node, parent);
-				return nullptr;
+				return;
 			} else {
 				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(node->id()));
 			}
-			return nullptr;
 		}
 
 		void layoutInlineElement(NodePtr node, BoxPtr parent) {
@@ -239,7 +253,7 @@ namespace xhtml
 			ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 
 			BoxPtr open = getOpenBox(parent);
-			FixedPoint width = open->getDimensions().content_.width - open_.top().cursor_.x;
+			FixedPoint width = parent->getWidthAtCursor(open_.top().cursor_) - open_.top().cursor_.x;
 
 			tnode->transformText(width >= 0);
 			auto it = tnode->begin();
@@ -255,9 +269,9 @@ namespace xhtml
 					width -= x_inc;
 				}
 				if(line->is_end_line) {
-					closeOpenBox(parent);	// XXX this should trigger layout and positioning
+					closeOpenBox(parent);
 					open = getOpenBox(parent);
-					width = open->getDimensions().content_.width;
+					width = parent->getWidthAtCursor(open_.top().cursor_);
 				}
 			}
 		}
@@ -275,6 +289,7 @@ namespace xhtml
 			}
 			if(open_.top().open_box_ == nullptr) {
 				open_.top().open_box_ = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
+				open_.top().open_box_->setContentX(parent->getXAtCursor(open_.top().cursor_));
 				open_.top().open_box_->setContentY(open_.top().cursor_.y);
 				open_.top().open_box_->setContentWidth(parent->getWidthAtCursor(open_.top().cursor_));
 			}
@@ -286,13 +301,16 @@ namespace xhtml
 				return;
 			}
 			if(open_.top().open_box_ == nullptr) {
-				//open_.pop();
 				return;
 			}
 			open_.top().open_box_->layout(*this, parent->getDimensions());
-			setCursor(point(parent->getXAtCursor(open_.top().cursor_),
-				open_.top().open_box_->getDimensions().content_.height + open_.top().cursor_.y));
+
+			point old_cursor = point(0,
+				open_.top().open_box_->getDimensions().content_.height + open_.top().cursor_.y);
 			open_.top().open_box_ = nullptr;
+
+			parent->positionWaitingFloats(*this);
+			open_.top().cursor_ = old_cursor;
 		}
 
 		FixedPoint getLineHeight() const {
@@ -371,15 +389,41 @@ namespace xhtml
 		float_boxes_to_be_placed_.emplace_back(box);
 	}
 	
-	void Box::addFloatBox(BoxPtr box, CssFloat cfloat)
+	void Box::addFloatBox(LayoutEngine& eng, BoxPtr box, CssFloat cfloat, FixedPoint y)
 	{
 		if(cfloat == CssFloat::LEFT) {
 			// XXX Calculate position of box here
+			// XXX need to come up with a decent algorithm to move float boxes down
+			// if they can't be positioned at the current cursor.
+			FixedPoint x = getXAtCursor(eng.getCursor());
+			FixedPoint w = getWidthAtCursor(eng.getCursor());
+			box->layout(eng, getDimensions());
+			box->setContentX(x);
+			box->setContentY(y - dimensions_.content_.y);
 			left_floats_.emplace_back(box);
 		} else {
 			// XXX Calculate position of box here
 			right_floats_.emplace_back(box);
 		}
+	}
+
+	void Box::positionWaitingFloats(LayoutEngine& eng)
+	{
+		for(auto& fb : float_boxes_to_be_placed_) {
+			if(fb->cfloat_ == CssFloat::LEFT) {
+				// XXX need to come up with a decent algorithm to move float boxes down
+				// if they can't be positioned at the current cursor.
+				FixedPoint x = getXAtCursor(eng.getCursor());
+				FixedPoint w = getWidthAtCursor(eng.getCursor());
+				fb->layout(eng, getDimensions());
+				fb->setContentX(x);
+				fb->setContentY(eng.getCursor().y  - dimensions_.content_.y);
+				left_floats_.emplace_back(fb);
+			} else {
+				/// XXX todo.
+			}
+		}
+		float_boxes_to_be_placed_.clear();
 	}
 
 	FixedPoint Box::getWidthAtCursor(const point& cursor) const
@@ -389,13 +433,13 @@ namespace xhtml
 		// a linear search through them seems fine at this point.
 		for(auto& lf : left_floats_) {
 			auto& dims = lf->getDimensions();
-			if(cursor.y > lf->getMPBTop() && cursor.x <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height)) {
+			if(cursor.y > (lf->getMPBTop() + dims.content_.y) && cursor.y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
 				width -= lf->getMBPWidth() + dims.content_.width;
 			}
 		}
 		for(auto& rf : right_floats_) {
 			auto& dims = rf->getDimensions();
-			if(cursor.y > rf->getMPBTop() && cursor.x <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height)) {
+			if(cursor.y > (rf->getMPBTop() + dims.content_.y) && cursor.y <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
 				width -= rf->getMBPWidth() + dims.content_.width;
 			}
 		}
@@ -409,7 +453,7 @@ namespace xhtml
 		// a linear search through them seems fine at this point.
 		for(auto& lf : left_floats_) {
 			auto& dims = lf->getDimensions();
-			if(cursor.y > lf->getMPBTop() && cursor.x <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height)) {
+			if(cursor.y > (lf->getMPBTop() + dims.content_.y) && cursor.y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
 				x = std::max(x, lf->getMBPWidth() + dims.content_.width);
 			}
 		}
@@ -453,24 +497,27 @@ namespace xhtml
 	{
 		std::unique_ptr<RenderContext::Manager> ctx_manager;
 		NodePtr node = getNode();
+		bool is_replaced = false;
 		if(node != nullptr && node->id() == NodeId::ELEMENT) {
 			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
+			is_replaced = node->isReplaced();
 		}
 
-		layoutWidth(containing);
-		layoutPosition(containing);
-		layoutChildren(eng);
-		layoutHeight(containing);
+		if(is_replaced) {
+			setMBP(containing.content_.width);
+			setContentRect(node->getDimensions());
+			layoutChildren(eng);
+		} else {
+			layoutWidth(containing);
+			layoutPosition(containing);
+			layoutChildren(eng);
+			layoutHeight(containing);
+		}
 	}
 
-	void BlockBox::layoutWidth(const Dimensions& containing)
+	void BlockBox::setMBP(FixedPoint containing_width)
 	{
 		RenderContext& ctx = RenderContext::get();
-		const FixedPoint containing_width = containing.content_.width;
-
-		auto css_width = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
-		FixedPoint width = css_width.evaluate(ctx).getValue<Length>().compute(containing_width);
-
 		setBorderLeft(ctx.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute());
 		setBorderRight(ctx.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute());
 
@@ -481,6 +528,20 @@ namespace xhtml
 		auto css_margin_right = ctx.getComputedValue(Property::MARGIN_RIGHT).getValue<Width>();
 		setMarginLeft(css_margin_left.evaluate(ctx).getValue<Length>().compute(containing_width));
 		setMarginRight(css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width));
+
+	}
+
+	void BlockBox::layoutWidth(const Dimensions& containing)
+	{
+		RenderContext& ctx = RenderContext::get();
+		const FixedPoint containing_width = containing.content_.width;
+
+		auto css_width = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
+		FixedPoint width = css_width.evaluate(ctx).getValue<Length>().compute(containing_width);
+
+		setMBP(containing_width);
+		auto css_margin_left = ctx.getComputedValue(Property::MARGIN_LEFT).getValue<Width>();
+		auto css_margin_right = ctx.getComputedValue(Property::MARGIN_RIGHT).getValue<Width>();
 
 		FixedPoint total = getMBPWidth() + width;
 			
@@ -703,6 +764,12 @@ namespace xhtml
 		for(auto& child : getChildren()) {
 			child->render(display_list, offs);
 		}
+		for(auto& lf : left_floats_) {
+			lf->render(display_list, offs);
+		}
+		for(auto& rf : left_floats_) {
+			rf->render(display_list, offs);
+		}
 		// render absolute boxes.
 		// render fixed boxes.
 	}
@@ -725,7 +792,14 @@ namespace xhtml
 
 	void BlockBox::handleRender(DisplayListPtr display_list, const point& offset) const
 	{
-		// do nothing
+		NodePtr node = getNode();
+		if(node != nullptr && node->isReplaced()) {
+			auto r = node->getRenderable();
+			r->setPosition(glm::vec3(static_cast<float>(offset.x + getDimensions().content_.x)/65536.0f,
+				static_cast<float>(offset.y + getDimensions().content_.y)/65536.0f,
+				0.0f));
+			display_list->addRenderable(r);
+		}
 	}
 
 	void LineBox::handleRender(DisplayListPtr display_list, const point& offset) const
