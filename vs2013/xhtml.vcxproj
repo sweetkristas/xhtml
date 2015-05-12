@@ -204,6 +204,7 @@
     <None Include="..\data\test3.xhtml" />
     <None Include="..\data\test4.xhtml" />
     <None Include="..\data\test5.xhtml" />
+    <None Include="..\data\test6.xhtml" />
     <None Include="..\data\user_agent.css" />
     <None Include="..\src\kre\geometry.inl" />
   </ItemGroup>
@@ -258,6 +259,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>..\external\lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">

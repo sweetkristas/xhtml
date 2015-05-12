@@ -24,6 +24,7 @@
 #include <boost/locale.hpp>
 
 #include "asserts.hpp"
+#include "profile_timer.hpp"
 #include "xhtml_text_node.hpp"
 #include "xhtml_render_ctx.hpp"
 #include "utf8_to_codepoint.hpp"

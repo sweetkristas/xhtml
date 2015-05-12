@@ -607,6 +607,9 @@
     <None Include="..\data\test4.xhtml">
       <Filter>Test Files</Filter>
     </None>
+    <None Include="..\data\test6.xhtml">
+      <Filter>Test Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Library Include="..\external\lib\Win32\freetype2412_D.lib" />

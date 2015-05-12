@@ -141,11 +141,8 @@ namespace xhtml
 		BoxPtr addAbsoluteElement(NodePtr node);
 		BoxPtr addFixedElement(NodePtr node);
 		BoxPtr addInlineElement(NodePtr node);
-		void addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y);
+		void addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y, const point& offset);
 		
-		void addWaitingFloat(LayoutEngine& eng, css::CssFloat cfloat, NodePtr node);
-		void positionWaitingFloats(LayoutEngine& eng);
-
 		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); return box; }
 
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
@@ -166,11 +163,12 @@ namespace xhtml
 		std::vector<BoxPtr> boxes_;
 		std::vector<BoxPtr> absolute_boxes_;
 		std::vector<BoxPtr> fixed_boxes_;
-		std::vector<BoxPtr> float_boxes_to_be_placed_;
 		std::vector<BoxPtr> left_floats_;
 		std::vector<BoxPtr> right_floats_;
 		css::CssFloat cfloat_;
 		KRE::FontHandlePtr font_handle_;
+
+		KRE::Color background_color_;
 	};
 
 	class BlockBox : public Box

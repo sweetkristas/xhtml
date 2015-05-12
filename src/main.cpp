@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
 #else
 	const std::string data_path = "../data/";
 #endif
-	const std::string test_doc = data_path + "test5.xhtml";
+	const std::string test_doc = data_path + "test3.xhtml";
 	//const std::string test_doc = data_path + "storyboard.xhtml";
 	const std::string ua_ss = data_path + "user_agent.css";
 

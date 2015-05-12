@@ -25,6 +25,7 @@
 
 #include "asserts.hpp"
 #include "css_styles.hpp"
+#include "profile_timer.hpp"
 #include "xhtml_layout.hpp"
 #include "xhtml_node.hpp"
 #include "xhtml_text_node.hpp"
@@ -134,10 +135,11 @@ namespace xhtml
 	class LayoutEngine
 	{
 	public:
-		explicit LayoutEngine() : root_(nullptr), dims_(), ctx_(RenderContext::get()), open_() {}
+		explicit LayoutEngine() : root_(nullptr), dims_(), ctx_(RenderContext::get()), open_(), offset_() {}
 
 		void formatNode(NodePtr node, BoxPtr parent, const point& container) {
 			if(root_ == nullptr) {
+				offset_.emplace(point());
 				root_ = std::make_shared<BlockBox>(nullptr, node);
 				dims_.content_ = Rect(0, 0, container.x, container.y);
 				root_->layout(*this, dims_);
@@ -145,8 +147,15 @@ namespace xhtml
 			}
 		}
 
+		struct OffsetManager
+		{
+			OffsetManager(LayoutEngine* e, const point& offset) : eng(e) { eng->offset_.emplace(offset); }
+			~OffsetManager() { eng->offset_.pop(); }
+			LayoutEngine* eng;
+		};
+
 		void formatNode(NodePtr node, BoxPtr parent, const Dimensions& container) {
-			auto& boxes = parent->getChildren();
+			//OffsetManager om(this, offset_.top() + point(container.content_.x, container.content_.y));
 			if(node->id() == NodeId::ELEMENT) {
 				std::unique_ptr<RenderContext::Manager> ctx_manager;
 				ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
@@ -175,7 +184,7 @@ namespace xhtml
 							pushOpenBox();
 						}
 						// XXX need to add an offset to position for the float box based on body margin.
-						root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, node), cfloat, y);
+						root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, node), cfloat, y, offset_.top());
 						if(saved_open) {
 							popOpenBox();
 							open_.top().open_box_->setContentX(open_.top().open_box_->getDimensions().content_.x + getXAtCursor());
@@ -244,8 +253,15 @@ namespace xhtml
 			TextPtr tnode = std::dynamic_pointer_cast<Text>(node);
 			ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 
+			const FixedPoint lh = getLineHeight();
 			BoxPtr open = getOpenBox(parent);
 			FixedPoint width = getWidthAtCursor(parent->getDimensions().content_.width) - open_.top().cursor_.x;
+			while(width == 0) {
+				open_.top().cursor_.y += lh;
+				width = getWidthAtCursor(parent->getDimensions().content_.width);
+				open_.top().open_box_->setContentX(getXAtCursor());
+				open_.top().open_box_->setContentY(open_.top().cursor_.y);
+			}
 
 			tnode->transformText(width >= 0);
 			auto it = tnode->begin();
@@ -277,7 +293,7 @@ namespace xhtml
 
 		BoxPtr getOpenBox(BoxPtr parent) {
 			if(open_.empty()) {
-				pushOpenBox();
+				pushOpenBox();				
 			}
 			if(open_.top().open_box_ == nullptr) {
 				open_.top().open_box_ = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
@@ -301,7 +317,6 @@ namespace xhtml
 				open_.top().open_box_->getDimensions().content_.height + open_.top().cursor_.y);
 			open_.top().open_box_ = nullptr;
 
-			parent->positionWaitingFloats(*this);
 			open_.top().cursor_ = old_cursor;
 		}
 
@@ -315,46 +330,71 @@ namespace xhtml
 			return line_height;
 		}
 
-		bool isOpenBox() const { return open_.top().open_box_ != nullptr; }
+		bool isOpenBox() const { return !open_.empty() && open_.top().open_box_ != nullptr; }
 
 		BoxPtr getRoot() const { return root_; }
 		
-		const point& getCursor() const { return open_.top().cursor_; }
+		const point& getCursor() const { 
+			if(open_.empty()) {
+				static point default_point;
+				return default_point;
+			}
+			return open_.top().cursor_; 
+		}
 		void setCursor(const point& cursor) { open_.top().cursor_ = cursor; }
 		void incrCursor(FixedPoint x) { open_.top().cursor_.x += x; }
 
 		FixedPoint getWidthAtCursor(FixedPoint width) const {
-			// since we expect only a small number of floats per element
-			// a linear search through them seems fine at this point.
-			for(auto& lf : root_->getLeftFloats()) {
-				auto& dims = lf->getDimensions();
-				if(getCursor().y > (lf->getMPBTop() + dims.content_.y) && getCursor().y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
-					width -= lf->getMBPWidth() + dims.content_.width;
-				}
-			}
-			for(auto& rf : root_->getRightFloats()) {
-				auto& dims = rf->getDimensions();
-				if(getCursor().y > (rf->getMPBTop() + dims.content_.y) && getCursor().y <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
-					width -= rf->getMBPWidth() + dims.content_.width;
-				}
-			}
-			return width < 0 ? 0 : width;
+			return getWidthAtPosition(getCursor().y, width);
 		}
 
 		FixedPoint getXAtCursor() const {
+			return getXAtPosition(getCursor().y);
+		}
+
+		FixedPoint getXAtPosition(FixedPoint y) const {
 			FixedPoint x = 0;
 			// since we expect only a small number of floats per element
 			// a linear search through them seems fine at this point.
 			for(auto& lf : root_->getLeftFloats()) {
 				auto& dims = lf->getDimensions();
-				if(getCursor().y > (lf->getMPBTop() + dims.content_.y) && getCursor().y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+				if(y >= (lf->getMPBTop() + dims.content_.y) && y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
 					x = std::max(x, lf->getMBPWidth() + dims.content_.width);
 				}
 			}
 			return x;
 		}
 
+		FixedPoint getX2AtPosition(FixedPoint y) const {
+			FixedPoint x2 = dims_.content_.width;
+			// since we expect only a small number of floats per element
+			// a linear search through them seems fine at this point.
+			for(auto& rf : root_->getRightFloats()) {
+				auto& dims = rf->getDimensions();
+				if(y >= (rf->getMPBTop() + dims.content_.y) && y <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+					x2 = std::min(x2, rf->getMBPWidth() + dims.content_.width);
+				}
+			}
+			return x2;
+		}
 
+		FixedPoint getWidthAtPosition(FixedPoint y, FixedPoint width) const {
+			// since we expect only a small number of floats per element
+			// a linear search through them seems fine at this point.
+			for(auto& lf : root_->getLeftFloats()) {
+				auto& dims = lf->getDimensions();
+				if(y >= (lf->getMPBTop() + dims.content_.y) && y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+					width -= lf->getMBPWidth() + dims.content_.width;
+				}
+			}
+			for(auto& rf : root_->getRightFloats()) {
+				auto& dims = rf->getDimensions();
+				if(y >= (rf->getMPBTop() + dims.content_.y) && y <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+					width -= rf->getMBPWidth() + dims.content_.width;
+				}
+			}
+			return width < 0 ? 0 : width;
+		}
 	private:
 		BoxPtr root_;
 		Dimensions dims_;
@@ -366,7 +406,7 @@ namespace xhtml
 			point cursor_;
 		};
 		std::stack<OpenBox> open_;
-		
+		std::stack<point> offset_;
 	};
 
 
@@ -384,12 +424,13 @@ namespace xhtml
 		  boxes_(),
 		  absolute_boxes_(),
 		  fixed_boxes_(),
-		  float_boxes_to_be_placed_(),
 		  left_floats_(),
 		  right_floats_(),
 		  cfloat_(CssFloat::NONE),
-		  font_handle_(xhtml::RenderContext::get().getFontHandle())
+		  font_handle_(xhtml::RenderContext::get().getFontHandle()),
+		  background_color_()
 	{
+		background_color_ = RenderContext::get().getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute();
 	}
 
 	BoxPtr Box::createLayout(NodePtr node, int containing_width)
@@ -406,49 +447,33 @@ namespace xhtml
 		return e.getRoot();
 	}
 
-	void Box::addWaitingFloat(LayoutEngine& eng, CssFloat cfloat, NodePtr node)
+	void Box::addFloatBox(LayoutEngine& eng, BoxPtr box, CssFloat cfloat, FixedPoint y, const point& offset)
 	{
-		auto box = std::make_shared<BlockBox>(shared_from_this(), node);
-		box->cfloat_ = cfloat;
-		//box->layout(eng, getDimensions());
-		float_boxes_to_be_placed_.emplace_back(box);
-	}
-	
-	void Box::addFloatBox(LayoutEngine& eng, BoxPtr box, CssFloat cfloat, FixedPoint y)
-	{
-		if(cfloat == CssFloat::LEFT) {
-			// XXX Calculate position of box here
-			// XXX need to come up with a decent algorithm to move float boxes down
-			// if they can't be positioned at the current cursor.
-			FixedPoint x = eng.getXAtCursor();
-			FixedPoint w = eng.getWidthAtCursor(dimensions_.content_.width);
-			box->layout(eng, getDimensions());
-			box->setContentX(x);
-			box->setContentY(y - dimensions_.content_.y);
-			left_floats_.emplace_back(box);
-		} else {
-			// XXX Calculate position of box here
-			right_floats_.emplace_back(box);
-		}
-	}
+		box->layout(eng, getDimensions());
 
-	void Box::positionWaitingFloats(LayoutEngine& eng)
-	{
-		for(auto& fb : float_boxes_to_be_placed_) {
-			if(fb->cfloat_ == CssFloat::LEFT) {
-				// XXX need to come up with a decent algorithm to move float boxes down
-				// if they can't be positioned at the current cursor.
-				FixedPoint x = eng.getXAtCursor();
-				FixedPoint w = eng.getWidthAtCursor(dimensions_.content_.width);
-				fb->layout(eng, getDimensions());
-				fb->setContentX(x);
-				fb->setContentY(eng.getCursor().y  - dimensions_.content_.y);
-				left_floats_.emplace_back(fb);
+		const FixedPoint lh = eng.getLineHeight();
+		const FixedPoint box_w = box->getDimensions().content_.width;
+
+		FixedPoint x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y) : eng.getX2AtPosition(y);
+		FixedPoint w = eng.getWidthAtPosition(y, dimensions_.content_.width);
+		bool placed = false;
+		while(!placed) {
+			if(w > box_w) {
+				box->setContentX(x - (cfloat == CssFloat::LEFT ? 0 : box_w) + offset.x);
+				box->setContentY(y + offset.y);
+				placed = true;
 			} else {
-				/// XXX todo.
+				y += lh;
+				x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y) : eng.getX2AtPosition(y);
+				w = eng.getWidthAtPosition(y, dimensions_.content_.width);
 			}
 		}
-		float_boxes_to_be_placed_.clear();
+
+		if(cfloat == CssFloat::LEFT) {
+			left_floats_.emplace_back(box);
+		} else {
+			right_floats_.emplace_back(box);
+		}
 	}
 
 	void Box::preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting)
@@ -606,7 +631,7 @@ namespace xhtml
 
 		// XXX We should assign margin/padding/border as appropriate here.
 		for(auto& child : getChildren()) {
-			setContentHeight(child->getDimensions().content_.height + child->getMBPHeight());
+			setContentHeight(child->getDimensions().content_.y + child->getDimensions().content_.height + child->getMBPHeight());
 		}
 	}
 
@@ -758,7 +783,7 @@ namespace xhtml
 		for(auto& lf : left_floats_) {
 			lf->render(display_list, offs);
 		}
-		for(auto& rf : left_floats_) {
+		for(auto& rf : right_floats_) {
 			rf->render(display_list, offs);
 		}
 		// render absolute boxes.
@@ -767,13 +792,13 @@ namespace xhtml
 
 	void Box::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
 	{
-		/*if(background_color_.ai() != 0) {
+		if(background_color_.ai() != 0) {
 			rect r(offset.x + dimensions_.content_.x - dimensions_.padding_.left,
 				offset.y + dimensions_.content_.y - dimensions_.padding_.top,
 				dimensions_.content_.width + dimensions_.padding_.left + dimensions_.padding_.right,
 				dimensions_.content_.height + dimensions_.padding_.top + dimensions_.padding_.bottom);
 			display_list->addRenderable(std::make_shared<SolidRenderable>(r, background_color_));
-		}*/
+		}
 	}
 
 	void Box::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
@@ -786,8 +811,8 @@ namespace xhtml
 		NodePtr node = getNode();
 		if(node != nullptr && node->isReplaced()) {
 			auto r = node->getRenderable();
-			r->setPosition(glm::vec3(static_cast<float>(offset.x + getDimensions().content_.x)/65536.0f,
-				static_cast<float>(offset.y + getDimensions().content_.y)/65536.0f,
+			r->setPosition(glm::vec3(static_cast<float>(offset.x)/65536.0f,
+				static_cast<float>(offset.y)/65536.0f,
 				0.0f));
 			display_list->addRenderable(r);
 		}
