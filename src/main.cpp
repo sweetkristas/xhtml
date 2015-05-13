@@ -43,7 +43,7 @@
 #include "xhtml_node.hpp"
 #include "xhtml_render_ctx.hpp"
 
-void load_xhtml(int width, const std::string& ua_ss, const std::string& test_doc, xhtml::DisplayListPtr display_list)
+void load_xhtml(int width, int height, const std::string& ua_ss, const std::string& test_doc, xhtml::DisplayListPtr display_list)
 {
 	auto user_agent_style_sheet = std::make_shared<css::StyleSheet>();
 	css::Parser::parse(user_agent_style_sheet, sys::read_file(ua_ss));
@@ -63,7 +63,7 @@ void load_xhtml(int width, const std::string& ua_ss, const std::string& test_doc
 
 	xhtml::RenderContextManager rcm;
 	// layout has to happen after initialisation of graphics
-	auto layout = xhtml::Box::createLayout(doc, width);
+	auto layout = xhtml::Box::createLayout(doc, width, height);
 	layout->render(display_list, point());
 
 	layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
@@ -75,8 +75,12 @@ void load_xhtml(int width, const std::string& ua_ss, const std::string& test_doc
 int main(int argc, char* argv[])
 {
 	std::vector<std::string> args;
-	for(int i = 0; i != argc; ++i) {
+	for(int i = 1; i < argc; ++i) {
 		args.emplace_back(argv[i]);
+	}
+	if(args.empty()) {
+		std::cout << "Usage: xhtml <filename>\n";
+		return 0;
 	}
 
 	int width = 800;
@@ -96,7 +100,7 @@ int main(int argc, char* argv[])
 #else
 	const std::string data_path = "../data/";
 #endif
-	const std::string test_doc = data_path + "test3.xhtml";
+	const std::string test_doc = data_path + args[0];
 	//const std::string test_doc = data_path + "storyboard.xhtml";
 	const std::string ua_ss = data_path + "user_agent.css";
 
@@ -139,7 +143,7 @@ int main(int argc, char* argv[])
 
 	xhtml::DisplayListPtr display_list = std::make_shared<xhtml::DisplayList>(scene);
 	root->attachNode(display_list);
-	load_xhtml(width, ua_ss, test_doc, display_list);
+	load_xhtml(width, height, ua_ss, test_doc, display_list);
 
 	auto canvas = Canvas::getInstance();
 

@@ -133,7 +133,7 @@ namespace xhtml
 				+ dimensions_.border_.top;
 		}
 
-		static BoxPtr createLayout(NodePtr node, int containing_width);
+		static BoxPtr createLayout(NodePtr node, int containing_width, int containing_height);
 
 		virtual void layout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual std::string toString() const = 0;
@@ -146,6 +146,9 @@ namespace xhtml
 		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); return box; }
 
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
+		bool ancestralTraverse(std::function<bool(BoxPtr)> fn);
+
+		css::CssPosition getPosition() const { return css_position_; }
 
 		void render(DisplayListPtr display_list, const point& offset) const;
 		KRE::FontHandlePtr getFont() const { return font_handle_; }
@@ -169,6 +172,7 @@ namespace xhtml
 		KRE::FontHandlePtr font_handle_;
 
 		KRE::Color background_color_;
+		css::CssPosition css_position_;
 	};
 
 	class BlockBox : public Box

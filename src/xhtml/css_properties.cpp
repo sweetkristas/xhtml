@@ -164,6 +164,10 @@ namespace css
 		PropertyRegistrar property042("overflow", Property::CSS_OVERFLOW, false, Object(CssOverflow::VISIBLE), std::bind(&PropertyParser::parseOverflow, _1, _2));
 		PropertyRegistrar property043("position", Property::POSITION, false, Object(CssPosition::STATIC), std::bind(&PropertyParser::parsePosition, _1, _2));
 		PropertyRegistrar property044("float", Property::FLOAT, false, Object(CssFloat::NONE), std::bind(&PropertyParser::parseFloat, _1, _2));
+		PropertyRegistrar property045("left", Property::LEFT, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property046("top", Property::TOP, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property047("right", Property::RIGHT, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property048("bottom", Property::BOTTOM, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		//transition -- transition-property, transition-duration, transition-timing-function, transition-delay
 		//text-shadow
 	}

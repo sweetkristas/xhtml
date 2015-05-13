@@ -395,6 +395,8 @@ namespace xhtml
 			}
 			return width < 0 ? 0 : width;
 		}
+
+		const Dimensions& getDimensions() const { return dims_; }
 	private:
 		BoxPtr root_;
 		Dimensions dims_;
@@ -428,18 +430,21 @@ namespace xhtml
 		  right_floats_(),
 		  cfloat_(CssFloat::NONE),
 		  font_handle_(xhtml::RenderContext::get().getFontHandle()),
-		  background_color_()
+		  background_color_(),
+		  css_position_(CssPosition::STATIC)
 	{
-		background_color_ = RenderContext::get().getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute();
+		RenderContext& ctx = RenderContext::get();
+		background_color_ = ctx.getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute();
+		css_position_ = ctx.getComputedValue(Property::POSITION).getValue<CssPosition>();
 	}
 
-	BoxPtr Box::createLayout(NodePtr node, int containing_width)
+	BoxPtr Box::createLayout(NodePtr node, int containing_width, int containing_height)
 	{
 		LayoutEngine e;
 		// search for the body element then render that content.
-		node->preOrderTraversal([&e, containing_width](NodePtr node){
+		node->preOrderTraversal([&e, containing_width, containing_height](NodePtr node){
 			if(node->id() == NodeId::ELEMENT && node->hasTag(ElementId::BODY)) {
-				e.formatNode(node, nullptr, point(containing_width * fixed_point_scale, 0));
+				e.formatNode(node, nullptr, point(containing_width * fixed_point_scale, containing_height * fixed_point_scale));
 				return false;
 			}
 			return true;
@@ -474,6 +479,18 @@ namespace xhtml
 		} else {
 			right_floats_.emplace_back(box);
 		}
+	}
+
+	bool Box::ancestralTraverse(std::function<bool(BoxPtr)> fn)
+	{
+		if(fn(shared_from_this())) {
+			return true;
+		}
+		auto parent = getParent();
+		if(parent != nullptr) {
+			return parent->ancestralTraverse(fn);
+		}
+		return false;
 	}
 
 	void Box::preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting)
@@ -699,6 +716,58 @@ namespace xhtml
 
 	void AbsoluteBox::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		Rect container = containing.content_;
+
+		// Find the first ancestor with non-static position
+		if(!ancestralTraverse([&container](BoxPtr box) {
+			if(box->getPosition() != CssPosition::STATIC) {
+				container = box->getDimensions().content_;
+				return false;
+			}
+			return true;
+		})) {
+			// couldn't find anything use the layout engine dimensions
+			container = eng.getDimensions().content_;
+		}
+		// we expect top/left and either bottom/right or width/height
+		// if the appropriate thing isn't set then we use the parent container dimensions.
+		RenderContext& ctx = RenderContext::get();
+		const FixedPoint containing_width = container.width;
+		const FixedPoint containing_height = container.height;
+		
+		Width cssleft = ctx.getComputedValue(Property::LEFT).getValue<Width>();
+		FixedPoint left = container.x;
+		if(!cssleft.isAuto()) {
+			left = cssleft.evaluate(ctx).getValue<Length>().compute(containing_width);
+		}
+		Width csstop = ctx.getComputedValue(Property::TOP).getValue<Width>();
+		FixedPoint top = 0;
+		if(!csstop.isAuto()) {
+			top = csstop.evaluate(ctx).getValue<Length>().compute(containing_height);
+		}
+		Width cssright = ctx.getComputedValue(Property::RIGHT).getValue<Width>();
+		FixedPoint right = 0;
+		if(!cssright.isAuto()) {
+			right = cssright.evaluate(ctx).getValue<Length>().compute(containing_width);
+		}
+		Width cssbottom = ctx.getComputedValue(Property::BOTTOM).getValue<Width>();
+		FixedPoint bottom = 0;
+		if(!cssbottom.isAuto()) {
+			bottom = cssbottom.evaluate(ctx).getValue<Length>().compute(containing_height);
+		}
+
+		Width csswidth = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
+		FixedPoint width = 0;
+		if(!csswidth.isAuto()) {
+			width = csswidth.evaluate(ctx).getValue<Length>().compute(containing_width);
+		}
+
+		Width cssheight = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
+		FixedPoint height = 0;
+		if(!cssheight.isAuto()) {
+			height = cssheight.evaluate(ctx).getValue<Length>().compute(containing_height);
+		}
+
 	}
 
 	InlineElementBox::InlineElementBox(BoxPtr parent, NodePtr node)
@@ -785,6 +854,9 @@ namespace xhtml
 		}
 		for(auto& rf : right_floats_) {
 			rf->render(display_list, offs);
+		}
+		for(auto& ab : absolute_boxes_) {
+			ab->render(display_list, point(0, offset.y));
 		}
 		// render absolute boxes.
 		// render fixed boxes.

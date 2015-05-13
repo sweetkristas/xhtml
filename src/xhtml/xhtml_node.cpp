@@ -145,6 +145,18 @@ namespace xhtml
 		}
 	}
 
+	bool Node::ancestralTraverse(std::function<bool(NodePtr)> fn)
+	{
+		if(fn(shared_from_this())) {
+			return true;
+		}
+		auto parent = getParent();
+		if(parent != nullptr) {
+			return parent->ancestralTraverse(fn);
+		}
+		return false;
+	}
+
 	AttributePtr Node::getAttribute(const std::string& name)
 	{
 		auto it = attributes_.find(name);

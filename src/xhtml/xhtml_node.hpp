@@ -97,6 +97,8 @@ namespace xhtml
 		void preOrderTraversal(std::function<bool(NodePtr)> fn);
 		// bottom-up scanning of the tree
 		void postOrderTraversal(std::function<bool(NodePtr)> fn);
+		// scanning from a child node up through parents
+		bool ancestralTraverse(std::function<bool(NodePtr)> fn);
 		virtual bool hasTag(const std::string& tag) const { return false; }
 		virtual bool hasTag(ElementId tag) const { return false; }
 		AttributePtr getAttribute(const std::string& name);
