@@ -167,7 +167,6 @@ namespace xhtml
 				if(position == CssPosition::ABSOLUTE) {
 					// absolute positioned elements are taken out of the normal document flow
 					auto box = parent->addAbsoluteElement(node);
-					box->layout(*this, container);
 					return;
 				} else if(position == CssPosition::FIXED) {
 					// fixed positioned elements are taken out of the normal document flow
@@ -252,6 +251,7 @@ namespace xhtml
 		void layoutInlineText(NodePtr node, BoxPtr parent) {
 			TextPtr tnode = std::dynamic_pointer_cast<Text>(node);
 			ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
+			ASSERT_LOG(parent->getDimensions().content_.width != 0, "Parent content width is 0.");
 
 			const FixedPoint lh = getLineHeight();
 			BoxPtr open = getOpenBox(parent);
@@ -481,7 +481,7 @@ namespace xhtml
 		}
 	}
 
-	bool Box::ancestralTraverse(std::function<bool(BoxPtr)> fn)
+	bool Box::ancestralTraverse(std::function<bool(const ConstBoxPtr&)> fn) const
 	{
 		if(fn(shared_from_this())) {
 			return true;
@@ -508,6 +508,19 @@ namespace xhtml
 		return absolute_boxes_.back();
 	}
 
+	void Box::layoutAbsolute(LayoutEngine& eng, const Dimensions& containing)
+	{
+		for(auto& abs : absolute_boxes_) {
+			abs->layout(eng, containing);
+		}
+	}
+
+	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
+	{
+		handleLayout(eng, containing);
+		layoutAbsolute(eng, containing);
+	}
+
 	BoxPtr Box::addFixedElement(NodePtr node)
 	{
 		fixed_boxes_.emplace_back(std::make_shared<BlockBox>(shared_from_this(), node));
@@ -521,12 +534,22 @@ namespace xhtml
 		return boxes_.back();
 	}
 
+	point Box::getOffset() const
+	{
+		point offset;
+		ancestralTraverse([&offset](const ConstBoxPtr& box) {
+			offset += point(box->getDimensions().content_.x, box->getDimensions().content_.y);
+			return true;
+		});
+		return offset;
+	}
+
 	BlockBox::BlockBox(BoxPtr parent, NodePtr node)
 		: Box(BoxId::BLOCK, parent, node)
 	{
 	}
 
-	void BlockBox::layout(LayoutEngine& eng, const Dimensions& containing)
+	void BlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		std::unique_ptr<RenderContext::Manager> ctx_manager;
 		NodePtr node = getNode();
@@ -546,22 +569,12 @@ namespace xhtml
 			layoutChildren(eng);
 			layoutHeight(containing);
 		}
+		layoutAbsolute(eng, containing);
 	}
 
 	void BlockBox::setMBP(FixedPoint containing_width)
 	{
-		RenderContext& ctx = RenderContext::get();
-		setBorderLeft(ctx.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute());
-		setBorderRight(ctx.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute());
-
-		setPaddingLeft(ctx.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute(containing_width));
-		setPaddingRight(ctx.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute(containing_width));
-
-		auto css_margin_left = ctx.getComputedValue(Property::MARGIN_LEFT).getValue<Width>();
-		auto css_margin_right = ctx.getComputedValue(Property::MARGIN_RIGHT).getValue<Width>();
-		setMarginLeft(css_margin_left.evaluate(ctx).getValue<Length>().compute(containing_width));
-		setMarginRight(css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width));
-
+		calculateHorzMPB(containing_width);
 	}
 
 	void BlockBox::layoutWidth(const Dimensions& containing)
@@ -570,7 +583,11 @@ namespace xhtml
 		const FixedPoint containing_width = containing.content_.width;
 
 		auto css_width = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
-		FixedPoint width = css_width.evaluate(ctx).getValue<Length>().compute(containing_width);
+		FixedPoint width = 0;
+		if(!css_width.isAuto()) {
+			width = css_width.getLength().compute(containing_width);
+			setContentWidth(width);
+		}
 
 		setMBP(containing_width);
 		auto css_margin_left = ctx.getComputedValue(Property::MARGIN_LEFT).getValue<Width>();
@@ -601,7 +618,7 @@ namespace xhtml
 				width = underflow;
 			} else {
 				width = 0;
-				const auto rmargin = css_margin_right.evaluate(ctx).getValue<Length>().compute(containing_width);
+				const auto rmargin = css_margin_right.getLength().compute(containing_width);
 				setMarginRight(rmargin + underflow);
 			}
 			setContentWidth(width);
@@ -617,19 +634,43 @@ namespace xhtml
 		} 
 	}
 
-	void BlockBox::layoutPosition(const Dimensions& containing)
+	void Box::calculateVertMPB(FixedPoint containing_height)
 	{
 		RenderContext& ctx = RenderContext::get();
-		const FixedPoint containing_height = containing.content_.height;
-			
 		setBorderTop(ctx.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Length>().compute());
 		setBorderBottom(ctx.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Length>().compute());
 
 		setPaddingTop(ctx.getComputedValue(Property::PADDING_TOP).getValue<Length>().compute(containing_height));
 		setPaddingBottom(ctx.getComputedValue(Property::PADDING_BOTTOM).getValue<Length>().compute(containing_height));
 
-		setMarginTop(ctx.getComputedValue(Property::MARGIN_TOP).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height));
-		setMarginBottom(ctx.getComputedValue(Property::MARGIN_BOTTOM).getValue<Width>().evaluate(ctx).getValue<Length>().compute(containing_height));
+		setMarginTop(ctx.getComputedValue(Property::MARGIN_TOP).getValue<Width>().getLength().compute(containing_height));
+		setMarginBottom(ctx.getComputedValue(Property::MARGIN_BOTTOM).getValue<Width>().getLength().compute(containing_height));
+	}
+
+	void Box::calculateHorzMPB(FixedPoint containing_width)
+	{
+		RenderContext& ctx = RenderContext::get();
+		setBorderLeft(ctx.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute());
+		setBorderRight(ctx.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute());
+
+		setPaddingLeft(ctx.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute(containing_width));
+		setPaddingRight(ctx.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute(containing_width));
+
+		auto css_margin_left = ctx.getComputedValue(Property::MARGIN_LEFT).getValue<Width>();
+		auto css_margin_right = ctx.getComputedValue(Property::MARGIN_RIGHT).getValue<Width>();
+		if(!css_margin_left.isAuto()) {
+			setMarginLeft(css_margin_left.getLength().compute(containing_width));
+		}
+		if(!css_margin_right.isAuto()) {
+			setMarginRight(css_margin_right.getLength().compute(containing_width));
+		}
+	}
+
+	void BlockBox::layoutPosition(const Dimensions& containing)
+	{
+		const FixedPoint containing_height = containing.content_.height;
+
+		calculateVertMPB(containing_height);
 
 		setContentX(getMPBLeft());
 		setContentY(containing.content_.height + getMPBTop());
@@ -658,7 +699,7 @@ namespace xhtml
 		// a set height value overrides the calculated value.
 		auto css_h = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
 		if(!css_h.isAuto()) {
-			setContentHeight(css_h.evaluate(ctx).getValue<Length>().compute(containing.content_.height));
+			setContentHeight(css_h.evaluate(ctx).getValue<Width>().getLength().compute(containing.content_.height));
 		}
 		// XXX deal with min-height and max-height
 		//auto min_h = ctx.getComputedValue(Property::MIN_HEIGHT).getValue<Length>().compute(containing.content_.height);
@@ -679,7 +720,7 @@ namespace xhtml
 	{
 	}
 
-	void LineBox::layout(LayoutEngine& eng, const Dimensions& containing)
+	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		FixedPoint max_height = 0;
 		FixedPoint width = 0;
@@ -705,7 +746,7 @@ namespace xhtml
 		setContentWidth(width);
 	}
 
-	void TextBox::layout(LayoutEngine& eng, const Dimensions& containing)
+	void TextBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 	}
 
@@ -714,12 +755,13 @@ namespace xhtml
 	{
 	}
 
-	void AbsoluteBox::layout(LayoutEngine& eng, const Dimensions& containing)
+	void AbsoluteBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		Rect container = containing.content_;
 
 		// Find the first ancestor with non-static position
-		if(!ancestralTraverse([&container](BoxPtr box) {
+		auto parent = getParent();
+		if(parent != nullptr && !parent->ancestralTraverse([&container](const ConstBoxPtr& box) {
 			if(box->getPosition() != CssPosition::STATIC) {
 				container = box->getDimensions().content_;
 				return false;
@@ -741,33 +783,43 @@ namespace xhtml
 			left = cssleft.evaluate(ctx).getValue<Length>().compute(containing_width);
 		}
 		Width csstop = ctx.getComputedValue(Property::TOP).getValue<Width>();
-		FixedPoint top = 0;
+		FixedPoint top = container.y;
 		if(!csstop.isAuto()) {
 			top = csstop.evaluate(ctx).getValue<Length>().compute(containing_height);
 		}
 		Width cssright = ctx.getComputedValue(Property::RIGHT).getValue<Width>();
-		FixedPoint right = 0;
+		FixedPoint right = container.x + container.width;
 		if(!cssright.isAuto()) {
-			right = cssright.evaluate(ctx).getValue<Length>().compute(containing_width);
+			right -= cssright.evaluate(ctx).getValue<Length>().compute(containing_width);
 		}
 		Width cssbottom = ctx.getComputedValue(Property::BOTTOM).getValue<Width>();
-		FixedPoint bottom = 0;
+		FixedPoint bottom = container.y + container.height;
 		if(!cssbottom.isAuto()) {
-			bottom = cssbottom.evaluate(ctx).getValue<Length>().compute(containing_height);
+			bottom -= cssbottom.evaluate(ctx).getValue<Length>().compute(containing_height);
 		}
 
+		// if width/height properties are set they override right/bottom.
 		Width csswidth = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
-		FixedPoint width = 0;
 		if(!csswidth.isAuto()) {
-			width = csswidth.evaluate(ctx).getValue<Length>().compute(containing_width);
+			right = csswidth.evaluate(ctx).getValue<Length>().compute(containing_width) + container.x;
 		}
 
 		Width cssheight = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
-		FixedPoint height = 0;
 		if(!cssheight.isAuto()) {
-			height = cssheight.evaluate(ctx).getValue<Length>().compute(containing_height);
+			bottom = cssheight.evaluate(ctx).getValue<Length>().compute(containing_height) + container.y;
 		}
 
+		calculateHorzMPB(containing_width);
+		calculateVertMPB(containing_height);
+
+		setContentX(left + getMPBLeft());
+		setContentY(top + getMPBTop());
+		setContentWidth(right - left - getMBPWidth());
+		setContentHeight(bottom - top - getMBPHeight());
+
+		for(auto& child : getChildren()) {
+			child->layout(eng, getDimensions());
+		}
 	}
 
 	InlineElementBox::InlineElementBox(BoxPtr parent, NodePtr node)
@@ -775,7 +827,7 @@ namespace xhtml
 	{
 	}
 
-	void InlineElementBox::layout(LayoutEngine& eng, const Dimensions& containing)
+	void InlineElementBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		setContentY(eng.getCursor().y);
 		setContentX(0);
@@ -858,7 +910,6 @@ namespace xhtml
 		for(auto& ab : absolute_boxes_) {
 			ab->render(display_list, point(0, offset.y));
 		}
-		// render absolute boxes.
 		// render fixed boxes.
 	}
 

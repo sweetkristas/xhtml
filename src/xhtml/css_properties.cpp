@@ -422,7 +422,7 @@ namespace css
 				return std::make_shared<Width>(true);
 			}
 		}
-		return std::make_shared<Length>(parseLengthInternal());
+		return std::make_shared<Width>(parseLengthInternal());
 	}
 
 	Length PropertyParser::parseLengthInternal(NumericParseOptions opts)

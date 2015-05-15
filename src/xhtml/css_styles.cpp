@@ -126,10 +126,11 @@ namespace css
 
 	Object Width::evaluate(const xhtml::RenderContext& ctx) const
 	{
-		if(is_auto_) {
-			return Object(Length(0));
-		}
-		return Object(width_);
+		//if(is_auto_) {
+		//	return Object(Length(0));
+		//}
+		//return Object(width_);
+		return Object(*this);
 	}
 
 	xhtml::FixedPoint Length::compute(xhtml::FixedPoint scale) const

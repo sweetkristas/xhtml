@@ -91,10 +91,10 @@ namespace css
 		void parseFloat(const std::string& name);
 	private:
 		enum NumericParseOptions {
-			NUMBER,
-			PERCENTAGE,
-			LENGTH,
-			AUTO,
+			NUMBER = 1,
+			PERCENTAGE = 2,
+			LENGTH = 4,
+			AUTO = 8,
 			NUMERIC = NUMBER | PERCENTAGE | LENGTH,
 			ALL = NUMBER | PERCENTAGE | LENGTH | AUTO,
 		};

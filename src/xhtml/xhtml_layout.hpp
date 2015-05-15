@@ -36,6 +36,7 @@ namespace xhtml
 {
 	class Box;
 	typedef std::shared_ptr<Box> BoxPtr;
+	typedef std::shared_ptr<const Box> ConstBoxPtr;
 	class LayoutEngine;
 
 	struct EdgeSize
@@ -109,6 +110,9 @@ namespace xhtml
 		void setMarginRight(FixedPoint fp) { dimensions_.margin_.right = fp; }
 		void setMarginBottom(FixedPoint fp) { dimensions_.margin_.bottom = fp; }
 
+		void calculateVertMPB(FixedPoint containing_height);
+		void calculateHorzMPB(FixedPoint containing_width);
+
 		FixedPoint getMBPWidth() { 
 			return dimensions_.margin_.left + dimensions_.margin_.right
 				+ dimensions_.padding_.left + dimensions_.padding_.right
@@ -135,26 +139,29 @@ namespace xhtml
 
 		static BoxPtr createLayout(NodePtr node, int containing_width, int containing_height);
 
-		virtual void layout(LayoutEngine& eng, const Dimensions& containing) = 0;
+		void layout(LayoutEngine& eng, const Dimensions& containing);
 		virtual std::string toString() const = 0;
 
 		BoxPtr addAbsoluteElement(NodePtr node);
 		BoxPtr addFixedElement(NodePtr node);
 		BoxPtr addInlineElement(NodePtr node);
 		void addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y, const point& offset);
+		void layoutAbsolute(LayoutEngine& eng, const Dimensions& containing);
 		
 		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); return box; }
 
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
-		bool ancestralTraverse(std::function<bool(BoxPtr)> fn);
+		bool ancestralTraverse(std::function<bool(const ConstBoxPtr&)> fn) const;
 
 		css::CssPosition getPosition() const { return css_position_; }
+		point getOffset() const;
 
 		void render(DisplayListPtr display_list, const point& offset) const;
 		KRE::FontHandlePtr getFont() const { return font_handle_; }
 		const std::vector<BoxPtr>& getLeftFloats() const { return left_floats_; }
 		const std::vector<BoxPtr>& getRightFloats() const { return right_floats_; }
 	private:
+		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
@@ -179,7 +186,6 @@ namespace xhtml
 	{
 	public:
 		BlockBox(BoxPtr parent, NodePtr node);
-		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 		std::string toString() const override;
 		void setMBP(FixedPoint containing_width);
 	private:
@@ -187,6 +193,7 @@ namespace xhtml
 		void layoutPosition(const Dimensions& containing);
 		void layoutChildren(LayoutEngine& eng);
 		void layoutHeight(const Dimensions& containing);
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 	};
 
@@ -194,9 +201,9 @@ namespace xhtml
 	{
 	public:
 		AbsoluteBox(BoxPtr parent, NodePtr node);
-		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 		std::string toString() const override;
 	private:
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 	};
 
@@ -204,9 +211,9 @@ namespace xhtml
 	{
 	public:
 		LineBox(BoxPtr parent, NodePtr node);
-		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 		std::string toString() const override;
 	private:
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 	};
 
@@ -214,9 +221,9 @@ namespace xhtml
 	{
 	public:
 		InlineElementBox(BoxPtr parent, NodePtr node);
-		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 		std::string toString() const override;
 	private:
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 	};
 
@@ -224,9 +231,9 @@ namespace xhtml
 	{
 	public:
 		TextBox(BoxPtr parent, LinePtr line);
-		void layout(LayoutEngine& eng, const Dimensions& containing) override;
 		std::string toString() const override;
 	private:
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		LinePtr line_;
 		FixedPoint space_advance_;

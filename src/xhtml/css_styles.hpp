@@ -205,6 +205,7 @@ namespace css
 		explicit Width(bool a) : is_auto_(a), width_() {}
 		Object evaluate(const xhtml::RenderContext& rc) const override;	
 		bool isAuto() const { return is_auto_; }
+		const Length& getLength() const { return width_; }
 	private:
 		bool is_auto_;
 		Length width_;
