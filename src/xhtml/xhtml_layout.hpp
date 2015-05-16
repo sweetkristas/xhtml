@@ -147,6 +147,7 @@ namespace xhtml
 		BoxPtr addInlineElement(NodePtr node);
 		void addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y, const point& offset);
 		void layoutAbsolute(LayoutEngine& eng, const Dimensions& containing);
+		void layoutFixed(LayoutEngine& eng, const Dimensions& containing);
 		
 		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); return box; }
 
@@ -160,6 +161,12 @@ namespace xhtml
 		KRE::FontHandlePtr getFont() const { return font_handle_; }
 		const std::vector<BoxPtr>& getLeftFloats() const { return left_floats_; }
 		const std::vector<BoxPtr>& getRightFloats() const { return right_floats_; }
+
+		const css::Width& getCssWidth() const { return css_width_; }
+		const css::Width& getCssHeight() const { return css_height_; }
+		const css::Width& getCssMargin(Side n) const { return margin_[static_cast<int>(n)]; }
+		const css::Length& getCssBorder(Side n) const { return border_[static_cast<int>(n)]; }
+		const css::Length& getCssPadding(Side n) const { return padding_[static_cast<int>(n)]; }
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
@@ -180,6 +187,13 @@ namespace xhtml
 
 		KRE::Color background_color_;
 		css::CssPosition css_position_;
+
+		css::Length padding_[4];
+		css::Length border_[4];
+		css::Width margin_[4];
+
+		css::Width css_width_;
+		css::Width css_height_;
 	};
 
 	class BlockBox : public Box
@@ -205,6 +219,10 @@ namespace xhtml
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
+
+		// need to store these, since by the time layout happens we no longer have the right
+		// render context available.
+		css::Width css_rect_[4]; // l,t,r,b
 	};
 
 	class LineBox : public Box

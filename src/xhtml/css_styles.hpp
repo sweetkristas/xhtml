@@ -201,6 +201,7 @@ namespace css
 	class Width : public Style
 	{
 	public:
+		Width() : is_auto_(false), width_() {}
 		explicit Width(Length len) : is_auto_(false), width_(len) {}
 		explicit Width(bool a) : is_auto_(a), width_() {}
 		Object evaluate(const xhtml::RenderContext& rc) const override;	
