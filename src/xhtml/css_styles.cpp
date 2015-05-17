@@ -289,4 +289,9 @@ namespace css
 	{
 		return Object(position_);
 	}
+
+	Object UriStyle::evaluate(const xhtml::RenderContext& rc) const
+	{
+		return Object(*this);
+	}
 }

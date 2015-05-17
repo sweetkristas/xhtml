@@ -444,9 +444,9 @@ namespace css
 UNIT_TEST(css_declarations)
 {
 	//css::Tokenizer tokens("color: rgb(100%,0,0);");
-	css::Tokenizer tokens("{ color: #ff0 !important; font-family: 'Arial'; color: hsl(360,0,0) }");
-	for(auto& tok : tokens.getTokens()) {
-		LOG_DEBUG("  TOKEN: " << tok->toString());
-	}
-	css::DeclarationParser::parseTokens(tokens.getTokens());
+	//css::Tokenizer tokens("{ color: #ff0 !important; font-family: 'Arial'; color: hsl(360,0,0) }");
+	//for(auto& tok : tokens.getTokens()) {
+	//	LOG_DEBUG("  TOKEN: " << tok->toString());
+	//}
+	//css::DeclarationParser::parseTokens(tokens.getTokens());
 }

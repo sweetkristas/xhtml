@@ -165,6 +165,7 @@ namespace css
 				return formatter() << "UrlToken(" << url_<< ")";
 			}
 			variant value() override { return variant(url_); }
+			std::string getStringValue() const override { return url_; }
 		private:
 			std::string url_;
 		};

@@ -922,7 +922,7 @@ namespace xhtml
 			rf->render(display_list, offs);
 		}
 		for(auto& ab : absolute_boxes_) {
-			ab->render(display_list, point(0, offset.y));
+			ab->render(display_list, point(0, 0));
 		}
 		// render fixed boxes.
 	}
@@ -930,8 +930,8 @@ namespace xhtml
 	void Box::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
 	{
 		if(background_color_.ai() != 0) {
-			rect r(offset.x + dimensions_.content_.x - dimensions_.padding_.left,
-				offset.y + dimensions_.content_.y - dimensions_.padding_.top,
+			rect r(offset.x - dimensions_.padding_.left,
+				offset.y - dimensions_.padding_.top,
 				dimensions_.content_.width + dimensions_.padding_.left + dimensions_.padding_.right,
 				dimensions_.content_.height + dimensions_.padding_.top + dimensions_.padding_.bottom);
 			display_list->addRenderable(std::make_shared<SolidRenderable>(r, background_color_));

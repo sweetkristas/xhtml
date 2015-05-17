@@ -89,6 +89,7 @@ namespace css
 		void parseOverflow(const std::string& name);
 		void parsePosition(const std::string& name);
 		void parseFloat(const std::string& name);
+		void parseUri(const std::string& name);
 	private:
 		enum NumericParseOptions {
 			NUMBER = 1,
@@ -103,6 +104,7 @@ namespace css
 		bool isToken(TokenId tok) const;
 		bool isTokenDelimiter(const std::string& delim);
 		std::vector<TokenPtr> PropertyParser::parseCSVList(TokenId end_token);
+		void parseCSVNumberListFromIt(std::vector<TokenPtr>::const_iterator start, std::vector<TokenPtr>::const_iterator end, std::function<void(int, float, bool)> fn);
 		void parseCSVNumberList(TokenId end_token, std::function<void(int, float, bool)> fn);
 		void parseCSVStringList(TokenId end_token, std::function<void(int, const std::string&)> fn);
 		StylePtr parseColorInternal();

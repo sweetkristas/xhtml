@@ -168,6 +168,7 @@ namespace css
 		PropertyRegistrar property046("top", Property::TOP, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property047("right", Property::RIGHT, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property048("bottom", Property::BOTTOM, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
+		PropertyRegistrar property049("background-image", Property::BACKGROUND_IMAGE, false, Object(UriStyle(true)), std::bind(&PropertyParser::parseUri, _1, _2));
 		//transition -- transition-property, transition-duration, transition-timing-function, transition-delay
 		//text-shadow
 	}
@@ -336,6 +337,23 @@ namespace css
 		}
 	}
 
+	void PropertyParser::parseCSVNumberListFromIt(std::vector<TokenPtr>::const_iterator start, 
+		std::vector<TokenPtr>::const_iterator end, 
+		std::function<void(int, float, bool)> fn)
+	{
+		int n = 0;
+		for(auto it = start; it != end; ++it) {
+			auto& t = *it;
+			if(t->id() == TokenId::NUMBER) {
+				fn(n, static_cast<float>(t->getNumericValue()), false);
+			} else if(t->id() == TokenId::PERCENT) {
+				fn(n, static_cast<float>(t->getNumericValue()), true);
+			} else if(t->id() == TokenId::COMMA) {
+				++n;
+			}
+		}
+	}
+
 	StylePtr PropertyParser::parseColorInternal()
 	{
 		auto color = CssColor::create();
@@ -352,10 +370,11 @@ namespace css
 			}
 		} else if(isToken(TokenId::FUNCTION)) {
 			const std::string& ref = (*it_)->getStringValue();
-			advance();
+			// XXX  we need to parse (*it_)->getParameters() here for the number list!			
 			if(ref == "rgb") {
 				int values[3] = { 255, 255, 255 };
-				parseCSVNumberList(TokenId::RPAREN, [&values](int n, float value, bool is_percent) {
+				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().end(), 
+					[&values](int n, float value, bool is_percent) {
 					if(n < 3) {
 						if(is_percent) {
 							value *= 255.0f / 100.0f;
@@ -363,10 +382,12 @@ namespace css
 						values[n] = std::min(255, std::max(0, static_cast<int>(value)));
 					}
 				});
+				advance();
 				color->setColor(KRE::Color(values[0], values[1], values[2]));
 			} else if(ref == "rgba") {
 				int values[4] = { 255, 255, 255, 255 };
-				parseCSVNumberList(TokenId::RPAREN, [&values](int n, float value, bool is_percent) {
+				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().end(), 
+					[&values](int n, float value, bool is_percent) {
 					if(n < 4) {
 						if(is_percent) {
 							value *= 255.0f / 100.0f;
@@ -374,11 +395,13 @@ namespace css
 						values[n] = std::min(255, std::max(0, static_cast<int>(value)));
 					}
 				});
+				advance();
 				color->setColor(KRE::Color(values[0], values[1], values[2], values[3]));
 			} else if(ref == "hsl") {
 				float values[3];
 				const float multipliers[3] = { 360.0f, 1.0f, 1.0f };
-				parseCSVNumberList(TokenId::RPAREN, [&values, &multipliers](int n, float value, bool is_percent) {
+				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().end(), 
+					[&values, &multipliers](int n, float value, bool is_percent) {
 					if(n < 3) {
 						if(is_percent) {
 							value *= multipliers[n] / 100.0f;
@@ -386,11 +409,13 @@ namespace css
 						values[n] = value;
 					}
 				});					
+				advance();
 				color->setColor(hsla_to_color(values[0], values[1], values[2], 1.0));
 			} else if(ref == "hsla") {
 				float values[4];
 				const float multipliers[4] = { 360.0f, 1.0f, 1.0f, 1.0f };
-				parseCSVNumberList(TokenId::RPAREN, [&values, &multipliers](int n, float value, bool is_percent) {
+				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().end(), 
+					[&values, &multipliers](int n, float value, bool is_percent) {
 					if(n < 4) {
 						if(is_percent) {
 							value *= multipliers[n] / 100.0f;
@@ -398,6 +423,7 @@ namespace css
 						values[n] = value;
 					}
 				});					
+				advance();
 				color->setColor(hsla_to_color(values[0], values[1], values[2], values[3]));
 			}
 		} else if(isToken(TokenId::HASH)) {
@@ -968,5 +994,29 @@ namespace css
 			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
 		}
 		plist_.addProperty(name, Float::create(p));
+	}
+
+	void PropertyParser::parseUri(const std::string& name)
+	{
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, std::make_shared<Style>(true));
+				return;
+			} else if(ref == "none") {
+				plist_.addProperty(name, std::make_shared<UriStyle>(true));
+			} else {
+				throw ParserError(formatter() << "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else if(isToken(TokenId::URL)) {
+			const std::string uri = (*it_)->getStringValue();
+			advance();
+			plist_.addProperty(name, UriStyle::create(uri));
+			// XXX here would be a good place to place to have a background thread working
+			// to look up the uri and download it. or look-up in cache, etc.
+		} else {
+			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
 	}
 }

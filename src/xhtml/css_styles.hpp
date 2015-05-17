@@ -225,6 +225,21 @@ namespace css
 		OUTSET,
 	};
 
+	class UriStyle : public Style
+	{
+	public:
+		MAKE_FACTORY(UriStyle);
+		UriStyle() : is_none_(false), uri_() {}
+		explicit UriStyle(bool none) : is_none_(none), uri_() {}
+		explicit UriStyle(const std::string uri) : is_none_(false), uri_(uri) {}
+		bool isNone() const { return is_none_; }
+		const std::string& getUri() const { return uri_; }
+		Object evaluate(const xhtml::RenderContext& rc) const override;
+	private:
+		bool is_none_;
+		std::string uri_;
+	};
+
 	struct BorderStyle : public Style
 	{
 		MAKE_FACTORY(BorderStyle);
