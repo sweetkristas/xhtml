@@ -32,6 +32,7 @@
 #include "xhtml_render_ctx.hpp"
 
 #include "AttributeSet.hpp"
+#include "Blittable.hpp"
 #include "DisplayDevice.hpp"
 #include "SceneObject.hpp"
 #include "Shaders.hpp"
@@ -1011,17 +1012,77 @@ namespace xhtml
 	void BackgroundInfo::setFile(const std::string& filename)
 	{
 		texture_ = KRE::Texture::createTexture(filename);
+		switch(repeat_) {
+			case CssBackgroundRepeat::REPEAT:
+				texture_->setAddressModes(0, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::WRAP);
+				break;
+			case CssBackgroundRepeat::REPEAT_X:
+				texture_->setAddressModes(0, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::BORDER, KRE::Texture::AddressMode::BORDER, KRE::Color(0,0,0,0));
+				break;
+			case CssBackgroundRepeat::REPEAT_Y:
+				texture_->setAddressModes(0, KRE::Texture::AddressMode::BORDER, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::BORDER, KRE::Color(0,0,0,0));
+				break;
+			case CssBackgroundRepeat::NO_REPEAT:
+				texture_->setAddressModes(0, KRE::Texture::AddressMode::BORDER, KRE::Texture::AddressMode::BORDER, KRE::Texture::AddressMode::BORDER, KRE::Color(0,0,0,0));
+				break;
+		}
 	}
 
 	void BackgroundInfo::render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
 	{
+		const int rx = offset.x - dims.padding_.left;
+		const int ry = offset.x - dims.padding_.left;
+		const int rw = dims.content_.width + dims.padding_.left + dims.padding_.right;
+		const int rh = dims.content_.height + dims.padding_.top + dims.padding_.bottom;
+		rect r(rx, ry, rw, rh);
+
 		if(color_.ai() != 0) {
-			rect r(offset.x - dims.padding_.left,
-				offset.y - dims.padding_.top,
-				dims.content_.width + dims.padding_.left + dims.padding_.right,
-				dims.content_.height + dims.padding_.top + dims.padding_.bottom);
 			display_list->addRenderable(std::make_shared<SolidRenderable>(r, color_));
 		}
 		// XXX if texture is set then use background position and repeat as appropriate.
+		if(texture_) {
+			// XXX this needs fixing.
+			// we porbably should clone the texture we pass to blittable.
+			// With a value pair of '14% 84%', the point 14% across and 84% down the image is to be placed at the point 14% across and 84% down the padding box.
+			const int sw = texture_->surfaceWidth();
+			const int sh = texture_->surfaceHeight();
+
+			int sw_offs = 0;
+			int sh_offs = 0;
+
+			if(position_.getLeft().isPercent()) {
+				sw_offs = position_.getLeft().compute(sw * fixed_point_scale);
+			}
+			if(position_.getTop().isPercent()) {
+				sh_offs = position_.getTop().compute(sh * fixed_point_scale);
+			}
+
+			int rw_offs = position_.getLeft().compute(rw);
+			int rh_offs = position_.getTop().compute(rh);
+
+			const int left = rw_offs - sw_offs;
+			const int top = rh_offs - sh_offs;
+
+			auto tex = texture_->clone();
+			switch(repeat_) {
+				case CssBackgroundRepeat::REPEAT:
+					tex->setSourceRect(0, rect(-left, -top, rw, rh));
+					break;
+				case CssBackgroundRepeat::REPEAT_X:
+					tex->setSourceRect(0, rect(-left, 0, rw, sh));
+					break;
+				case CssBackgroundRepeat::REPEAT_Y:
+					tex->setSourceRect(0, rect(0, -top, sw, rh));
+					break;
+				case CssBackgroundRepeat::NO_REPEAT:
+					tex->setSourceRect(0, rect(0, 0, sw, sh));
+					break;
+			}
+
+			auto ptr = std::make_shared<KRE::Blittable>(tex);
+			ptr->setCentre(KRE::Blittable::Centre::TOP_LEFT);
+			ptr->setDrawRect(r);
+			display_list->addRenderable(ptr);
+		}
 	}
 }

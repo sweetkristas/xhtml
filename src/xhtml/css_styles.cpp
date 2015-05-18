@@ -118,7 +118,7 @@ namespace css
 		} else if(units == "%") {
 			units_ = LengthUnits::PERCENT;
 			// normalize to range 0.0 -> 1.0
-			value_ /= 100 * fixed_point_scale;
+			value_ = fixed_point_scale;
 		} else {
 			LOG_ERROR("unrecognised units value: '" << units << "'");
 		}
@@ -167,7 +167,7 @@ namespace css
 				res = (12 * value_ * dpi) / 72;
 				break;
 			case LengthUnits::PERCENT:
-				res = static_cast<xhtml::FixedPoint>((static_cast<float>(value_)/fixed_point_scale) * scale);
+				res = (value_ / fixed_point_scale) * (scale / 100);
 				break; 
 			default: 
 				ASSERT_LOG(false, "Unrecognised units value: " << static_cast<int>(units_));

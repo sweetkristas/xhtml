@@ -529,6 +529,8 @@ namespace css
 		void setLeft(const Length& left);
 		void setTop(const Length& top);
 		Object evaluate(const xhtml::RenderContext& rc) const override;
+		const Length& getLeft() const { return left_; }
+		const Length& getTop() const { return top_; }
 	private:
 		Length left_;
 		Length top_;

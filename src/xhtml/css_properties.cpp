@@ -1097,6 +1097,8 @@ namespace css
 			} else if(cnt > 0) {
 				throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
 			}
+			
+			skipWhitespace();
 		}
 		if(was_horiz_set && !was_vert_set) {
 			if(holder.size() > 0) {
