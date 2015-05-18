@@ -377,6 +377,9 @@ namespace css
 					// element name
 					simple_selector->setElementId(xhtml::string_to_element_id((*it_)->getStringValue()));
 					advance();
+				} else if(isTokenDelimiter("*")) {
+					simple_selector->setElementId(xhtml::ElementId::ANY);
+					advance();
 				}
 
 				while(true) {
@@ -640,9 +643,9 @@ bool check_selector(const std::string& selector, const std::string& string_to_ma
 {
 	css::Tokenizer tokens(selector);
 	auto selectors = css::Selector::parseTokens(tokens.getTokens());
-	for(auto& s : selectors) {
-		LOG_DEBUG(s->toString());
-	}
+	//for(auto& s : selectors) {
+	//	LOG_DEBUG(s->toString());
+	//}
 
 	xhtml::DocumentFragmentPtr doc = xhtml::parse_from_string(string_to_match);
 	bool successful_match = false;
@@ -673,4 +676,6 @@ UNIT_TEST(css_selectors)
 	CHECK_EQ(check_selector("h1, h2, h3", "<h1>Now is the time.</h1>"), true);
 	CHECK_EQ(check_selector("#s12:not(FOO)", "<html><head></head><body><h1 id=\"s12\">Now is the time.</h1><FOO id=\"s12\"></FOO></body></html>"), true);
 	CHECK_EQ(check_selector("body ", "<body></body>"), true);
+	CHECK_EQ(check_selector("*[DIR=\"ltr\"] ", "<body></body>"), false);
+	CHECK_EQ(check_selector("span.xxxx { color: blue; } span#id1 { left:0px; }", "<span id=\"id1\" class=\"xxxx\">aaa</span>"), true);
 }

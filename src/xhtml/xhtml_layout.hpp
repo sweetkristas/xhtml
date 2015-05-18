@@ -73,6 +73,22 @@ namespace xhtml
 		FIXED,
 	};
 
+	class BackgroundInfo
+	{
+	public:
+		BackgroundInfo();
+		void setColor(const KRE::Color& color) { color_ = color; }
+		void setFile(const std::string& filename);
+		void setPosition(const css::BackgroundPosition& pos) { position_ = pos; }
+		void setRepeat(css::CssBackgroundRepeat repeat) { repeat_ = repeat; }
+		void render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
+	private:
+		KRE::Color color_;
+		KRE::TexturePtr texture_;
+		css::CssBackgroundRepeat repeat_;
+		css::BackgroundPosition position_;
+	};
+
 	class Box : public std::enable_shared_from_this<Box>
 	{
 	public:
@@ -185,7 +201,7 @@ namespace xhtml
 		css::CssFloat cfloat_;
 		KRE::FontHandlePtr font_handle_;
 
-		KRE::Color background_color_;
+		BackgroundInfo binfo_;
 		css::CssPosition css_position_;
 
 		css::Length padding_[4];

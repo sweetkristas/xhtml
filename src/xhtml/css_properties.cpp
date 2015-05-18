@@ -169,6 +169,9 @@ namespace css
 		PropertyRegistrar property047("right", Property::RIGHT, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property048("bottom", Property::BOTTOM, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property049("background-image", Property::BACKGROUND_IMAGE, false, Object(UriStyle(true)), std::bind(&PropertyParser::parseUri, _1, _2));
+		PropertyRegistrar property050("background-repeat", Property::BACKGROUND_REPEAT, false, Object(CssBackgroundRepeat::REPEAT), std::bind(&PropertyParser::parseBackgroundRepeat, _1, _2));
+		PropertyRegistrar property051("background-position", Property::BACKGROUND_POSITION, false, Object(BackgroundPosition()), std::bind(&PropertyParser::parseBackgroundPosition, _1, _2));
+		
 		//transition -- transition-property, transition-duration, transition-timing-function, transition-delay
 		//text-shadow
 	}
@@ -935,6 +938,8 @@ namespace css
 				of = CssOverflow::HIDDEN;
 			} else if(ref == "scroll") {
 				of = CssOverflow::SCROLL;
+			} else if(ref == "clip") {
+				of = CssOverflow::CLIP;
 			} else if(ref == "auto") {
 				of = CssOverflow::AUTO;
 			} else {
@@ -1018,5 +1023,112 @@ namespace css
 		} else {
 			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
 		}
+	}
+
+	void PropertyParser::parseBackgroundRepeat(const std::string& name)
+	{
+		CssBackgroundRepeat repeat = CssBackgroundRepeat::REPEAT;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "inherit") {
+				plist_.addProperty(name, std::make_shared<Style>(true));
+				return;
+			} else if(ref == "repeat") {
+				repeat = CssBackgroundRepeat::REPEAT;
+			} else if(ref == "repeat-x") {
+				repeat = CssBackgroundRepeat::REPEAT_X;
+			} else if(ref == "repeat-y") {
+				repeat = CssBackgroundRepeat::REPEAT_Y;
+			} else if(ref == "no-repeat") {
+				repeat = CssBackgroundRepeat::NO_REPEAT;
+			} else {
+				throw ParserError(formatter() << "Unrecognised identifier for '" << name << "' property: " << ref);
+			}
+		} else {
+			throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(name, BackgroundRepeat::create(repeat));
+	}
+
+	void PropertyParser::parseBackgroundPosition(const std::string& name)
+	{
+		/// need to check this works.
+		// this is slightly complicated by the fact that "top center" and "center top" are valid.
+		// as is "0% top" and "top 0%" whereas "50% 25%" is fixed for left then top.
+		auto pos = BackgroundPosition::create();
+		bool was_horiz_set = false;
+		bool was_vert_set = false;
+		int cnt = 2;
+		std::vector<Length> holder;
+		while(cnt-- > 0) {
+			if(isToken(TokenId::IDENT)) {
+				const std::string ref = (*it_)->getStringValue();
+				advance();
+				if(ref == "inherit") {
+					plist_.addProperty(name, std::make_shared<Style>(true));
+					return;
+				} else if(ref == "left") {
+					pos->setLeft(Length(0, true));
+					was_horiz_set = true; 
+				} else if(ref == "top") {
+					pos->setTop(Length(0, true));
+					was_vert_set = true;
+				} else if(ref == "right") {
+					pos->setLeft(Length(100 * fixed_point_scale, true));
+					was_horiz_set = true; 
+				} else if(ref == "bottom") {
+					pos->setTop(Length(100 * fixed_point_scale, true));
+					was_vert_set = true;
+				} else if(ref == "center") {
+					holder.emplace_back(50 * fixed_point_scale, true);
+				} else {
+					throw ParserError(formatter() << "Unrecognised identifier for '" << name << "' property: " << ref);
+				}
+			} else if(isToken(TokenId::DIMENSION)) {
+				const std::string units = (*it_)->getStringValue();
+				xhtml::FixedPoint value = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+				advance();
+				holder.emplace_back(value, units);
+			} else if(isToken(TokenId::PERCENT)) {
+				xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+				advance();
+				holder.emplace_back(d, true);
+			} else if(cnt > 0) {
+				throw ParserError(formatter() << "Unrecognised value for property '" << name << "': "  << (*it_)->toString());
+			}
+		}
+		if(was_horiz_set && !was_vert_set) {
+			if(holder.size() > 0) {
+				// we set something so apply it.
+				pos->setTop(holder.front());
+			} else {
+				// apply a default, center
+				pos->setTop(Length(50, true));
+			}
+		}
+		if(was_vert_set && !was_horiz_set) {
+			if(holder.size() > 0) {
+				// we set something so apply it.
+				pos->setLeft(holder.front());
+			} else {
+				// apply a default, center
+				pos->setLeft(Length(50, true));
+			}
+		}
+		if(!was_horiz_set && !was_vert_set) {
+			// assume left top ordering.
+			if(holder.size() > 1) {
+				pos->setLeft(holder[0]);
+				pos->setTop(holder[1]);
+			} else if(holder.size() > 0) {
+				pos->setLeft(holder.front());
+				pos->setTop(holder.front());
+			} else {
+				pos->setLeft(Length(0, true));
+				pos->setTop(Length(0, true));
+			}
+		}
+		plist_.addProperty(name, pos);
 	}
 }

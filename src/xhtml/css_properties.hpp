@@ -90,6 +90,8 @@ namespace css
 		void parsePosition(const std::string& name);
 		void parseFloat(const std::string& name);
 		void parseUri(const std::string& name);
+		void parseBackgroundRepeat(const std::string& name);
+		void parseBackgroundPosition(const std::string& name);
 	private:
 		enum NumericParseOptions {
 			NUMBER = 1,

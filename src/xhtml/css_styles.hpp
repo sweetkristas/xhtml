@@ -479,6 +479,7 @@ namespace css
 		VISIBLE,
 		HIDDEN,
 		SCROLL,
+		CLIP,
 		AUTO,
 	};
 
@@ -503,5 +504,33 @@ namespace css
 		explicit Position(CssPosition p) : position_(p) {}
 		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssPosition position_;
+	};
+
+	enum class CssBackgroundRepeat {
+		REPEAT,
+		REPEAT_X,
+		REPEAT_Y,
+		NO_REPEAT,
+	};
+
+	struct BackgroundRepeat : public Style
+	{
+		MAKE_FACTORY(BackgroundRepeat);
+		explicit BackgroundRepeat(CssBackgroundRepeat r) : repeat_(r) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override;
+		CssBackgroundRepeat repeat_;
+	};
+
+	class BackgroundPosition : public Style
+	{
+	public:
+		MAKE_FACTORY(BackgroundPosition);
+		BackgroundPosition();
+		void setLeft(const Length& left);
+		void setTop(const Length& top);
+		Object evaluate(const xhtml::RenderContext& rc) const override;
+	private:
+		Length left_;
+		Length top_;
 	};
 }

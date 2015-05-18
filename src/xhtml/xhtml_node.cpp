@@ -282,7 +282,7 @@ namespace xhtml
 			return true;
 		});
 
-		// XXX Parse and apply specific element style rules from attributes here.
+		// Parse and apply specific element style rules from attributes here.
 		preOrderTraversal([](NodePtr n) {
 			if(n->id() == NodeId::ELEMENT) {
 				auto attr = n->getAttribute("style");
@@ -294,7 +294,7 @@ namespace xhtml
 			return true;
 		});
 
-		LOG_DEBUG("STYLESHEET: " << ss->toString());
+		//LOG_DEBUG("STYLESHEET: " << ss->toString());
 	}
 
 	void Node::mergeProperties(const css::PropertyList& plist)

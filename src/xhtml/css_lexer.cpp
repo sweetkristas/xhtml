@@ -648,6 +648,7 @@ namespace css
 		}
 		while(true) {
 			if(la0_ == ')' || eof(la0_)) {
+				advance();
 				return std::make_shared<UrlToken>(res);
 			} else if(whitespace(la0_)) {
 				while(whitespace(la0_)) {

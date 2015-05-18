@@ -294,4 +294,30 @@ namespace css
 	{
 		return Object(*this);
 	}
+
+	Object BackgroundRepeat::evaluate(const xhtml::RenderContext& rc) const
+	{
+		return Object(repeat_);
+	}
+
+	BackgroundPosition::BackgroundPosition() 
+		: left_(0, true),
+		  top_(0, true)
+	{
+	}
+
+	void BackgroundPosition::setLeft(const Length& left) 
+	{
+		left_ = left;
+	}
+
+	void BackgroundPosition::setTop(const Length& top) 
+	{
+		top_ = top;
+	}
+
+	Object BackgroundPosition::evaluate(const xhtml::RenderContext& rc) const 
+	{
+		return Object(*this);
+	}
 }

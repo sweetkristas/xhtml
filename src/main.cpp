@@ -56,10 +56,10 @@ void load_xhtml(int width, int height, const std::string& ua_ss, const std::stri
 	// whitespace can only be processed after applying styles.
 	doc->processWhitespace();
 
-	//doc->preOrderTraversal([](xhtml::NodePtr n) {
-	//	LOG_DEBUG(n->toString());
-	//	return true;
-	//});
+	/*doc->preOrderTraversal([](xhtml::NodePtr n) {
+		LOG_DEBUG(n->toString());
+		return true;
+	});*/
 
 	xhtml::RenderContextManager rcm;
 	// layout has to happen after initialisation of graphics

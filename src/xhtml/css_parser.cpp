@@ -239,7 +239,7 @@ namespace css
 			try {
 				parseRule(token);
 			} catch(ParserError& e) {
-				LOG_DEBUG("Dropping rule: " << e.what());
+				LOG_DEBUG("Dropping rule: " << e.what() << " " << token->toString());
 			}
 		}
 	}
@@ -412,13 +412,13 @@ namespace css
 		if(rule == nullptr) {
 			throw ParserError("Trying to parse empty rule.");
 		}
-		std::ostringstream ss;
+		/*std::ostringstream ss;
 		ss << "RULE. prelude:";
 		for(auto& r : rule->getParameters()) {
 			ss << " " << r->toString();
 		}
 		ss << "; values: " << rule->getValue()->toString();
-		LOG_DEBUG(ss.str());
+		LOG_DEBUG(ss.str());*/
 
 		auto prelude = rule->getParameters().begin();
 		while((*prelude)->id() == TokenId::WHITESPACE) {

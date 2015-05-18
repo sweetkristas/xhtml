@@ -430,11 +430,18 @@ namespace xhtml
 		  right_floats_(),
 		  cfloat_(CssFloat::NONE),
 		  font_handle_(xhtml::RenderContext::get().getFontHandle()),
-		  background_color_(),
+		  binfo_(),
 		  css_position_(CssPosition::STATIC)
 	{
 		RenderContext& ctx = RenderContext::get();
-		background_color_ = ctx.getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute();
+		binfo_.setColor(ctx.getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute());
+		// We set repeat before the filename so we can correctly set the background texture wrap mode.
+		binfo_.setRepeat(ctx.getComputedValue(Property::BACKGROUND_REPEAT).getValue<CssBackgroundRepeat>());
+		binfo_.setPosition(ctx.getComputedValue(Property::BACKGROUND_POSITION).getValue<BackgroundPosition>());
+		auto uri = ctx.getComputedValue(Property::BACKGROUND_IMAGE).getValue<UriStyle>();
+		if(!uri.isNone()) {
+			binfo_.setFile(uri.getUri());
+		}
 		css_position_ = ctx.getComputedValue(Property::POSITION).getValue<CssPosition>();
 
 		const Property b[4]  = { Property::BORDER_LEFT_WIDTH, Property::BORDER_TOP_WIDTH, Property::BORDER_RIGHT_WIDTH, Property::BORDER_BOTTOM_WIDTH };
@@ -929,13 +936,7 @@ namespace xhtml
 
 	void Box::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
 	{
-		if(background_color_.ai() != 0) {
-			rect r(offset.x - dimensions_.padding_.left,
-				offset.y - dimensions_.padding_.top,
-				dimensions_.content_.width + dimensions_.padding_.left + dimensions_.padding_.right,
-				dimensions_.content_.height + dimensions_.padding_.top + dimensions_.padding_.bottom);
-			display_list->addRenderable(std::make_shared<SolidRenderable>(r, background_color_));
-		}
+		binfo_.render(display_list, offset, getDimensions());
 	}
 
 	void Box::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
@@ -997,5 +998,30 @@ namespace xhtml
 				display_list->addRenderable(r);
 			}
 		}
+	}
+
+	BackgroundInfo::BackgroundInfo()
+		: color_(0, 0, 0, 0),
+		  texture_(),
+		  repeat_(CssBackgroundRepeat::REPEAT),
+		  position_()
+	{
+	}
+
+	void BackgroundInfo::setFile(const std::string& filename)
+	{
+		texture_ = KRE::Texture::createTexture(filename);
+	}
+
+	void BackgroundInfo::render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
+	{
+		if(color_.ai() != 0) {
+			rect r(offset.x - dims.padding_.left,
+				offset.y - dims.padding_.top,
+				dims.content_.width + dims.padding_.left + dims.padding_.right,
+				dims.content_.height + dims.padding_.top + dims.padding_.bottom);
+			display_list->addRenderable(std::make_shared<SolidRenderable>(r, color_));
+		}
+		// XXX if texture is set then use background position and repeat as appropriate.
 	}
 }
