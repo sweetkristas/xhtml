@@ -50,6 +50,25 @@ namespace css
 
 	typedef std::array<int,3> Specificity;
 
+	enum class PseudoClass {
+		NONE	= 0,		// Standard
+		HOVER	= 1,		// Active when the mouse is over the element.
+		ACTIVE	= 2,		// Active when between mouse press and mouse release.
+		FOCUS	= 4,		// Active when the element has focus and can accept keyboard events.
+	};
+
+	inline PseudoClass operator|(PseudoClass a, PseudoClass b) {
+		return static_cast<PseudoClass>(static_cast<int>(a) | static_cast<int>(b));
+	};
+
+	inline PseudoClass operator&(PseudoClass a, PseudoClass b) {
+		return static_cast<PseudoClass>(static_cast<int>(a) & static_cast<int>(b));
+	};
+
+	inline PseudoClass operator~(PseudoClass a) {
+		return static_cast<PseudoClass>(~static_cast<int>(a));
+	}
+
 	enum class Combinator {
 		NONE,
 		CHILD,					// '>'

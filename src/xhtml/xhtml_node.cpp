@@ -57,7 +57,10 @@ namespace xhtml
 		  right_(),
 		  parent_(),
 		  owner_document_(owner),
-		  properties_()
+		  properties_(),
+		  pclass_(css::PseudoClass::NONE),
+		  active_pclass_(css::PseudoClass::NONE),
+		  active_rect_()
 	{
 	}
 
@@ -123,26 +126,32 @@ namespace xhtml
 		attributes_[a->getName()] = a;
 	}
 
-	void Node::preOrderTraversal(std::function<bool(NodePtr)> fn)
+	bool Node::preOrderTraversal(std::function<bool(NodePtr)> fn)
 	{
 		// Visit node, visit children.
 		if(!fn(shared_from_this())) {
-			return;
+			return false;
 		}
 		for(auto& c : children_) {
-			c->preOrderTraversal(fn);
+			if(!c->preOrderTraversal(fn)) {
+				return false;
+			}
 		}
+		return true;
 	}
 
-	void Node::postOrderTraversal(std::function<bool(NodePtr)> fn)
+	bool Node::postOrderTraversal(std::function<bool(NodePtr)> fn)
 	{
 		// Visit children, then this process node.
 		for(auto& c : children_) {
-			c->preOrderTraversal(fn);
+			if(!c->preOrderTraversal(fn)) {
+				return false;
+			}
 		}
 		if(!fn(shared_from_this())) {
-			return;
+			return false;
 		}
+		return true;
 	}
 
 	bool Node::ancestralTraverse(std::function<bool(NodePtr)> fn)
@@ -239,10 +248,50 @@ namespace xhtml
 		}
 	}
 
+	bool Node::handleMouseMotion(bool* trigger, const point& p)
+	{
+		bool hover = hasPseudoClass(css::PseudoClass::HOVER);
+		if(!active_rect_.empty() && hover && geometry::pointInRect(p, active_rect_)) {
+			if((active_pclass_ & css::PseudoClass::HOVER) != css::PseudoClass::HOVER) {
+				*trigger = true;
+			}
+			active_pclass_ = active_pclass_ | css::PseudoClass::HOVER;
+			return false;
+		} else if((active_pclass_ & css::PseudoClass::HOVER) == css::PseudoClass::HOVER) {
+			active_pclass_ = active_pclass_ & ~css::PseudoClass::HOVER;
+			*trigger = true;
+		}
+		return true;
+	}
+
+	bool Document::handleMouseMotion(bool claimed, int x, int y)
+	{		
+		bool trigger = false;
+		claimed = !preOrderTraversal([&trigger, x, y](NodePtr node) {
+			if(!node->handleMouseMotion(&trigger, point(x,y))) {
+				return false;
+			}
+			return true;
+		});
+		trigger_layout_ = trigger;
+		return claimed;
+	}
+
+	bool Document::handleMouseButtonDown(bool claimed, int x, int y, unsigned button)
+	{
+		return false;
+	}
+
+	bool Document::handleMouseButtonUp(bool claimed, int x, int y, unsigned button)
+	{
+		return false;
+	}
+
 	// Documents do not have an owner document.
 	Document::Document(css::StyleSheetPtr ss)
 		: Node(NodeId::DOCUMENT, WeakDocumentPtr()),
-		  style_sheet_(ss == nullptr ? std::make_shared<css::StyleSheet>() : ss)
+		  style_sheet_(ss == nullptr ? std::make_shared<css::StyleSheet>() : ss),
+		  trigger_layout_(true)
 	{
 	}
 
@@ -277,6 +326,12 @@ namespace xhtml
 			return true;
 		});
 		
+		processStyleRules();
+	}
+
+	void Document::processStyleRules()
+	{
+		auto& ss = style_sheet_;
 		preOrderTraversal([&ss](NodePtr n) {
 			ss->applyRulesToElement(n);
 			return true;
@@ -293,8 +348,6 @@ namespace xhtml
 			}
 			return true;
 		});
-
-		//LOG_DEBUG("STYLESHEET: " << ss->toString());
 	}
 
 	void Node::mergeProperties(const css::PropertyList& plist)

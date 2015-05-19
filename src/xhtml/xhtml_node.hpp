@@ -94,9 +94,9 @@ namespace xhtml
 		const AttributeMap& getAttributes() const { return attributes_; }
 		const NodeList& getChildren() const { return children_; }
 		// top-down scanning of the tree
-		void preOrderTraversal(std::function<bool(NodePtr)> fn);
+		bool preOrderTraversal(std::function<bool(NodePtr)> fn);
 		// bottom-up scanning of the tree
-		void postOrderTraversal(std::function<bool(NodePtr)> fn);
+		bool postOrderTraversal(std::function<bool(NodePtr)> fn);
 		// scanning from a child node up through parents
 		bool ancestralTraverse(std::function<bool(NodePtr)> fn);
 		virtual bool hasTag(const std::string& tag) const { return false; }
@@ -108,6 +108,19 @@ namespace xhtml
 		const css::PropertyList& getProperties() const { return properties_; }
 		void processWhitespace();
 
+		void addPseudoClass(css::PseudoClass pclass) { pclass_ = pclass_ | pclass; }
+		bool hasPseudoClass(css::PseudoClass pclass) { return (pclass_ & pclass) != css::PseudoClass::NONE; }
+		bool hasPsuedoClassActive(css::PseudoClass pclass) { return (active_pclass_ & pclass) != css::PseudoClass::NONE; }
+		css::PseudoClass getPseudoClass() const { return pclass_; }
+		// This sets the rectangle that should be active for mouse presses.
+		void setActiveRect(const rect& r) { active_rect_ = r; }
+		const rect& getActiveRect() const { return active_rect_; }
+		virtual void layoutComplete() {}
+
+		bool handleMouseMotion(bool* trigger, const point& p);
+
+		void clearProperties() { properties_.clear(); }
+		
 		// for elements
 		virtual const Rect& getDimensions() { static Rect res; return res; }
 		virtual KRE::SceneObjectPtr getRenderable() { return nullptr; }
@@ -127,6 +140,9 @@ namespace xhtml
 		WeakDocumentPtr owner_document_;
 
 		css::PropertyList properties_;
+		css::PseudoClass pclass_;
+		css::PseudoClass active_pclass_;
+		rect active_rect_;
 	};
 
 	class Document : public Node
@@ -135,9 +151,18 @@ namespace xhtml
 		static DocumentPtr create(css::StyleSheetPtr ss=nullptr);
 		std::string toString() const override;
 		void processStyles();
+		void processStyleRules();
+
+		bool handleMouseMotion(bool claimed, int x, int y);
+		bool handleMouseButtonDown(bool claimed, int x, int y, unsigned button);
+		bool handleMouseButtonUp(bool claimed, int x, int y, unsigned button);
+
+		bool needsLayout() const { return trigger_layout_; }
+		void layoutComplete() override { trigger_layout_ = false; }
 	protected:
 		Document(css::StyleSheetPtr ss);
 		css::StyleSheetPtr style_sheet_;
+		bool trigger_layout_;
 	};
 
 	class DocumentFragment : public Node

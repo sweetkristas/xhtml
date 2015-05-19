@@ -72,11 +72,21 @@ namespace css
 					// Basically won't handle these
 					return false;
 				} else if(name_ == "hover") {
-					//ASSERT_LOG(false, "Handle :hover pseudo class.");
+					// XXX this should be moved to some initialisation thing.
+					element->addPseudoClass(PseudoClass::HOVER);
+					if(element->hasPsuedoClassActive(PseudoClass::HOVER)) {
+						return true;
+					}
 				} else if(name_ == "active") {
-					//ASSERT_LOG(false, "Handle :active pseudo class.");
+					element->addPseudoClass(PseudoClass::ACTIVE);
+					if(element->hasPsuedoClassActive(PseudoClass::ACTIVE)) {
+						return true;
+					}
 				} else if(name_ == "focus") {
-					//ASSERT_LOG(false, "Handle :focus pseudo class.");
+					element->addPseudoClass(PseudoClass::FOCUS);
+					if(element->hasPsuedoClassActive(PseudoClass::FOCUS)) {
+						return true;
+					}
 				} else if(name_ == "lang") {
 					//ASSERT_LOG(false, "Handle :lang pseudo class.");
 				} else if(name_ == "not") {
@@ -678,4 +688,6 @@ UNIT_TEST(css_selectors)
 	CHECK_EQ(check_selector("body ", "<body></body>"), true);
 	CHECK_EQ(check_selector("*[DIR=\"ltr\"] ", "<body></body>"), false);
 	CHECK_EQ(check_selector("span.xxxx { color: blue; } span#id1 { left:0px; }", "<span id=\"id1\" class=\"xxxx\">aaa</span>"), true);
+	CHECK_EQ(check_selector("span + div", "<span></span><div></div>"), true);
+	CHECK_EQ(check_selector("span + div", "<div></div><span></span>"), false);
 }

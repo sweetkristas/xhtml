@@ -56,6 +56,7 @@ namespace css
 	void StyleSheet::applyRulesToElement(xhtml::NodePtr n)
 	{
 		if(n->id() == xhtml::NodeId::ELEMENT) {
+			n->clearProperties();
 			for(auto& r : rules_) {
 				for(auto& s : r->selectors) {
 					if(s->match(n)) {

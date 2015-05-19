@@ -74,6 +74,8 @@ namespace KRE
 
 		glm::mat4 getModelMatrix() const;
 
+		void clear() { objects_.clear(); }
+
 		static void registerObjectType(const std::string& type, ObjectTypeFunction fn);
 	private:
 		// No default or assignment constructors

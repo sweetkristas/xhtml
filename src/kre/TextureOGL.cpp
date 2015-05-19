@@ -126,11 +126,11 @@ namespace KRE
 
 	OpenGLTexture::~OpenGLTexture()
 	{
-		int n = 0;
-		for(auto& td : texture_data_) {
-			LOG_DEBUG("Release TexturePtr(" << n << "): id: " << *td.id << ", use_count: " << td.id.use_count());
-			++n;
-		}
+		//int n = 0;
+		//for(auto& td : texture_data_) {
+		//	LOG_DEBUG("Release TexturePtr(" << n << "): id: " << *td.id << ", use_count: " << td.id.use_count());
+		//	++n;
+		//}
 	}
 
 	void OpenGLTexture::update(int n, int x, int width, void* pixels)

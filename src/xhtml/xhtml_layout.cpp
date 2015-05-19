@@ -469,6 +469,7 @@ namespace xhtml
 			}
 			return true;
 		});
+		node->layoutComplete();
 		return e.getRoot();
 	}
 
@@ -520,6 +521,15 @@ namespace xhtml
 		for(auto& child : boxes_) {
 			child->preOrderTraversal(fn, nesting+1);
 		}
+		for(auto& lf : left_floats_) {
+			lf->preOrderTraversal(fn, nesting+1);
+		}
+		for(auto& rf : left_floats_) {
+			rf->preOrderTraversal(fn, nesting+1);
+		}
+		for(auto& abs : absolute_boxes_) {
+			abs->preOrderTraversal(fn, nesting+1);
+		}
 	}
 
 	BoxPtr Box::addAbsoluteElement(NodePtr node)
@@ -538,7 +548,7 @@ namespace xhtml
 	void Box::layoutFixed(LayoutEngine& eng, const Dimensions& containing)
 	{
 		for(auto& fix : fixed_boxes_) {
-			fix->layout(eng, containing);
+			fix->layout(eng, eng.getDimensions());
 		}
 	}
 
@@ -839,8 +849,14 @@ namespace xhtml
 		setContentWidth(width - getMBPWidth());
 		setContentHeight(height - getMBPHeight());
 
-		for(auto& child : getChildren()) {
-			child->layout(eng, getDimensions());
+		NodePtr node = getNode();
+		if(node != nullptr) {
+			eng.pushOpenBox();
+			for(auto& child : node->getChildren()) {
+				eng.formatNode(child, shared_from_this(), getDimensions());
+			}
+			eng.closeOpenBox(shared_from_this());
+			eng.popOpenBox();
 		}
 	}
 
@@ -933,6 +949,19 @@ namespace xhtml
 			ab->render(display_list, point(0, 0));
 		}
 		// render fixed boxes.
+		for(auto& fix : fixed_boxes_) {
+			fix->render(display_list, point(0, 0));
+		}
+
+		// set the active rect on any parent node.
+		if(node != nullptr) {
+			auto& dims = getDimensions();
+			const int x = (offs.x - dims.padding_.left - dims.border_.left) / fixed_point_scale;
+			const int y = (offs.y - dims.padding_.top - dims.border_.top) / fixed_point_scale;
+			const int w = (dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right) / fixed_point_scale;
+			const int h = (dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom) / fixed_point_scale;
+			node->setActiveRect(rect(x, y, w, h));
+		}
 	}
 
 	void Box::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
@@ -1031,7 +1060,7 @@ namespace xhtml
 	void BackgroundInfo::render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
 	{
 		const int rx = offset.x - dims.padding_.left;
-		const int ry = offset.x - dims.padding_.left;
+		const int ry = offset.y - dims.padding_.top;
 		const int rw = dims.content_.width + dims.padding_.left + dims.padding_.right;
 		const int rh = dims.content_.height + dims.padding_.top + dims.padding_.bottom;
 		rect r(rx, ry, rw, rh);
@@ -1057,31 +1086,39 @@ namespace xhtml
 				sh_offs = position_.getTop().compute(sh * fixed_point_scale);
 			}
 
-			int rw_offs = position_.getLeft().compute(rw);
-			int rh_offs = position_.getTop().compute(rh);
+			const int rw_offs = position_.getLeft().compute(rw);
+			const int rh_offs = position_.getTop().compute(rh);
+			
+			const float rxf = static_cast<float>(rx) / fixed_point_scale_float;
+			const float ryf = static_cast<float>(ry) / fixed_point_scale_float;
 
-			const int left = rw_offs - sw_offs;
-			const int top = rh_offs - sh_offs;
+			const float left = static_cast<float>(rw_offs - sw_offs + rx) / fixed_point_scale_float;
+			const float top = static_cast<float>(rh_offs - sh_offs + ry) / fixed_point_scale_float;
+			const float width = static_cast<float>(rw) / fixed_point_scale_float;
+			const float height = static_cast<float>(rh) / fixed_point_scale_float;
 
 			auto tex = texture_->clone();
+			auto ptr = std::make_shared<KRE::Blittable>(tex);
+			ptr->setCentre(KRE::Blittable::Centre::TOP_LEFT);
 			switch(repeat_) {
 				case CssBackgroundRepeat::REPEAT:
-					tex->setSourceRect(0, rect(-left, -top, rw, rh));
+					tex->setSourceRect(0, rect(-left, -top, width, height));
+					ptr->setDrawRect(rectf(rxf, ryf, width, height));
 					break;
 				case CssBackgroundRepeat::REPEAT_X:
-					tex->setSourceRect(0, rect(-left, 0, rw, sh));
+					tex->setSourceRect(0, rect(-left, 0, width, sh));
+					ptr->setDrawRect(rectf(rxf, top, width, static_cast<float>(sh)));
 					break;
 				case CssBackgroundRepeat::REPEAT_Y:
-					tex->setSourceRect(0, rect(0, -top, sw, rh));
+					tex->setSourceRect(0, rect(0, -top, sw, height));
+					ptr->setDrawRect(rectf(left, ryf, static_cast<float>(sw), height));
 					break;
 				case CssBackgroundRepeat::NO_REPEAT:
 					tex->setSourceRect(0, rect(0, 0, sw, sh));
+					ptr->setDrawRect(rectf(left, top, static_cast<float>(sw), static_cast<float>(sh)));
 					break;
 			}
 
-			auto ptr = std::make_shared<KRE::Blittable>(tex);
-			ptr->setCentre(KRE::Blittable::Centre::TOP_LEFT);
-			ptr->setDrawRect(r);
 			display_list->addRenderable(ptr);
 		}
 	}

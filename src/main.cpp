@@ -43,7 +43,36 @@
 #include "xhtml_node.hpp"
 #include "xhtml_render_ctx.hpp"
 
-void load_xhtml(int width, int height, const std::string& ua_ss, const std::string& test_doc, xhtml::DisplayListPtr display_list)
+void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayListPtr display_list, KRE::SceneGraphPtr graph)
+{
+	xhtml::RenderContextManager rcm;
+	// layout has to happen after initialisation of graphics
+	if(doc->needsLayout()) {
+		LOG_DEBUG("Triggered layout!");
+
+		display_list->clear();
+
+		// XXX should we should have a re-process styles flag here.
+
+		{
+		profile::manager pman("apply styles");
+		doc->processStyleRules();
+		}
+
+		{
+		profile::manager pman("layout");
+		auto layout = xhtml::Box::createLayout(doc, width, height);
+		layout->render(display_list, point());
+		}
+
+		/*layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
+			std::string indent(nesting*2, ' ');
+			LOG_DEBUG(indent + box->toString());
+		}, 0);*/
+	}
+}
+
+xhtml::DocumentPtr load_xhtml(const std::string& ua_ss, const std::string& test_doc)
 {
 	auto user_agent_style_sheet = std::make_shared<css::StyleSheet>();
 	css::Parser::parse(user_agent_style_sheet, sys::read_file(ua_ss));
@@ -61,15 +90,9 @@ void load_xhtml(int width, int height, const std::string& ua_ss, const std::stri
 		return true;
 	});*/
 
-	xhtml::RenderContextManager rcm;
-	// layout has to happen after initialisation of graphics
-	auto layout = xhtml::Box::createLayout(doc, width, height);
-	layout->render(display_list, point());
+	// XXX - open question. Should we generate another tree for handling mouse events.
 
-	layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
-		std::string indent(nesting*2, ' ');
-		LOG_DEBUG(indent + box->toString());
-	}, 0);
+	return doc;
 }
 
 int main(int argc, char* argv[])
@@ -143,12 +166,12 @@ int main(int argc, char* argv[])
 
 	xhtml::DisplayListPtr display_list = std::make_shared<xhtml::DisplayList>(scene);
 	root->attachNode(display_list);
-	load_xhtml(width, height, ua_ss, test_doc, display_list);
+	xhtml::DocumentPtr doc = load_xhtml(ua_ss, test_doc);
+	check_layout(width, height, doc, display_list, scene);
 
 	auto canvas = Canvas::getInstance();
 
-	auto txt = Font::getInstance()->renderText("Thequickbrownfoxjumpsoverthelazydog.", Color::colorWhite(), static_cast<int>(24.0*96.0/72.0), true, "FreeSerif.ttf");
-
+	//auto txt = Font::getInstance()->renderText("Thequickbrownfoxjumpsoverthelazydog.", Color::colorWhite(), static_cast<int>(24.0*96.0/72.0), true, "FreeSerif.ttf");
 
 	SDL_Event e;
 	bool done = false;
@@ -162,10 +185,18 @@ int main(int argc, char* argv[])
 				LOG_DEBUG("KEY PRESSED: " << SDL_GetKeyName(e.key.keysym.sym) << " : " << e.key.keysym.sym << " : " << e.key.keysym.scancode);
 			} else if(e.type == SDL_QUIT) {
 				done = true;
+			} else if(e.type == SDL_MOUSEMOTION) {
+				doc->handleMouseMotion(false, e.motion.x, e.motion.y);
+			} else if(e.type == SDL_MOUSEBUTTONDOWN) {
+				doc->handleMouseButtonDown(false, e.button.x, e.button.y, e.button.button);
+			} else if(e.type == SDL_MOUSEBUTTONUP) {
+				doc->handleMouseButtonUp(false, e.button.x, e.button.y, e.button.button);
 			}
 		}
 
 		main_wnd->clear(ClearFlags::ALL);
+
+		check_layout(width, height, doc, display_list, scene);
 
 		//Canvas::getInstance()->blitTexture(txt, 0, rect(0, 200));
 	
@@ -180,7 +211,8 @@ int main(int argc, char* argv[])
 
 		// Called once a cycle before rendering.
 		Uint32 current_tick_time = SDL_GetTicks();
-		scene->process((current_tick_time - last_tick_time) / 1000.0f);
+		float dt = (current_tick_time - last_tick_time) / 1000.0f;
+		scene->process(dt);
 		last_tick_time = current_tick_time;
 
 		scene->renderScene(rman);

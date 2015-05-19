@@ -52,6 +52,7 @@ namespace css
 		StylePtr getProperty(Property p) const;
 		bool hasProperty(Property p) const { return properties_.find(p) != properties_.end(); }
 		void merge(const PropertyList& plist);
+		void clear() { properties_.clear(); }
 		iterator begin() { return properties_.begin(); }
 		iterator end() { return properties_.end(); }
 		const_iterator begin() const { return properties_.cbegin(); }
