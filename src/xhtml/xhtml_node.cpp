@@ -269,7 +269,7 @@ namespace xhtml
 		bool trigger = false;
 		claimed = !preOrderTraversal([&trigger, x, y](NodePtr node) {
 			if(!node->handleMouseMotion(&trigger, point(x,y))) {
-				return false;
+			//	return false;
 			}
 			return true;
 		});

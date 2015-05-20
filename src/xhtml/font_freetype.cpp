@@ -212,7 +212,8 @@ namespace KRE
 			  last_line_height_(0),
 			  glyph_info_(),
 			  all_glyphs_added_(false),
-			  font_load_flags_(FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT)
+			  font_load_flags_(FT_LOAD_RENDER | FT_LOAD_FORCE_AUTOHINT),
+			  glyph_path_cache_()
 		{
 			// XXX starting off with a basic way of rendering glyphs.
 			// It'd be better to render all the glyphs to a texture,
@@ -282,14 +283,20 @@ namespace KRE
 			*h = (pen.y - slot->linearHoriAdvance + slot->metrics.height*65536L);
 		}
 
-		void getGlyphPath(const std::string& text, std::vector<point>* path)
+		const std::vector<point>& getGlyphPath(const std::string& text)
 		{
+			auto it = glyph_path_cache_.find(text);
+			if(it != glyph_path_cache_.end()) {
+				return it->second;
+			}
+			std::vector<point>& path = glyph_path_cache_[text];
+
 			FT_Vector pen = { 0, 0 };
 			FT_Error error;
 			FT_UInt previous_glyph = 0;
 			FT_Pos  prev_rsb_delta = 0;
 			for(char32_t cp : utils::utf8_to_codepoint(text)) {
-				path->emplace_back(pen.x, pen.y);
+				path.emplace_back(pen.x, pen.y);
 				FT_UInt glyph_index = FT_Get_Char_Index(face_, cp);
 				if(has_kerning_ && previous_glyph && glyph_index) {
 					static char32_t previous_cp = 0;
@@ -319,7 +326,8 @@ namespace KRE
 				previous_glyph = glyph_index;
 			}
 			// pushing back the end point so we know where the next letter starts.
-			path->emplace_back(pen.x, pen.y);
+			path.emplace_back(pen.x, pen.y);
+			return path;
 		}
 		
 		// text is a utf-8 string, path is expected to have at least has many data points as there
@@ -511,6 +519,7 @@ namespace KRE
 		std::map<char32_t, GlyphInfo> glyph_info_;
 		bool all_glyphs_added_;
 		int font_load_flags_;
+		std::map<std::string, std::vector<point>> glyph_path_cache_;
 		friend class FontHandle;
 	};
 	
@@ -558,9 +567,9 @@ namespace KRE
 	{
 	}
 
-	void FontHandle::getGlyphPath(const std::string& text, std::vector<point>* path)
+	const std::vector<point>& FontHandle::getGlyphPath(const std::string& text)
 	{
-		impl_->getGlyphPath(text, path);
+		return impl_->getGlyphPath(text);
 	}
 
 	rect FontHandle::getBoundingBox(const std::string& text)

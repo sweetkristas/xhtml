@@ -96,7 +96,7 @@ namespace KRE
 		void getFontMetrics();
 		rect getBoundingBox(const std::string& text);
 		FontRenderablePtr createRenderableFromPath(FontRenderablePtr r, const std::string& text, const std::vector<point>& path);
-		void getGlyphPath(const std::string& text, std::vector<point>* path);
+		const std::vector<point>& getGlyphPath(const std::string& text);
 		int calculateCharAdvance(char32_t cp);
 		int getScaleFactor() const { return 65536; }
 		const GlyphInfo& getGlyphInfo(char32_t cp);

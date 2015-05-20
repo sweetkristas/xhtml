@@ -201,7 +201,7 @@ namespace xhtml
 				continue;
 			}
 			word.advance.clear();
-			RenderContext::get().getFontHandle()->getGlyphPath(word.word, &word.advance);
+			word.advance = RenderContext::get().getFontHandle()->getGlyphPath(word.word);
 			if(letter_spacing != 0) {
 				long ls_acc = 0;
 				for(auto& pt : word.advance) {
