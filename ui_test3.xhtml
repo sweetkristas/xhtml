@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+	<style>
+	body {
+		font-family: andagii, sans-serif;
+	}
+	
+	div#content1 {
+		position: absolute;
+		width: 25%;
+		height: 30%;
+		border-style: solid;
+		border-width: 5px;
+		border-image: url(border1.png) 5 stretch;
+		background-image: url(lite_opaque-background.png);
+		color: white;
+		padding: 1em;
+	}
+	
+	h3 {
+		color: #BBA58E;
+	}
+	
+	div.status {
+		float: left;
+		display: inline-block;
+	}
+	div#status1 {
+		width: 25%;
+	}
+	div#status2 {
+		width: 75%;
+	}
+	
+	input[type=checkbox]:before {
+		content: "";
+		background-image: url(checkbox.png);		
+		background-repeat: no-repeat;
+		width: 20px;
+		height: 18px;
+		display: inline-block;
+		position: relative;
+		top: -1px;
+		left: -1px;
+	}
+	input[type=checkbox]:checked:before {
+		background-image: url(checkbox-active-pressed.png);
+	}
+	
+	input[type=radio]:before {
+		content: "";
+		background-image: url(radiobox.png);
+		background-repeat: no-repeat;
+		width: 20px;
+		height: 18px;
+		display: inline-block;
+		position: relative;
+		left: -2px;
+		top: -2px;
+	}
+	input[type=radio]:checked:before {
+		background-image: url(radiobox-pressed.png);
+	}
+	
+	label {
+		color: #BBA58E;
+	}
+	
+	ul.checkbox-grid > li {
+		display: block;
+		float: left;
+		width: 50%;
+	}
+	
+	label {
+		padding-left: 1em;
+	}
+	
+	select {
+		color: white;
+		background-color: black;
+		overflow: hidden;
+		outline: none;
+	}
+
+	select option:hover { 
+		background-image: url(menu_button_copper_H20-active.png);
+		border: #BBA58E solid 1px;
+	}
+	select option {
+		border: black solid 1px;
+	}
+
+	</style>
+</head>
+	<body>
+	<div id="content1">
+		<h3>Options</h3>
+		<div style="padding-bottom:1em">Add-ons matching the following criteria will be displayed.</div>
+		<div>
+			<div class="status" id="status1">Installation status:
+				<div style="padding-bottom: 1em">
+				<select name="sometext" size="4">
+					<option>All Add-ons</option>
+					<option>Installed</option>
+					<option>Upgradeable</option>
+					<option>Not Installed</option>
+				</select>
+				</div>
+			</div>
+			<div class="status" id="status2">
+			Add-on Types:
+				<ul class="checkbox-grid">
+					<li><input type="checkbox" class="check_box" checked="checked" /><label>Campaigns</label></li>
+					<li><input type="checkbox" class="check_box" /><label>MP eras</label></li>
+					<li><input type="checkbox" class="check_box" checked="checked" /><label>Scenarios</label></li>
+					<li><input type="checkbox" class="check_box" /><label>MP factions</label></li>
+					<li><input type="checkbox" class="check_box" checked="checked" /><label>SP/MP Campaigns</label></li>
+					<li><input type="checkbox" class="check_box" checked="checked" /><label>MP campaigns</label></li>
+					<li><input type="checkbox" class="check_box" /><label>Resources</label></li>
+					<li><input type="checkbox" class="check_box" checked="checked" /><label>MP scenarios</label></li>
+					<li><input type="checkbox" class="check_box" /><label>Other</label></li>
+					<li><input type="checkbox" class="check_box" /><label>MP map-packs</label></li>
+					<li><input type="checkbox" class="check_box" /><label>Unknown</label></li>
+					<li><input type="checkbox" class="check_box" checked="checked" /><label>MP modifications</label></li>
+				</ul>
+			</div>
+		</div>
+		<div style="padding-top:11em">Add-ons will be sorted as follows when no column is selected:</div>
+		<ul class="checkbox-grid">
+			<li><input type="radio" class="radio_button" name="group1"/><label>By name</label></li>
+			<li><input type="radio" class="radio_button" name="group2"/><label>Ascending</label></li>
+			<li><input type="radio" class="radio_button" name="group1" checked="checked"/><label>By last updated</label></li>
+			<li><input type="radio" class="radio_button" name="group2" checked="checked"/><label>Descending</label></li>
+			<li><input type="radio" class="radio_button" name="group1"/><label>By first upload</label></li>
+		</ul>
+	</div>
+	</body>
+</html>
