@@ -157,9 +157,7 @@ namespace xhtml
 	LinePtr Text::reflowText(iterator& start, FixedPoint remaining_line_width)
 	{
 		auto parent = getParent();
-		if(parent == nullptr) {
-			return nullptr;
-		}
+		ASSERT_LOG(parent != nullptr, "Text::reflowText() parent was null.");
 		ASSERT_LOG(transformed_ == true, "Text must be transformed before reflowing.");
 		auto ctx = RenderContext::get();
 

@@ -251,12 +251,15 @@ namespace xhtml
 	bool Node::handleMouseMotion(bool* trigger, const point& p)
 	{
 		bool hover = hasPseudoClass(css::PseudoClass::HOVER);
-		if(!active_rect_.empty() && hover && geometry::pointInRect(p, active_rect_)) {
+		if(!hover || active_rect_.empty()) {
+			return true;
+		}
+		if(geometry::pointInRect(p, active_rect_)) {
 			if((active_pclass_ & css::PseudoClass::HOVER) != css::PseudoClass::HOVER) {
+				active_pclass_ = active_pclass_ | css::PseudoClass::HOVER;
 				*trigger = true;
 			}
-			active_pclass_ = active_pclass_ | css::PseudoClass::HOVER;
-			return false;
+			return true;
 		} else if((active_pclass_ & css::PseudoClass::HOVER) == css::PseudoClass::HOVER) {
 			active_pclass_ = active_pclass_ & ~css::PseudoClass::HOVER;
 			*trigger = true;
@@ -267,13 +270,14 @@ namespace xhtml
 	bool Document::handleMouseMotion(bool claimed, int x, int y)
 	{		
 		bool trigger = false;
-		claimed = !preOrderTraversal([&trigger, x, y](NodePtr node) {
-			if(!node->handleMouseMotion(&trigger, point(x,y))) {
+		point p(x, y);
+		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
+			if(!node->handleMouseMotion(&trigger, p)) {
 			//	return false;
 			}
 			return true;
 		});
-		trigger_layout_ = trigger;
+		trigger_layout_ |= trigger;
 		return claimed;
 	}
 

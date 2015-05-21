@@ -268,7 +268,7 @@ namespace xhtml
 			auto it = tnode->begin();
 			while(it != tnode->end()) {
 				LinePtr line = tnode->reflowText(it, width);
-				if(!line->line.empty()) {
+				if(line != nullptr && !line->line.empty()) {
 					BoxPtr txt = open->addChild(std::make_shared<TextBox>(parent, line));
 					txt->setContentX(open_.top().cursor_.x);
 					txt->setContentY(0);
@@ -277,7 +277,7 @@ namespace xhtml
 					open_.top().cursor_.x += x_inc;
 					width -= x_inc;
 				}
-				if(line->is_end_line) {
+				if(line != nullptr && line->is_end_line) {
 					closeOpenBox(parent);
 					open = getOpenBox(parent);
 					width = getWidthAtCursor(parent->getDimensions().content_.width);

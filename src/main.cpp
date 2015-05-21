@@ -59,9 +59,13 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 		doc->processStyleRules();
 		}
 
+		xhtml::BoxPtr layout = nullptr;
 		{
 		profile::manager pman("layout");
-		auto layout = xhtml::Box::createLayout(doc, width, height);
+		layout = xhtml::Box::createLayout(doc, width, height);
+		}
+		{
+		profile::manager pman_render("render");
 		layout->render(display_list, point());
 		}
 
