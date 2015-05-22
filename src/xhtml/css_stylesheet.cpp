@@ -60,7 +60,8 @@ namespace css
 			for(auto& r : rules_) {
 				for(auto& s : r->selectors) {
 					if(s->match(n)) {
-						n->mergeProperties(r->declaractions);
+						//LOG_DEBUG("merge for node: " << n->toString() << ", selector: " << s->toString() << ", spec: " << s->getSpecificity()[0] << "," << s->getSpecificity()[1] << "," << s->getSpecificity()[2]);
+						n->mergeProperties(s->getSpecificity(), r->declaractions);
 						break;
 					}
 				}				

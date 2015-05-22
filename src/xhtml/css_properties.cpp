@@ -119,11 +119,11 @@ namespace css
 		
 		PropertyRegistrar property000("background-color", Property::BACKGROUND_COLOR, false, Object(CssColor(CssColorParam::TRANSPARENT)), std::bind(&PropertyParser::parseColor, _1, _2));
 		PropertyRegistrar property001("color", Property::COLOR, true, Object(CssColor(CssColorParam::VALUE)), std::bind(&PropertyParser::parseColor, _1, _2));
-		PropertyRegistrar property002("padding-left", Property::PADDING_LEFT, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property003("padding-right", Property::PADDING_RIGHT, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property004("padding-top", Property::PADDING_TOP, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property005("padding-bottom", Property::PADDING_BOTTOM, false, Object(Length(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
-		PropertyRegistrar property006("padding", std::bind(&PropertyParser::parseWidthList, _1, _2));
+		PropertyRegistrar property002("padding-left", Property::PADDING_LEFT, false, Object(Length(0)), std::bind(&PropertyParser::parseLength, _1, _2));
+		PropertyRegistrar property003("padding-right", Property::PADDING_RIGHT, false, Object(Length(0)), std::bind(&PropertyParser::parseLength, _1, _2));
+		PropertyRegistrar property004("padding-top", Property::PADDING_TOP, false, Object(Length(0)), std::bind(&PropertyParser::parseLength, _1, _2));
+		PropertyRegistrar property005("padding-bottom", Property::PADDING_BOTTOM, false, Object(Length(0)), std::bind(&PropertyParser::parseLength, _1, _2));
+		PropertyRegistrar property006("padding", std::bind(&PropertyParser::parseLengthList, _1, _2));
 		PropertyRegistrar property007("margin-left", Property::MARGIN_LEFT, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property008("margin-right", Property::MARGIN_RIGHT, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
 		PropertyRegistrar property009("margin-top", Property::MARGIN_TOP, false, Object(Width(0)), std::bind(&PropertyParser::parseWidth, _1, _2));
@@ -181,18 +181,22 @@ namespace css
 	{
 	}
 
-	void PropertyList::addProperty(Property p, StylePtr o)
+	void PropertyList::addProperty(Property p, StylePtr o, const Specificity& specificity)
 	{
 		PropertyInfo defaults = get_property_info_table()[static_cast<int>(p)];
 
 		auto it = properties_.find(p);
 		if(it == properties_.end()) {
 			// unconditionally add new properties
-			properties_[p] = o;
+			properties_[p] = PropertyStyle(o, specificity);
 		} else {
 			// check for important flag before merging.
-			if((it->second->isImportant() && o->isImportant()) || !it->second->isImportant()) {
-				it->second = o;
+			/*LOG_DEBUG("property: " << get_property_info_table()[static_cast<int>(p)].name << ", current spec: "
+				<< it->second.specificity[0] << "," << it->second.specificity[1] << "," << it->second.specificity[2]
+				<< ", new spec: " << specificity[0] << "," << specificity[1] << "," << specificity[2] 
+				<< ", test: " << (it->second.specificity <= specificity ? "true" : "false"));*/
+			if(((it->second.style->isImportant() && o->isImportant()) || !it->second.style->isImportant()) && it->second.specificity <= specificity) {
+				it->second = PropertyStyle(o, specificity);
 			}
 		}
 	}
@@ -214,13 +218,13 @@ namespace css
 		if(it == properties_.end()) {
 			return nullptr;
 		}
-		return it->second;
+		return it->second.style;
 	}
 
-	void PropertyList::merge(const PropertyList& plist)
+	void PropertyList::merge(const Specificity& specificity, const PropertyList& plist)
 	{
 		for(auto& p : plist.properties_) {
-			addProperty(p.first, p.second);
+			addProperty(p.first, p.second.style, specificity);
 		}
 	}
 
@@ -505,6 +509,11 @@ namespace css
 		plist_.addProperty(name, parseWidthInternal());
 	}
 
+	void PropertyParser::parseLength(const std::string& name)
+	{
+		plist_.addProperty(name, Length::create(parseLengthInternal()));
+	}
+
 	void PropertyParser::parseWidthList(const std::string& name)
 	{
 		StylePtr w1 = parseWidthInternal();
@@ -535,6 +544,45 @@ namespace css
 			return;
 		}
 		StylePtr w4 = parseWidthInternal();
+		skipWhitespace();
+
+		// four values, apply to individual elements.
+		plist_.addProperty(name + "-top", w1);
+		plist_.addProperty(name + "-right", w2);
+		plist_.addProperty(name + "-bottom", w3);
+		plist_.addProperty(name + "-left", w4);
+	}
+
+	void PropertyParser::parseLengthList(const std::string& name)
+	{
+		StylePtr w1 = Length::create(parseLengthInternal());
+		skipWhitespace();
+		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			plist_.addProperty(name + "-top", w1);
+			plist_.addProperty(name + "-bottom", w1);
+			plist_.addProperty(name + "-right", w1);
+			plist_.addProperty(name + "-left", w1);
+			return;
+		}
+		StylePtr w2 = Length::create(parseLengthInternal());
+		skipWhitespace();
+		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			plist_.addProperty(name + "-top", w1);
+			plist_.addProperty(name + "-bottom", w1);
+			plist_.addProperty(name + "-right", w2);
+			plist_.addProperty(name + "-left", w2);
+			return;
+		}
+		StylePtr w3 = Length::create(parseLengthInternal());
+		skipWhitespace();
+		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			plist_.addProperty(name + "-top", w1);
+			plist_.addProperty(name + "-right", w2);
+			plist_.addProperty(name + "-left", w2);
+			plist_.addProperty(name + "-bottom", w3);
+			return;
+		}
+		StylePtr w4 = Length::create(parseLengthInternal());
 		skipWhitespace();
 
 		// four values, apply to individual elements.

@@ -344,19 +344,21 @@ namespace xhtml
 		// Parse and apply specific element style rules from attributes here.
 		preOrderTraversal([](NodePtr n) {
 			if(n->id() == NodeId::ELEMENT) {
+				// XXX: we should cache this and only re-parse if it changes.
 				auto attr = n->getAttribute("style");
 				if(attr) {
 					auto plist = css::Parser::parseDeclarationList(attr->getValue());
-					n->mergeProperties(plist);
+					css::Specificity specificity = {9999, 9999, 9999};
+					n->mergeProperties(specificity, plist);
 				}
 			}
 			return true;
 		});
 	}
 
-	void Node::mergeProperties(const css::PropertyList& plist)
+	void Node::mergeProperties(const css::Specificity& specificity, const css::PropertyList& plist)
 	{
-		properties_.merge(plist);
+		properties_.merge(specificity, plist);
 	}
 
 	std::string Document::toString() const 

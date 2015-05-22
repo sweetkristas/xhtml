@@ -44,21 +44,28 @@ namespace css
 	class PropertyList
 	{
 	public:
-		typedef std::map<Property, StylePtr>::iterator iterator;
-		typedef std::map<Property, StylePtr>::const_iterator const_iterator;
+		struct PropertyStyle {
+			PropertyStyle() : style(nullptr), specificity() {}
+			explicit PropertyStyle(StylePtr s, const Specificity& sp) : style(s), specificity(sp) {}
+			StylePtr style;
+			Specificity specificity;
+		};
+
+		typedef std::map<Property, PropertyStyle>::iterator iterator;
+		typedef std::map<Property, PropertyStyle>::const_iterator const_iterator;
 		PropertyList();
-		void addProperty(Property p, StylePtr o);
+		void addProperty(Property p, StylePtr o, const Specificity& specificity=Specificity());
 		void addProperty(const std::string& name, StylePtr o);
 		StylePtr getProperty(Property p) const;
 		bool hasProperty(Property p) const { return properties_.find(p) != properties_.end(); }
-		void merge(const PropertyList& plist);
+		void merge(const Specificity& specificity, const PropertyList& plist);
 		void clear() { properties_.clear(); }
 		iterator begin() { return properties_.begin(); }
 		iterator end() { return properties_.end(); }
 		const_iterator begin() const { return properties_.cbegin(); }
 		const_iterator end() const { return properties_.cend(); }
 	private:
-		std::map<Property, StylePtr> properties_;
+		std::map<Property, PropertyStyle> properties_;
 	};
 
 	class PropertyParser
@@ -72,7 +79,9 @@ namespace css
 		typedef std::vector<TokenPtr>::const_iterator const_iterator;
 		void parseColor(const std::string& name);
 		void parseWidth(const std::string& name);
+		void parseLength(const std::string& name);
 		void parseWidthList(const std::string& name);
+		void parseLengthList(const std::string& name);
 		void parseBorderWidth(const std::string& name);
 		void parseBorderStyle(const std::string& name);
 		void parseDisplay(const std::string& name);

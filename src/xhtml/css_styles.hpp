@@ -23,6 +23,8 @@
 
 #pragma once
 
+#include <array>
+
 #include "Color.hpp"
 #include "variant_object.hpp"
 
@@ -41,6 +43,18 @@ namespace xhtml
 
 namespace css
 {
+	typedef std::array<int,3> Specificity;
+
+	inline bool operator==(const Specificity& lhs, const Specificity& rhs) {
+		return lhs[0] == rhs[0] && lhs[1] == rhs[1] && lhs[2] == rhs[2];
+	}
+	inline bool operator<(const Specificity& lhs, const Specificity& rhs) {
+		return lhs[0] == rhs[0] ? lhs[1] == rhs[1] ? lhs[2] < rhs[2] : lhs[1] < rhs[1] : lhs[0] < rhs[0];
+	}
+	inline bool operator<=(const Specificity& lhs, const Specificity& rhs) {
+		return lhs == rhs || lhs < rhs;
+	}
+
 	enum class Property {
 		BACKGROUND_ATTACHMENT,
 		BACKGROUND_COLOR,

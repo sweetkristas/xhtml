@@ -29,6 +29,7 @@
 #include <string>
 #include <vector>
 
+#include "css_styles.hpp"
 #include "xhtml.hpp"
 #include "xhtml_element_id.hpp"
 
@@ -48,13 +49,13 @@ namespace css
 		SelectorParseError(const char* msg) : std::runtime_error(msg) {}
 	};
 
-	typedef std::array<int,3> Specificity;
-
 	enum class PseudoClass {
 		NONE	= 0,		// Standard
 		HOVER	= 1,		// Active when the mouse is over the element.
 		ACTIVE	= 2,		// Active when between mouse press and mouse release.
 		FOCUS	= 4,		// Active when the element has focus and can accept keyboard events.
+		CHECKED = 8,		// Active when input element is checked.
+		BEFORE	= 16,		// 
 	};
 
 	inline PseudoClass operator|(PseudoClass a, PseudoClass b) {
@@ -90,7 +91,7 @@ namespace css
 		FilterId id() const { return id_; }
 		virtual bool match(xhtml::NodePtr element) const = 0;
 		virtual std::string toString() const = 0;
-		virtual std::array<int,3> calculateSpecificity() = 0;
+		virtual Specificity calculateSpecificity() = 0;
 	private:
 		FilterId id_;
 	};
@@ -107,12 +108,12 @@ namespace css
 		void setElementId(xhtml::ElementId id);
 		xhtml::ElementId getElementId() const { return element_; }
 		std::string toString() const;
-		const std::array<int, 3>& getSpecificity() const { return specificity_; }
+		const Specificity& getSpecificity() const { return specificity_; }
 	private:
 		xhtml::ElementId element_;
 		std::vector<FilterSelectorPtr> filters_;
 		Combinator combinator_;
-		std::array<int, 3> specificity_;
+		Specificity specificity_;
 	};
 	typedef std::shared_ptr<SimpleSelector> SimpleSelectorPtr;
 

@@ -104,7 +104,7 @@ namespace xhtml
 		AttributePtr getAttribute(const std::string& name);
 		virtual const std::string& getValue() const;
 		void normalize();
-		void mergeProperties(const css::PropertyList& plist);
+		void mergeProperties(const css::Specificity& specificity, const css::PropertyList& plist);
 		const css::PropertyList& getProperties() const { return properties_; }
 		void processWhitespace();
 

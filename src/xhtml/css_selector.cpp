@@ -89,6 +89,13 @@ namespace css
 					}
 				} else if(name_ == "lang") {
 					//ASSERT_LOG(false, "Handle :lang pseudo class.");
+				} else if(name_ == "checked") {
+					element->addPseudoClass(PseudoClass::CHECKED);
+					if(element->hasPsuedoClassActive(PseudoClass::CHECKED)) {
+						return true;
+					}
+				} else if(name_ == "before") {
+					// XXX
 				} else if(name_ == "not") {
 					if(has_param_) {
 						return !element->hasTag(param_);

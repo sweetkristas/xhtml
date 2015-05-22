@@ -214,7 +214,7 @@ namespace css
 						if(ref == "important") {
 							// add important tag to the rule in plist.
 							for(auto& pl : pp->getPropertyList()) {
-								pl.second->setImportant(true);
+								pl.second.style->setImportant(true);
 							}
 						}
 					}
@@ -239,7 +239,7 @@ namespace css
 			try {
 				parseRule(token);
 			} catch(ParserError& e) {
-				LOG_DEBUG("Dropping rule: " << e.what() << " " << token->toString());
+				LOG_DEBUG("Dropping rule: " << e.what() << " " << (token != nullptr ? token->toString() : ""));
 			}
 		}
 	}

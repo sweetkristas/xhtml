@@ -166,6 +166,12 @@ namespace xhtml
 				const CssFloat cfloat = ctx_.getComputedValue(Property::FLOAT).getValue<CssFloat>();
 				const CssPosition position = ctx_.getComputedValue(Property::POSITION).getValue<CssPosition>();
 
+				if(display == CssDisplay::NONE) {
+					// Do not create a box for this or it's children
+					// early return
+					return;
+				}
+
 				if(position == CssPosition::ABSOLUTE) {
 					// absolute positioned elements are taken out of the normal document flow
 					parent->addAbsoluteElement(node);
@@ -454,6 +460,8 @@ namespace xhtml
 			margin_[n] = ctx.getComputedValue(m[n]).getValue<Width>();
 		}
 
+		css_left_ = ctx.getComputedValue(Property::LEFT).getValue<Width>();
+		css_top_ = ctx.getComputedValue(Property::TOP).getValue<Width>();
 		css_width_ = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
 		css_height_ = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
 	}
@@ -707,6 +715,15 @@ namespace xhtml
 
 		setContentX(getMPBLeft());
 		setContentY(containing.content_.height + getMPBTop());
+
+		if(getPosition() == CssPosition::FIXED) {
+			if(!getCssLeft().isAuto()) {
+				setContentX(getCssLeft().getLength().compute(containing.content_.width) + getMPBLeft());
+			}
+			if(!getCssTop().isAuto()) {
+				setContentY(getCssTop().getLength().compute(containing.content_.height) + getMPBTop());
+			}
+		} 
 	}
 
 	void BlockBox::layoutChildren(LayoutEngine& eng)
@@ -714,7 +731,14 @@ namespace xhtml
 		NodePtr node = getNode();
 		if(node != nullptr) {
 			for(auto& child : node->getChildren()) {
+				if(getPosition() == CssPosition::FIXED) {
+					eng.pushOpenBox();
+				}
 				eng.formatNode(child, shared_from_this(), getDimensions());
+				if(getPosition() == CssPosition::FIXED) {
+					eng.closeOpenBox(shared_from_this());
+					eng.popOpenBox();
+				}
 			}
 		}
 		// close any open boxes.

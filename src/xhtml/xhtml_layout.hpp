@@ -178,6 +178,8 @@ namespace xhtml
 		const std::vector<BoxPtr>& getLeftFloats() const { return left_floats_; }
 		const std::vector<BoxPtr>& getRightFloats() const { return right_floats_; }
 
+		const css::Width& getCssLeft() const { return css_left_; }
+		const css::Width& getCssTop() const { return css_top_; }
 		const css::Width& getCssWidth() const { return css_width_; }
 		const css::Width& getCssHeight() const { return css_height_; }
 		const css::Width& getCssMargin(Side n) const { return margin_[static_cast<int>(n)]; }
@@ -208,6 +210,8 @@ namespace xhtml
 		css::Length border_[4];
 		css::Width margin_[4];
 
+		css::Width css_left_;
+		css::Width css_top_;
 		css::Width css_width_;
 		css::Width css_height_;
 	};
