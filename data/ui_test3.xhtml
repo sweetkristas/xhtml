@@ -86,14 +86,21 @@
 		outline: none;
 	}
 
-	select option:hover { 
-		background-image: url(../images/menu_button_copper_H20-active.png);
+	ul.inststatus {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		border: inset 2px #BBA58E;
+	}	
+	ul.inststatus li:hover { 
+		background: url(../images/menu_button_copper_H20-active.png) no-repeat;
 		border: #BBA58E solid 1px;
 	}
-	select option {
-		border: black solid 1px;
+	ul.inststatus li {
+		margin: 0;
+		padding: 0;
+		border: rgba(0,0,0,0) solid 1px;
 	}
-
 	</style>
 </head>
 	<body>
@@ -103,12 +110,12 @@
 		<div>
 			<div class="status" id="status1">Installation status:
 				<div style="padding-bottom: 1em">
-				<select name="sometext" size="4">
-					<option>All Add-ons</option>
-					<option>Installed</option>
-					<option>Upgradeable</option>
-					<option>Not Installed</option>
-				</select>
+				<ul class="inststatus">
+					<li>All Add-ons</li>
+					<li>Installed</li>
+					<li>Upgradeable</li>
+					<li>Not Installed</li>
+				</ul>
 				</div>
 			</div>
 			<div class="status" id="status2">

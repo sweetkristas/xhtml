@@ -21,22 +21,10 @@
 	   distribution.
 */
 
-#include "SceneObject.hpp"
+#pragma once
 
-#include "display_list.hpp"
+#include <string>
 
-namespace xhtml
-{
-
-	DisplayList::DisplayList(std::weak_ptr<KRE::SceneGraph> sg)
-		: SceneNode(sg),
-		  ordering_(9999999)
-	{
-	}
-	
-	void DisplayList::addRenderable(KRE::SceneObjectPtr r)
-	{
-		r->setOrder(ordering_--);
-		attachObject(r);
-	}
-}
+// Converts an integer into it's representation in roman numerals.
+// doesn't handle line over convention.
+std::string to_roman(int n, bool lower=false);

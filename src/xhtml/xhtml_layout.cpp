@@ -26,6 +26,7 @@
 #include "asserts.hpp"
 #include "css_styles.hpp"
 #include "profile_timer.hpp"
+#include "to_roman.hpp"
 #include "xhtml_layout.hpp"
 #include "xhtml_node.hpp"
 #include "xhtml_text_node.hpp"
@@ -144,7 +145,7 @@ namespace xhtml
 
 				offset_.emplace(point());
 				root_ = std::make_shared<BlockBox>(nullptr, node);
-				dims_.content_ = Rect(0, 0, container.x, container.y);
+				dims_.content_ = Rect(0, 0, container.x, 0);
 				root_->layout(*this, dims_);
 				return;
 			}
@@ -206,12 +207,21 @@ namespace xhtml
 							return;
 						}
 						case CssDisplay::BLOCK: {
+							closeOpenBox(parent);
 							auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
 							box->layout(*this, container);
 							return;
 						}
-						case CssDisplay::INLINE_BLOCK:
-						case CssDisplay::LIST_ITEM:
+						case CssDisplay::INLINE_BLOCK: {							
+							auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
+							box->layout(*this, container);
+							return;
+						}
+						case CssDisplay::LIST_ITEM: {
+							auto box = parent->addChild(std::make_shared<ListItemBox>(parent, node));
+							box->layout(*this, container);
+							return;
+						}
 						case CssDisplay::TABLE:
 						case CssDisplay::INLINE_TABLE:
 						case CssDisplay::TABLE_ROW_GROUP:
@@ -451,11 +461,11 @@ namespace xhtml
 		}
 		css_position_ = ctx.getComputedValue(Property::POSITION).getValue<CssPosition>();
 
-		const Property b[4]  = { Property::BORDER_LEFT_WIDTH, Property::BORDER_TOP_WIDTH, Property::BORDER_RIGHT_WIDTH, Property::BORDER_BOTTOM_WIDTH };
+		//const Property b[4]  = { Property::BORDER_LEFT_WIDTH, Property::BORDER_TOP_WIDTH, Property::BORDER_RIGHT_WIDTH, Property::BORDER_BOTTOM_WIDTH };
 		const Property p[4]  = { Property::PADDING_LEFT, Property::PADDING_TOP, Property::PADDING_RIGHT, Property::PADDING_BOTTOM };
 		const Property m[4]  = { Property::MARGIN_LEFT, Property::MARGIN_TOP, Property::MARGIN_RIGHT, Property::MARGIN_BOTTOM };
 		for(int n = 0; n != 4; ++n) {
-			border_[n] = ctx.getComputedValue(b[n]).getValue<Length>();
+			//border_[n] = ctx.getComputedValue(b[n]).getValue<Length>();
 			padding_[n] = ctx.getComputedValue(p[n]).getValue<Length>();
 			margin_[n] = ctx.getComputedValue(m[n]).getValue<Width>();
 		}
@@ -909,6 +919,22 @@ namespace xhtml
 		setContentWidth(max_w);
 	}
 
+	ListItemBox::ListItemBox(BoxPtr parent, NodePtr node)
+		: Box(BoxId::LIST_ITEM, parent, node),
+		  content_(std::make_shared<BlockBox>(parent, node))
+	{		
+	}
+
+	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
+	{
+		content_->layout(eng, containing);
+		// XXX
+		// need to calculate our content size based on size of children.
+		// need to caculate X/Y offset
+		// need to add in the bullet using the correct style
+		// the primary box (containing the bullet) get's laid out in the parents left padding, working backwards.
+	}
+
 	std::string BlockBox::toString() const
 	{
 		std::ostringstream ss;
@@ -944,6 +970,13 @@ namespace xhtml
 	{
 		std::ostringstream ss;
 		ss << "InlineElementBox: " << getDimensions().content_;
+		return ss.str();
+	}
+
+	std::string ListItemBox::toString() const 
+	{
+		std::ostringstream ss;
+		ss << "ListItemBox: " << getDimensions().content_;
 		return ss.str();
 	}
 
@@ -996,6 +1029,80 @@ namespace xhtml
 	void Box::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
 	{
 		// XXX
+		auto border = std::make_shared<SolidRenderable>();
+		std::vector<KRE::vertex_color> vc;
+
+		auto& ctx = RenderContext::get();
+
+		CssBorderStyle bs[4];
+		bs[0] = ctx.getComputedValue(Property::BORDER_LEFT_STYLE).getValue<CssBorderStyle>();
+		bs[1] = ctx.getComputedValue(Property::BORDER_TOP_STYLE).getValue<CssBorderStyle>();
+		bs[2] = ctx.getComputedValue(Property::BORDER_RIGHT_STYLE).getValue<CssBorderStyle>();
+		bs[3] = ctx.getComputedValue(Property::BORDER_BOTTOM_STYLE).getValue<CssBorderStyle>();
+
+		KRE::Color bc[4];
+		bc[0] = ctx.getComputedValue(Property::BORDER_LEFT_COLOR).getValue<CssColor>().compute();
+		bc[1] = ctx.getComputedValue(Property::BORDER_TOP_COLOR).getValue<CssColor>().compute();
+		bc[2] = ctx.getComputedValue(Property::BORDER_RIGHT_COLOR).getValue<CssColor>().compute();
+		bc[3] = ctx.getComputedValue(Property::BORDER_BOTTOM_COLOR).getValue<CssColor>().compute();
+
+		FixedPoint bw[4];
+		bw[0] = dimensions_.border_.left; 
+		bw[1] = dimensions_.border_.top; 
+		bw[2] = dimensions_.border_.right; 
+		bw[3] = dimensions_.border_.bottom; 
+
+		// this is the left/top edges of the appropriate side
+		const float side_left    = static_cast<float>(offset.x - dimensions_.padding_.left   - dimensions_.border_.left) / fixed_point_scale_float;
+		const float side_top     = static_cast<float>(offset.y - dimensions_.padding_.top    - dimensions_.border_.top) / fixed_point_scale_float;
+		const float side_right   = static_cast<float>(offset.x + dimensions_.content_.width  + dimensions_.padding_.right) / fixed_point_scale_float;
+		const float side_bottom  = static_cast<float>(offset.y + dimensions_.content_.height + dimensions_.padding_.bottom) / fixed_point_scale_float;
+		const float left_width   = static_cast<float>(dimensions_.border_.left) / fixed_point_scale_float;
+		const float top_width    = static_cast<float>(dimensions_.border_.top) / fixed_point_scale_float;
+		const float right_width  = static_cast<float>(dimensions_.border_.right) / fixed_point_scale_float;
+		const float bottom_width = static_cast<float>(dimensions_.border_.bottom) / fixed_point_scale_float;
+
+		vc.reserve(24*4);
+		for(int side = 0; side != 4; ++side) {
+			// only drawing border if width > 0, alpha !=0
+			if(bw[side] > 0 && bc[side].ai() != 0) {
+				switch(bs[side]) {
+					case CssBorderStyle::SOLID:
+						vc.emplace_back(glm::vec2(side_left, side_top), bc[side].as_u8vec4());
+						vc.emplace_back(glm::vec2(side_left, side_top+top_width), bc[side].as_u8vec4());
+						vc.emplace_back(glm::vec2(side_left+left_width, side_top+top_width), bc[side].as_u8vec4());
+
+						vc.emplace_back(glm::vec2(side_left+left_width, side_top+top_width), bc[side].as_u8vec4());
+						vc.emplace_back(glm::vec2(side_left, side_top+top_width), bc[side].as_u8vec4());
+						vc.emplace_back(glm::vec2(side_left, side_bottom), bc[side].as_u8vec4());
+
+						vc.emplace_back(glm::vec2(side_left, side_bottom), bc[side].as_u8vec4());
+						vc.emplace_back(glm::vec2(side_left+left_width, side_top+top_width), bc[side].as_u8vec4());
+						vc.emplace_back(glm::vec2(side_left+left_width, side_bottom), bc[side].as_u8vec4());
+
+						vc.emplace_back(glm::vec2(side_left+left_width, side_bottom), bc[side].as_u8vec4());
+						vc.emplace_back(glm::vec2(side_left, side_bottom), bc[side].as_u8vec4());
+						vc.emplace_back(glm::vec2(side_left, side_bottom+bottom_width), bc[side].as_u8vec4());
+						break;
+					case CssBorderStyle::DOTTED:
+					case CssBorderStyle::DASHED:
+					case CssBorderStyle::DOUBLE:
+					case CssBorderStyle::GROOVE:
+					case CssBorderStyle::RIDGE:
+					case CssBorderStyle::INSET:
+					case CssBorderStyle::OUTSET:
+						ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(bs[side]));
+						break;
+					case CssBorderStyle::HIDDEN:
+					case CssBorderStyle::NONE:
+					default:
+						// these skip drawing.
+						break;
+				}
+			}
+		}
+
+		border->update(&vc);
 	}
 
 	void BlockBox::handleRender(DisplayListPtr display_list, const point& offset) const
@@ -1008,6 +1115,12 @@ namespace xhtml
 				0.0f));
 			display_list->addRenderable(r);
 		}
+	}
+
+	void ListItemBox::handleRender(DisplayListPtr display_list, const point& offset) const 
+	{
+		// XXX
+		content_->render(display_list, offset);
 	}
 
 	void LineBox::handleRender(DisplayListPtr display_list, const point& offset) const
@@ -1030,8 +1143,6 @@ namespace xhtml
 		}
 
 		auto& ctx = RenderContext::get();
-		//auto fh = ctx.getFontHandle();
-		//auto fontr = fh->createRenderableFromPath(nullptr, text, path);
 		auto fontr = getFont()->createRenderableFromPath(nullptr, text, path);
 		fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute());
 		display_list->addRenderable(fontr);
@@ -1147,3 +1258,10 @@ namespace xhtml
 		}
 	}
 }
+
+/*
+Unicode Character 'BULLET' (U+2022) - list-item-style: disc
+Unicode Character 'WHITE BULLET' (U+25E6) - list-item-style: circle
+Unicode Character 'BLACK SQUARE' (U+25A0) - list-item-style: square
+
+*/

@@ -85,6 +85,7 @@
     <ClCompile Include="..\src\xhtml\document_object_model.cpp" />
     <ClCompile Include="..\src\xhtml\dom_exception.cpp" />
     <ClCompile Include="..\src\xhtml\font_freetype.cpp" />
+    <ClCompile Include="..\src\xhtml\to_roman.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_element.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_layout.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_node.cpp" />
@@ -187,6 +188,7 @@
     <ClInclude Include="..\src\xhtml\document_object_model.hpp" />
     <ClInclude Include="..\src\xhtml\dom_exception.hpp" />
     <ClInclude Include="..\src\xhtml\font_freetype.hpp" />
+    <ClInclude Include="..\src\xhtml\to_roman.hpp" />
     <ClInclude Include="..\src\xhtml\variant_object.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_element.hpp" />
@@ -279,6 +281,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>..\external\lib\$(Platform);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <Profile>true</Profile>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
