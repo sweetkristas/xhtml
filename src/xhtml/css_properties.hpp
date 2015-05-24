@@ -77,31 +77,35 @@ namespace css
 		const PropertyList& getPropertyList() const { return plist_; }
 		PropertyList& getPropertyList() { return plist_; }
 		typedef std::vector<TokenPtr>::const_iterator const_iterator;
-		void parseColor(const std::string& name);
-		void parseWidth(const std::string& name);
-		void parseLength(const std::string& name);
-		void parseWidthList(const std::string& name);
-		void parseLengthList(const std::string& name);
-		void parseBorderWidth(const std::string& name);
-		void parseBorderStyle(const std::string& name);
-		void parseDisplay(const std::string& name);
-		void parseWhitespace(const std::string& name);
-		void parseFontFamily(const std::string& name);
-		void parseFontSize(const std::string& name);
-		void parseFontWeight(const std::string& name);
-		void parseSpacing(const std::string& name);
-		void parseTextAlign(const std::string& name);
-		void parseDirection(const std::string& name);
-		void parseTextTransform(const std::string& name);
-		void parseLineHeight(const std::string& name);
-		void parseFontStyle(const std::string& name);
-		void parseFontVariant(const std::string& name);
-		void parseOverflow(const std::string& name);
-		void parsePosition(const std::string& name);
-		void parseFloat(const std::string& name);
-		void parseUri(const std::string& name);
-		void parseBackgroundRepeat(const std::string& name);
-		void parseBackgroundPosition(const std::string& name);
+		void parseColor(const std::string& prefix, const std::string& suffix);
+		void parseColorList(const std::string& prefix, const std::string& suffix);
+		void parseWidth(const std::string& prefix, const std::string& suffix);
+		void parseLength(const std::string& prefix, const std::string& suffix);
+		void parseWidthList(const std::string& prefix, const std::string& suffix);
+		void parseLengthList(const std::string& prefix, const std::string& suffix);
+		void parseBorderWidth(const std::string& prefix, const std::string& suffix);
+		void parseBorderWidthList(const std::string& prefix, const std::string& suffix);
+		void parseBorderStyle(const std::string& prefix, const std::string& suffix);
+		void parseBorderStyleList(const std::string& prefix, const std::string& suffix);
+		void parseDisplay(const std::string& prefix, const std::string& suffix);
+		void parseWhitespace(const std::string& prefix, const std::string& suffix);
+		void parseFontFamily(const std::string& prefix, const std::string& suffix);
+		void parseFontSize(const std::string& prefix, const std::string& suffix);
+		void parseFontWeight(const std::string& prefix, const std::string& suffix);
+		void parseSpacing(const std::string& prefix, const std::string& suffix);
+		void parseTextAlign(const std::string& prefix, const std::string& suffix);
+		void parseDirection(const std::string& prefix, const std::string& suffix);
+		void parseTextTransform(const std::string& prefix, const std::string& suffix);
+		void parseLineHeight(const std::string& prefix, const std::string& suffix);
+		void parseFontStyle(const std::string& prefix, const std::string& suffix);
+		void parseFontVariant(const std::string& prefix, const std::string& suffix);
+		void parseOverflow(const std::string& prefix, const std::string& suffix);
+		void parsePosition(const std::string& prefix, const std::string& suffix);
+		void parseFloat(const std::string& prefix, const std::string& suffix);
+		void parseUri(const std::string& prefix, const std::string& suffix);
+		void parseBackgroundRepeat(const std::string& prefix, const std::string& suffix);
+		void parseBackgroundPosition(const std::string& prefix, const std::string& suffix);
+		void parseListStyleType(const std::string& prefix, const std::string& suffix);
 	private:
 		enum NumericParseOptions {
 			NUMBER = 1,

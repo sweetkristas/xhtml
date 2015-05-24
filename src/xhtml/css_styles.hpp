@@ -549,4 +549,31 @@ namespace css
 		Length left_;
 		Length top_;
 	};
+
+	enum class CssListStyleType {
+		DISC,
+		CIRCLE,
+		SQUARE,
+		DECIMAL,
+		DECIMAL_LEADING_ZERO,
+		LOWER_ROMAN,
+		UPPER_ROMAN,
+		LOWER_GREEK,
+		LOWER_LATIN,
+		UPPER_LATIN,
+		ARMENIAN,
+		GEORGIAN,
+		LOWER_ALPHA,
+		UPPER_ALPHA,
+		NONE,
+	};
+
+	struct ListStyleType : public Style
+	{
+		MAKE_FACTORY(ListStyleType);
+		ListStyleType() : list_style_type_(CssListStyleType::DISC) {}
+		explicit ListStyleType(CssListStyleType lst) : list_style_type_(lst) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override;
+		CssListStyleType list_style_type_;
+	};
 }

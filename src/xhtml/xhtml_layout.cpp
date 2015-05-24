@@ -31,6 +31,7 @@
 #include "xhtml_node.hpp"
 #include "xhtml_text_node.hpp"
 #include "xhtml_render_ctx.hpp"
+#include "utf8_to_codepoint.hpp"
 
 #include "AttributeSet.hpp"
 #include "Blittable.hpp"
@@ -50,6 +51,20 @@ namespace xhtml
 	{
 		const int fixed_point_scale = 65536;
 		const float fixed_point_scale_float = static_cast<float>(fixed_point_scale);
+
+		const char32_t marker_disc = 0x2022;
+		const char32_t marker_circle = 0x25e6;
+		const char32_t marker_square = 0x25a0;
+		const char32_t marker_lower_greek = 0x03b1;
+		const char32_t marker_lower_greek_end = 0x03c9;
+		const char32_t marker_lower_latin = 0x0061;
+		const char32_t marker_lower_latin_end = 0x007a;
+		const char32_t marker_upper_latin = 0x0041;
+		const char32_t marker_upper_latin_end = 0x005A;
+		const char32_t marker_armenian = 0x0531;
+		const char32_t marker_armenian_end = 0x0556;
+		const char32_t marker_georgian = 0x10d0;
+		const char32_t marker_georgian_end = 0x10f6;
 
 		std::string display_string(CssDisplay disp) {
 			switch(disp) {
@@ -137,7 +152,16 @@ namespace xhtml
 	class LayoutEngine
 	{
 	public:
-		explicit LayoutEngine() : root_(nullptr), dims_(), ctx_(RenderContext::get()), open_(), offset_() {}
+		explicit LayoutEngine() 
+			: root_(nullptr), 
+			  dims_(), 
+			  ctx_(RenderContext::get()), 
+			  open_(), 
+			  offset_(),
+			  list_item_counter_()
+		{
+			list_item_counter_.emplace(1);
+		}
 
 		void formatNode(NodePtr node, BoxPtr parent, const point& container) {
 			if(root_ == nullptr) {
@@ -151,17 +175,26 @@ namespace xhtml
 			}
 		}
 
-		struct OffsetManager
+		template<typename T>
+		struct StackManager
 		{
-			OffsetManager(LayoutEngine* e, const point& offset) : eng(e) { eng->offset_.emplace(offset); }
-			~OffsetManager() { eng->offset_.pop(); }
-			LayoutEngine* eng;
+			StackManager(std::stack<T>& counter, const T& defa=T()) : counter_(counter) { counter_.emplace(defa); }
+			~StackManager() { counter_.pop(); }
+			std::stack<T>& counter_;
 		};
 
 		void formatNode(NodePtr node, BoxPtr parent, const Dimensions& container) {
-			//OffsetManager om(this, offset_.top() + point(container.content_.x, container.content_.y));
 			if(node->id() == NodeId::ELEMENT) {
 				RenderContext::Manager ctx_manager(node->getProperties());
+
+				std::unique_ptr<StackManager<int>> li_manager;
+				if(node->hasTag(ElementId::UL) || node->hasTag(ElementId::OL)) {
+					li_manager.reset(new StackManager<int>(list_item_counter_, 1));
+				}
+				if(node->hasTag(ElementId::LI) ) {
+					auto &top = list_item_counter_.top();
+					++top;
+				}
 
 				const CssDisplay display = ctx_.getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
 				const CssFloat cfloat = ctx_.getComputedValue(Property::FLOAT).getValue<CssFloat>();
@@ -218,7 +251,7 @@ namespace xhtml
 							return;
 						}
 						case CssDisplay::LIST_ITEM: {
-							auto box = parent->addChild(std::make_shared<ListItemBox>(parent, node));
+							auto box = parent->addChild(std::make_shared<ListItemBox>(parent, node, list_item_counter_.top()));
 							box->layout(*this, container);
 							return;
 						}
@@ -426,6 +459,8 @@ namespace xhtml
 		};
 		std::stack<OpenBox> open_;
 		std::stack<point> offset_;
+
+		std::stack<int> list_item_counter_;
 	};
 
 
@@ -461,11 +496,14 @@ namespace xhtml
 		}
 		css_position_ = ctx.getComputedValue(Property::POSITION).getValue<CssPosition>();
 
-		//const Property b[4]  = { Property::BORDER_LEFT_WIDTH, Property::BORDER_TOP_WIDTH, Property::BORDER_RIGHT_WIDTH, Property::BORDER_BOTTOM_WIDTH };
+		const Property b[4]  = { Property::BORDER_LEFT_WIDTH, Property::BORDER_TOP_WIDTH, Property::BORDER_RIGHT_WIDTH, Property::BORDER_BOTTOM_WIDTH };
+		const Property bs[4]  = { Property::BORDER_LEFT_STYLE, Property::BORDER_TOP_STYLE, Property::BORDER_RIGHT_STYLE, Property::BORDER_BOTTOM_STYLE };
 		const Property p[4]  = { Property::PADDING_LEFT, Property::PADDING_TOP, Property::PADDING_RIGHT, Property::PADDING_BOTTOM };
 		const Property m[4]  = { Property::MARGIN_LEFT, Property::MARGIN_TOP, Property::MARGIN_RIGHT, Property::MARGIN_BOTTOM };
+
 		for(int n = 0; n != 4; ++n) {
-			//border_[n] = ctx.getComputedValue(b[n]).getValue<Length>();
+			border_style_[n] = ctx.getComputedValue(bs[n]).getValue<CssBorderStyle>();
+			border_[n] = ctx.getComputedValue(b[n]).getValue<Length>();
 			padding_[n] = ctx.getComputedValue(p[n]).getValue<Length>();
 			margin_[n] = ctx.getComputedValue(m[n]).getValue<Width>();
 		}
@@ -691,8 +729,12 @@ namespace xhtml
 
 	void Box::calculateVertMPB(FixedPoint containing_height)
 	{
-		setBorderTop(getCssBorder(Side::TOP).compute());
-		setBorderBottom(getCssBorder(Side::BOTTOM).compute());
+		if(getCssBorderStyle(Side::TOP) != CssBorderStyle::NONE) {
+			setBorderTop(getCssBorder(Side::TOP).compute());
+		}
+		if(getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::NONE) {
+			setBorderBottom(getCssBorder(Side::BOTTOM).compute());
+		}
 
 		setPaddingTop(getCssPadding(Side::TOP).compute(containing_height));
 		setPaddingBottom(getCssPadding(Side::BOTTOM).compute(containing_height));
@@ -702,9 +744,13 @@ namespace xhtml
 	}
 
 	void Box::calculateHorzMPB(FixedPoint containing_width)
-	{
-		setBorderLeft(getCssBorder(Side::LEFT).compute());
-		setBorderRight(getCssBorder(Side::RIGHT).compute());
+	{		
+		if(getCssBorderStyle(Side::LEFT) != CssBorderStyle::NONE) {
+			setBorderLeft(getCssBorder(Side::LEFT).compute());
+		}
+		if(getCssBorderStyle(Side::RIGHT) != CssBorderStyle::NONE) {
+			setBorderRight(getCssBorder(Side::RIGHT).compute());
+		}
 
 		setPaddingLeft(getCssPadding(Side::LEFT).compute(containing_width));
 		setPaddingRight(getCssPadding(Side::RIGHT).compute(containing_width));
@@ -919,20 +965,86 @@ namespace xhtml
 		setContentWidth(max_w);
 	}
 
-	ListItemBox::ListItemBox(BoxPtr parent, NodePtr node)
+	ListItemBox::ListItemBox(BoxPtr parent, NodePtr node, int count)
 		: Box(BoxId::LIST_ITEM, parent, node),
-		  content_(std::make_shared<BlockBox>(parent, node))
+		  content_(std::make_shared<BlockBox>(parent, node)),
+		  count_(count),
+		  marker_(utils::codepoint_to_utf8(marker_disc))
 	{		
 	}
 
 	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
 	{
+		RenderContext& ctx = RenderContext::get();
+		CssListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE).getValue<CssListStyleType>();
+			switch(lst) {
+			case CssListStyleType::DISC: /* is the default */ break;
+			case CssListStyleType::CIRCLE:
+				marker_ = utils::codepoint_to_utf8(marker_circle);
+				break;
+			case CssListStyleType::SQUARE:
+				marker_ = utils::codepoint_to_utf8(marker_square);
+				break;
+			case CssListStyleType::DECIMAL: {
+				std::ostringstream ss;
+				ss << std::dec << count_ << ".";
+				marker_ = ss.str();
+				break;
+			}
+			case CssListStyleType::DECIMAL_LEADING_ZERO: {
+				std::ostringstream ss;
+				ss << std::dec << std::setfill('0') << std::setw(2) << count_ << ".";
+				marker_ = ss.str();
+				break;
+			}
+			case CssListStyleType::LOWER_ROMAN:
+				if(count_ < 4000) {
+					marker_ = to_roman(count_, true) + ".";
+				}
+				break;
+			case CssListStyleType::UPPER_ROMAN:
+				if(count_ < 4000) {
+					marker_ = to_roman(count_, false) + ".";
+				}
+				break;
+			case CssListStyleType::LOWER_GREEK:
+				if(count_ <= (marker_lower_greek_end - marker_lower_greek + 1)) {
+					marker_ = utils::codepoint_to_utf8(marker_lower_greek + count_) + ".";
+				}
+				break;
+			case CssListStyleType::LOWER_ALPHA:
+			case CssListStyleType::LOWER_LATIN:
+				if(count_ <= (marker_lower_latin_end - marker_lower_latin + 1)) {
+					marker_ = utils::codepoint_to_utf8(marker_lower_latin + count_) + ".";
+				}
+				break;
+			case CssListStyleType::UPPER_ALPHA:
+			case CssListStyleType::UPPER_LATIN:
+				if(count_ <= (marker_upper_latin_end - marker_upper_latin + 1)) {
+					marker_ = utils::codepoint_to_utf8(marker_upper_latin + count_) + ".";
+				}
+				break;
+			case CssListStyleType::ARMENIAN:
+				if(count_ <= (marker_armenian_end - marker_armenian + 1)) {
+					marker_ = utils::codepoint_to_utf8(marker_armenian + count_) + ".";
+				}
+				break;
+			case CssListStyleType::GEORGIAN:
+				if(count_ <= (marker_georgian_end - marker_georgian + 1)) {
+					marker_ = utils::codepoint_to_utf8(marker_georgian + count_) + ".";
+				}
+				break;
+			case CssListStyleType::NONE:
+			default: 
+				marker_.clear();
+				break;
+		}
 		content_->layout(eng, containing);
-		// XXX
-		// need to calculate our content size based on size of children.
-		// need to caculate X/Y offset
-		// need to add in the bullet using the correct style
-		// the primary box (containing the bullet) get's laid out in the parents left padding, working backwards.
+		
+		setContentX(content_->getDimensions().content_.x);
+		setContentY(content_->getDimensions().content_.y);
+		setContentWidth(content_->getDimensions().content_.width);
+		setContentHeight(content_->getDimensions().content_.height);
 	}
 
 	std::string BlockBox::toString() const
@@ -976,7 +1088,7 @@ namespace xhtml
 	std::string ListItemBox::toString() const 
 	{
 		std::ostringstream ss;
-		ss << "ListItemBox: " << getDimensions().content_;
+		ss << "ListItemBox: " << getDimensions().content_ << ", content: " << content_->toString();
 		return ss.str();
 	}
 
@@ -1023,7 +1135,12 @@ namespace xhtml
 
 	void Box::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
 	{
-		binfo_.render(display_list, offset, getDimensions());
+		auto& dims = getDimensions();
+		NodePtr node = getNode();
+		if(node != nullptr && node->hasTag(ElementId::BODY)) {
+			//dims = getRootDimensions();
+		}
+		binfo_.render(display_list, offset, dims);
 	}
 
 	void Box::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
@@ -1103,6 +1220,8 @@ namespace xhtml
 		}
 
 		border->update(&vc);
+
+		display_list->addRenderable(border);
 	}
 
 	void BlockBox::handleRender(DisplayListPtr display_list, const point& offset) const
@@ -1119,6 +1238,15 @@ namespace xhtml
 
 	void ListItemBox::handleRender(DisplayListPtr display_list, const point& offset) const 
 	{
+		auto& ctx = RenderContext::get();
+
+		auto path = getFont()->getGlyphPath(marker_);
+		auto fontr = getFont()->createRenderableFromPath(nullptr, marker_, path);
+		fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute());
+		FixedPoint path_width = path.back().x - path.front().x + getFont()->calculateCharAdvance(' ');
+		fontr->setPosition(static_cast<float>(offset.x - path_width - 5) / fixed_point_scale_float, static_cast<float>(offset.y) / fixed_point_scale_float);
+		display_list->addRenderable(fontr);
+
 		// XXX
 		content_->render(display_list, offset);
 	}
@@ -1194,6 +1322,9 @@ namespace xhtml
 
 	void BackgroundInfo::render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
 	{
+		// XXX if we're rendering the body element then it takes the entire canvas :-/
+		// technically the rule is that if no background styles are applied to the html element then
+		// we apply the body styles.
 		const int rx = offset.x - dims.padding_.left;
 		const int ry = offset.y - dims.padding_.top;
 		const int rw = dims.content_.width + dims.padding_.left + dims.padding_.right;
@@ -1258,10 +1389,3 @@ namespace xhtml
 		}
 	}
 }
-
-/*
-Unicode Character 'BULLET' (U+2022) - list-item-style: disc
-Unicode Character 'WHITE BULLET' (U+25E6) - list-item-style: circle
-Unicode Character 'BLACK SQUARE' (U+25A0) - list-item-style: square
-
-*/

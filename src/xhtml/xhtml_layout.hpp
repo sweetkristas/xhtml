@@ -186,6 +186,7 @@ namespace xhtml
 		const css::Width& getCssMargin(Side n) const { return margin_[static_cast<int>(n)]; }
 		const css::Length& getCssBorder(Side n) const { return border_[static_cast<int>(n)]; }
 		const css::Length& getCssPadding(Side n) const { return padding_[static_cast<int>(n)]; }
+		const css::CssBorderStyle& getCssBorderStyle(Side n) const { return border_style_[static_cast<int>(n)]; }
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
@@ -210,6 +211,8 @@ namespace xhtml
 		css::Length padding_[4];
 		css::Length border_[4];
 		css::Width margin_[4];
+
+		css::CssBorderStyle border_style_[4];
 
 		css::Width css_left_;
 		css::Width css_top_;
@@ -249,12 +252,14 @@ namespace xhtml
 	class ListItemBox : public Box
 	{
 	public:
-		ListItemBox(BoxPtr parent, NodePtr node);
+		explicit ListItemBox(BoxPtr parent, NodePtr node, int count);
 		std::string toString() const override;
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		std::shared_ptr<BlockBox> content_;
+		int count_;
+		std::string marker_;
 	};
 
 	class LineBox : public Box

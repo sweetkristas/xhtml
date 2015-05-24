@@ -3,82 +3,35 @@
           "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
-    <title>XHTML 1.0 Strict Example</title>
-    <script type="application/javascript">
-        <![CDATA[
-        function loadpdf() {
-           document.getElementById("pdf-object").src="http://www.w3.org/TR/xhtml1/xhtml1.pdf";
-        }
-        ]]>
-    </script>
     <style>
-        ins {
-            background: hsl(120, 50%, 90%);
-            color: green;
-        }
-
-        del {
-            background: hsl(0, 50%, 90%);
-            color: darkred;
-        }
-
-        ins, del {
-            text-decoration: none;
-        }
-
-        a {
-            background-image: url(default.png);
-            color: white;
-            display: block;
-            height: 30px;
-            width: 100px;
-        }
-
-        a:hover {
-            background-image: url(rollover.png);
-            color: lightpink;
-        }
-
-
-        body {
-            background: white;
-        }
-
-        span {
-            color: black;
-        }
-
-        p {
-            color: red;
-        }
-
-        p {
-            border-color: red;
-        }
-
-        p {
-            border: medium solid;
-        }
-
-        p {
-            color: green;
-        }
+body {
+	background-color: rgb(48, 48, 128);
+}
+p#p1 {	
+	border-width: 10px;
+	border-style: solid;
+	border-color: red;
+	padding: 20px;
+	margin: 15px;
+	background-color: rgb(0,64,64);
+}
+p#p2 {
+	/*background-color: gray;*/
+}
     </style>
 </head>
-<body onload="loadpdf()">
-    <p style="font-size: 12pt; color: fuchsia">
-        This is an example of an
-        <abbr title="Extensible HyperText Markup Language">XHTML</abbr> 1.0 Strict document.<br />
-        <img id="validation-icon"
-             src="http://www.w3.org/Icons/valid-xhtml10"
-             alt="Valid XHTML 1.0 Strict" /><br />
-        <object id="pdf-object"
-                type="application/pdf"
-                data="http://www.w3.org/TR/xhtml1/xhtml1.pdf"
-                width="100%"
-                height="500" />
-        <p>This is just some <em>un-magic</em>.</p>
-    </p>
-    <p>This is just some <em>magic</em>.</p>
+<body>
+    <p id="p1">
+	Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+	Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor 
+	in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, 
+	sunt in culpa qui officia deserunt mollit anim id est laborum.
+	</p>
+    <!--<p id="p2">
+	Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+	Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor 
+	in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, 
+	sunt in culpa qui officia deserunt mollit anim id est laborum.
+	</p>-->
 </body>
 </html>

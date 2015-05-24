@@ -69,10 +69,10 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 		layout->render(display_list, point());
 		}
 
-		/*layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
+		layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
 			std::string indent(nesting*2, ' ');
 			LOG_DEBUG(indent + box->toString());
-		}, 0);*/
+		}, 0);
 	}
 }
 

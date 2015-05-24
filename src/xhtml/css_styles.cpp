@@ -320,4 +320,9 @@ namespace css
 	{
 		return Object(*this);
 	}
+
+	Object ListStyleType::evaluate(const xhtml::RenderContext& rc) const 
+	{
+		return Object(list_style_type_);
+	}
 }

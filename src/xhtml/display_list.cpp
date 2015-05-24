@@ -30,13 +30,13 @@ namespace xhtml
 
 	DisplayList::DisplayList(std::weak_ptr<KRE::SceneGraph> sg)
 		: SceneNode(sg),
-		  ordering_(9999999)
+		  ordering_(1)
 	{
 	}
 	
 	void DisplayList::addRenderable(KRE::SceneObjectPtr r)
 	{
-		r->setOrder(ordering_--);
+		r->setOrder(ordering_++);
 		attachObject(r);
 	}
 }
