@@ -126,7 +126,7 @@ namespace css
 		class DimensionToken : public Token
 		{
 		public:
-			explicit DimensionToken(double value, const std::string& units) : Token(TokenId::NUMBER), value_(value), units_(units) {}
+			explicit DimensionToken(double value, const std::string& units) : Token(TokenId::DIMENSION), value_(value), units_(units) {}
 			std::string toString() const override {
 				return formatter() << "DimensionToken(" << value_ << " " << units_ << ")";
 			}
