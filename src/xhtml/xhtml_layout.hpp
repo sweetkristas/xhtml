@@ -154,6 +154,12 @@ namespace xhtml
 				+ dimensions_.border_.top;
 		}
 
+		FixedPoint getMBPBottom() {
+			return dimensions_.margin_.bottom
+				+ dimensions_.padding_.bottom
+				+ dimensions_.border_.bottom;
+		}
+
 		static BoxPtr createLayout(NodePtr node, int containing_width, int containing_height);
 
 		void layout(LayoutEngine& eng, const Dimensions& containing);

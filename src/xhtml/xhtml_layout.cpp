@@ -293,7 +293,7 @@ namespace xhtml
 			std::stack<T>& counter_;
 		};
 
-		void formatNode(NodePtr node, BoxPtr parent, const Dimensions& container) {
+		BoxPtr formatNode(NodePtr node, BoxPtr parent, const Dimensions& container) {
 			if(node->id() == NodeId::ELEMENT) {
 				RenderContext::Manager ctx_manager(node->getProperties());
 
@@ -313,17 +313,17 @@ namespace xhtml
 				if(display == CssDisplay::NONE) {
 					// Do not create a box for this or it's children
 					// early return
-					return;
+					return nullptr;
 				}
 
 				if(position == CssPosition::ABSOLUTE) {
 					// absolute positioned elements are taken out of the normal document flow
 					parent->addAbsoluteElement(node);
-					return;
+					return nullptr;
 				} else if(position == CssPosition::FIXED) {
 					// fixed positioned elements are taken out of the normal document flow
 					root_->addFixedElement(node);
-					return;
+					return nullptr;
 				} else {
 					if(cfloat != CssFloat::NONE) {
 						bool saved_open = false;
@@ -339,31 +339,34 @@ namespace xhtml
 							popOpenBox();
 							open_.top().open_box_->setContentX(open_.top().open_box_->getDimensions().content_.x + getXAtCursor());
 						}
-						return;
+						return nullptr;
 					}
 					switch(display) {
 						case CssDisplay::NONE:
 							// Do not create a box for this or it's children
-							return;
+							return nullptr;
 						case CssDisplay::INLINE: {
 							layoutInlineElement(node, parent);
-							return;
+							return nullptr;
 						}
 						case CssDisplay::BLOCK: {
 							closeOpenBox(parent);
 							auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
 							box->layout(*this, container);
-							return;
+							open_.top().cursor_.x = 0;
+							open_.top().cursor_.y = 0;
+							//open_.top().cursor_.y = box->getDimensions().content_.y + box->getDimensions().content_.height + box->getMBPBottom();
+							return box;
 						}
 						case CssDisplay::INLINE_BLOCK: {							
 							auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
 							box->layout(*this, container);
-							return;
+							return nullptr;
 						}
 						case CssDisplay::LIST_ITEM: {
 							auto box = parent->addChild(std::make_shared<ListItemBox>(parent, node, list_item_counter_.top()));
 							box->layout(*this, container);
-							return;
+							return nullptr;
 						}
 						case CssDisplay::TABLE:
 						case CssDisplay::INLINE_TABLE:
@@ -386,10 +389,11 @@ namespace xhtml
 				// these nodes are inline/static by definition.
 				// XXX if parent has any left/right pending floated elements and we're starting a new box apply them here.
 				layoutInlineText(node, parent);
-				return;
+				return nullptr;
 			} else {
 				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(node->id()));
 			}
+			return nullptr;
 		}
 
 		void layoutInlineElement(NodePtr node, BoxPtr parent) {
@@ -519,7 +523,7 @@ namespace xhtml
 			for(auto& lf : root_->getLeftFloats()) {
 				auto& dims = lf->getDimensions();
 				if(y >= (lf->getMPBTop() + dims.content_.y) && y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
-					x = std::max(x, lf->getMBPWidth() + dims.content_.width);
+					x = std::max(x, lf->getMBPWidth() + lf->getDimensions().content_.x + dims.content_.width);
 				}
 			}
 			return x;
@@ -544,13 +548,13 @@ namespace xhtml
 			for(auto& lf : root_->getLeftFloats()) {
 				auto& dims = lf->getDimensions();
 				if(y >= (lf->getMPBTop() + dims.content_.y) && y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
-					width -= lf->getMBPWidth() + dims.content_.width;
+					width -= lf->getMBPWidth() + lf->getDimensions().content_.x + dims.content_.width;
 				}
 			}
 			for(auto& rf : root_->getRightFloats()) {
 				auto& dims = rf->getDimensions();
 				if(y >= (rf->getMPBTop() + dims.content_.y) && y <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
-					width -= rf->getMBPWidth() + dims.content_.width;
+					width -= rf->getMBPWidth() + rf->getDimensions().content_.x + dims.content_.width;
 				}
 			}
 			return width < 0 ? 0 : width;
@@ -606,10 +610,10 @@ namespace xhtml
 		}
 		css_position_ = ctx.getComputedValue(Property::POSITION).getValue<CssPosition>();
 
-		const Property b[4]  = { Property::BORDER_LEFT_WIDTH, Property::BORDER_TOP_WIDTH, Property::BORDER_RIGHT_WIDTH, Property::BORDER_BOTTOM_WIDTH };
-		const Property bs[4]  = { Property::BORDER_LEFT_STYLE, Property::BORDER_TOP_STYLE, Property::BORDER_RIGHT_STYLE, Property::BORDER_BOTTOM_STYLE };
-		const Property p[4]  = { Property::PADDING_LEFT, Property::PADDING_TOP, Property::PADDING_RIGHT, Property::PADDING_BOTTOM };
-		const Property m[4]  = { Property::MARGIN_LEFT, Property::MARGIN_TOP, Property::MARGIN_RIGHT, Property::MARGIN_BOTTOM };
+		const Property b[4]  = { Property::BORDER_TOP_WIDTH, Property::BORDER_LEFT_WIDTH, Property::BORDER_BOTTOM_WIDTH, Property::BORDER_RIGHT_WIDTH };
+		const Property bs[4]  = { Property::BORDER_TOP_STYLE, Property::BORDER_LEFT_STYLE, Property::BORDER_BOTTOM_STYLE, Property::BORDER_RIGHT_STYLE };
+		const Property p[4]  = { Property::PADDING_TOP, Property::PADDING_LEFT, Property::PADDING_BOTTOM, Property::PADDING_RIGHT };
+		const Property m[4]  = { Property::MARGIN_TOP, Property::MARGIN_LEFT, Property::MARGIN_BOTTOM, Property::MARGIN_RIGHT };
 
 		for(int n = 0; n != 4; ++n) {
 			border_style_[n] = ctx.getComputedValue(bs[n]).getValue<CssBorderStyle>();
@@ -839,10 +843,12 @@ namespace xhtml
 
 	void Box::calculateVertMPB(FixedPoint containing_height)
 	{
-		if(getCssBorderStyle(Side::TOP) != CssBorderStyle::NONE) {
+		if(getCssBorderStyle(Side::TOP) != CssBorderStyle::NONE 
+			&& getCssBorderStyle(Side::TOP) != CssBorderStyle::HIDDEN) {
 			setBorderTop(getCssBorder(Side::TOP).compute());
 		}
-		if(getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::NONE) {
+		if(getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::NONE 
+			&& getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::HIDDEN) {
 			setBorderBottom(getCssBorder(Side::BOTTOM).compute());
 		}
 
@@ -881,6 +887,7 @@ namespace xhtml
 
 		setContentX(getMPBLeft());
 		setContentY(containing.content_.height + getMPBTop());
+		//LOG_DEBUG("  XXX: y: " << getDimensions().content_.y);
 
 		if(getPosition() == CssPosition::FIXED) {
 			if(!getCssLeft().isAuto()) {
@@ -900,7 +907,10 @@ namespace xhtml
 				if(getPosition() == CssPosition::FIXED) {
 					eng.pushOpenBox();
 				}
-				eng.formatNode(child, shared_from_this(), getDimensions());
+				BoxPtr box_child = eng.formatNode(child, shared_from_this(), getDimensions());
+				if(box_child != nullptr) {
+					setContentHeight(box_child->getDimensions().content_.y + box_child->getDimensions().content_.height + box_child->getMBPBottom());
+				}
 				if(getPosition() == CssPosition::FIXED) {
 					eng.closeOpenBox(shared_from_this());
 					eng.popOpenBox();
@@ -1161,6 +1171,12 @@ namespace xhtml
 	{
 		std::ostringstream ss;
 		ss << "BlockBox: " << getDimensions().content_;
+		for(auto& lf : getLeftFloats()) {
+			ss << " LeftFloatBox: " << lf->toString();
+		}
+		for(auto& rf : getRightFloats()) {
+			ss << " RightFloatBox: " << rf->toString();
+		}
 		return ss.str();
 	}
 
@@ -1325,20 +1341,20 @@ namespace xhtml
 					case CssBorderStyle::DOUBLE:
 						switch(side) {
 							case 0: 
-								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom, bottom_width/3.0f, bc[side].as_u8vec4()); 
-								generate_solid_left_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_left_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, bc[side].as_u8vec4()); 
 								break;
 							case 1: 
-								generate_solid_top_side(&vc, side_left, left_width/3.0f, side_right, right_width/3.0f, side_top, top_width/3.0f, bc[side].as_u8vec4()); 
-								generate_solid_top_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_top_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_top_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, bc[side].as_u8vec4()); 
 								break;
 							case 2: 
-								generate_solid_right_side(&vc, side_right, right_width/3.0f, side_top, top_width/3.0f, side_bottom, bottom_width/3.0f, bc[side].as_u8vec4()); 
-								generate_solid_right_side(&vc, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_right_side(&vc, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_right_side(&vc, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, bc[side].as_u8vec4()); 
 								break;
 							case 3: 
-								generate_solid_bottom_side(&vc, side_left, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, bc[side].as_u8vec4()); 
-								generate_solid_bottom_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_bottom_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_bottom_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, bc[side].as_u8vec4()); 
 								break;
 						}
 						break;
@@ -1507,10 +1523,10 @@ namespace xhtml
 		// XXX if we're rendering the body element then it takes the entire canvas :-/
 		// technically the rule is that if no background styles are applied to the html element then
 		// we apply the body styles.
-		const int rx = offset.x - dims.padding_.left;
-		const int ry = offset.y - dims.padding_.top;
-		const int rw = dims.content_.width + dims.padding_.left + dims.padding_.right;
-		const int rh = dims.content_.height + dims.padding_.top + dims.padding_.bottom;
+		const int rx = offset.x - dims.padding_.left - dims.border_.left;
+		const int ry = offset.y - dims.padding_.top - dims.border_.top;
+		const int rw = dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right;
+		const int rh = dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom;
 		rect r(rx, ry, rw, rh);
 
 		if(color_.ai() != 0) {
