@@ -26,6 +26,7 @@
 #include <array>
 
 #include "Color.hpp"
+#include "xhtml_fwd.hpp"
 #include "variant_object.hpp"
 
 #define MAKE_FACTORY(classname)																\
@@ -575,5 +576,146 @@ namespace css
 		explicit ListStyleType(CssListStyleType lst) : list_style_type_(lst) {}
 		Object evaluate(const xhtml::RenderContext& rc) const override;
 		CssListStyleType list_style_type_;
+	};
+
+	enum class CssBackgroundAttachment {
+		SCROLL,
+		FIXED,
+	};
+
+	struct BackgroundAttachment : public Style
+	{
+		MAKE_FACTORY(BackgroundAttachment);
+		BackgroundAttachment() : ba_(CssBackgroundAttachment::SCROLL) {}
+		explicit BackgroundAttachment(CssBackgroundAttachment ba) : ba_(ba) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(ba_); }
+		CssBackgroundAttachment ba_;
+	};
+
+	enum class CssClear {
+		NONE,
+		LEFT,
+		RIGHT,
+		BOTH,
+	};
+
+	struct Clear : public Style
+	{
+		MAKE_FACTORY(Clear);
+		Clear() : clr_(CssClear::NONE) {}
+		explicit Clear(CssClear clr) : clr_(clr) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(clr_); }
+		CssClear clr_;
+	};
+
+	class Clip : public Style
+	{
+	public:
+		MAKE_FACTORY(Clip);
+		Clip() : auto_(true), rect_() {}
+		explicit Clip(xhtml::FixedPoint left, xhtml::FixedPoint top, xhtml::FixedPoint right, xhtml::FixedPoint bottom) 
+			: auto_(false), 
+			  rect_(left, top, right, bottom) 
+		{
+		}
+		bool isAuto() const { return auto_; }
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+	private:
+		bool auto_;
+		xhtml::Rect rect_;
+	};
+
+	enum class ContentType {
+		NONE,
+		STRING,
+		URI,
+		COUNTER,
+		COUNTERS,
+		OPEN_QUOTE,
+		CLOSE_QUOTE,
+		NO_OPEN_QUOTE,
+		NO_CLOSE_QUOTE,
+		ATTRIBUTE,
+	};
+
+	// XXX this needs to store the ContentType in a vector
+	class Content : public Style
+	{
+	public:
+		MAKE_FACTORY(Content);
+		Content();
+		explicit Content(ContentType type);
+		explicit Content(ContentType type, const std::string& name);
+		explicit Content(CssListStyleType lst, const std::string& name);
+		explicit Content(CssListStyleType lst, const std::string& name, const std::string& sep);
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+	private:
+		ContentType type_;
+		std::string str_;
+		std::string uri_;
+		std::string counter_name_;
+		std::string counter_seperator_;
+		CssListStyleType counter_style_;
+		std::string attr_;
+	};
+
+	// used for incrementing and resetting.
+	class Counter : public Style
+	{
+	public:
+		MAKE_FACTORY(Counter);
+		Counter();
+		explicit Counter(const std::vector<std::pair<std::string,int>>& counters);
+		const std::vector<std::pair<std::string,int>>& getCounters() const { return counters_; }
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+	private:
+		std::vector<std::pair<std::string,int>> counters_;
+	};
+
+	enum class CssCursor {
+		AUTO,
+		CROSSHAIR,
+		DEFAULT,
+		POINTER,
+		MOVE,
+		E_RESIZE,
+		NE_RESIZE,
+		NW_RESIZE,
+		N_RESIZE,
+		SE_RESIZE,
+		SW_RESIZE,
+		S_RESIZE,
+		W_RESIZE,
+		TEXT,
+		WAIT,
+		PROGRESS,
+		HELP,
+	};
+
+	class Cursor : public Style
+	{
+	public:
+		MAKE_FACTORY(Cursor);
+		Cursor() : uris_(), cursor_(CssCursor::AUTO) {}
+		explicit Cursor(CssCursor c) : uris_(), cursor_(c) {}
+		explicit Cursor(const std::vector<std::string>& uris, CssCursor c) : uris_(uris), cursor_(c) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+	private:
+		std::vector<std::string> uris_;
+		CssCursor cursor_;
+	};
+
+	enum class CssListStylePosition {
+		INSIDE,
+		OUTSIDE,
+	};
+
+	struct ListStylePosition : public Style
+	{
+		MAKE_FACTORY(ListStylePosition);
+		ListStylePosition() : pos_(CssListStylePosition::OUTSIDE) {}
+		explicit ListStylePosition(CssListStylePosition pos) : pos_(pos) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(pos_); }
+		CssListStylePosition pos_;
 	};
 }

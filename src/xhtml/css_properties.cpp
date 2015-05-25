@@ -172,6 +172,47 @@ namespace css
 		PropertyRegistrar property051("background-position", Property::BACKGROUND_POSITION, false, Object(BackgroundPosition()), std::bind(&PropertyParser::parseBackgroundPosition, _1, "background-position", ""));
 		PropertyRegistrar property052("list-style-type", Property::LIST_STYLE_TYPE, true, Object(ListStyleType()), std::bind(&PropertyParser::parseListStyleType, _1, "list-style-type", ""));
 		PropertyRegistrar property053("border-style", std::bind(&PropertyParser::parseBorderStyleList, _1, "border", "style"));
+		// background-attachment
+		// clear
+		// clip
+		// content
+		// counter-increment
+		// counter-reset
+		// cursor
+		// list-style-image
+		// list-style-position
+		// max-height
+		// max-width
+		// min-height
+		// min-width
+		// outline-color
+		// outline-style
+		// outline-width
+		// quotes
+		// text-decoration
+		// text-indent
+		// unicode-bidi
+		// vertical-align
+		// visibility
+		// z-index
+
+		// Compount properties.
+		// background
+		// border
+		// font
+		// list-style
+		// outline
+
+		// Table related properties
+		// border-collapse
+		// border-spacing
+		// caption-side
+		// empty-cells
+		// table-layout
+		
+		// Paged
+		// orphans
+		// widows
 
 		//transition -- transition-property, transition-duration, transition-timing-function, transition-delay
 		//text-shadow
@@ -513,6 +554,7 @@ namespace css
 		} else if(isToken(TokenId::NUMBER) && (opts & NUMBER)) {
 			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
+			skipWhitespace();
 			return Length(d);
 		}
 		throw ParserError(formatter() << "Unrecognised value for property: "  << (*it_)->toString());

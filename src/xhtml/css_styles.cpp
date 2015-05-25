@@ -31,6 +31,7 @@ namespace css
 	namespace 
 	{
 		const int fixed_point_scale = 65536;
+		const float fixed_point_scale_float = 65536.0f;
 
 		std::vector<float>& get_font_size_table(float ppi)
 		{
@@ -145,9 +146,11 @@ namespace css
 			case LengthUnits::PX:
 				res = ((value_ * 3 * dpi) / (72 * 4));
 				break;
-			case LengthUnits::EM:
-				res = static_cast<xhtml::FixedPoint>((ctx.getComputedValue(Property::FONT_SIZE).getValue<xhtml::FixedPoint>() / 72.0f) * (value_ * dpi));
+			case LengthUnits::EM: {
+				float fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<xhtml::FixedPoint>() / (72.0f * fixed_point_scale_float);
+				res = static_cast<xhtml::FixedPoint>(fs * static_cast<float>(value_ * dpi));
 				break;
+			}
 			case LengthUnits::EX:
 				res = static_cast<xhtml::FixedPoint>(ctx.getFontHandle()->getFontXHeight() / 72.0f * (value_ * dpi));
 				break;
@@ -324,5 +327,97 @@ namespace css
 	Object ListStyleType::evaluate(const xhtml::RenderContext& rc) const 
 	{
 		return Object(list_style_type_);
+	}
+
+	Content::Content()
+		: type_(ContentType::NONE),
+		  str_(),
+		  uri_(),
+		  counter_name_(),
+		  counter_seperator_(),
+		  counter_style_(CssListStyleType::DISC),
+		  attr_()
+	{
+	}
+
+	Content::Content(ContentType type)
+		: type_(type),
+		  str_(),
+		  uri_(),
+		  counter_name_(),
+		  counter_seperator_(),
+		  counter_style_(CssListStyleType::DISC),
+		  attr_()
+	{		
+		switch(type) {
+			case ContentType::NONE:				break;
+			case ContentType::OPEN_QUOTE:		break;
+			case ContentType::CLOSE_QUOTE:		break;
+			case ContentType::NO_OPEN_QUOTE:	break;
+			case ContentType::NO_CLOSE_QUOTE:	break;
+			case ContentType::STRING:
+			case ContentType::URI:
+			case ContentType::ATTRIBUTE:
+			case ContentType::COUNTER:
+			case ContentType::COUNTERS:
+			default: 
+				ASSERT_LOG(false, "Value " << static_cast<int>(type) << " isn't valid in this context.");
+		}
+	}
+
+	Content::Content(ContentType type, const std::string& name)
+		: type_(type),
+		  str_(),
+		  uri_(),
+		  counter_name_(),
+		  counter_seperator_(),
+		  counter_style_(CssListStyleType::DISC),
+		  attr_()
+	{
+		switch(type) {
+			case ContentType::STRING:			str_ = name; break;
+			case ContentType::URI:				uri_ = name; break;
+			case ContentType::ATTRIBUTE:		attr_ = name; break;
+			case ContentType::NONE:				break;
+			case ContentType::COUNTER:			break;
+			case ContentType::COUNTERS:			break;
+			case ContentType::OPEN_QUOTE:		break;
+			case ContentType::CLOSE_QUOTE:		break;
+			case ContentType::NO_OPEN_QUOTE:	break;
+			case ContentType::NO_CLOSE_QUOTE:	break;
+			default: break;
+		}
+	}
+
+	Content::Content(CssListStyleType lst, const std::string& name)
+		: type_(ContentType::COUNTER),
+		  str_(),
+		  uri_(),
+		  counter_name_(name),
+		  counter_seperator_(),
+		  counter_style_(lst),
+		  attr_()
+	{
+	}
+
+	Content::Content(CssListStyleType lst, const std::string& name, const std::string& sep)
+		: type_(ContentType::COUNTERS),
+		  str_(),
+		  uri_(),
+		  counter_name_(name),
+		  counter_seperator_(sep),
+		  counter_style_(lst),
+		  attr_()
+	{
+	}
+
+	Counter::Counter()
+		: counters_()
+	{
+	}
+
+	Counter::Counter(const std::vector<std::pair<std::string,int>>& counters)
+		: counters_(counters)
+	{
 	}
 }
