@@ -134,16 +134,15 @@ namespace css
 		PropertyRegistrar property014("border-bottom-color", Property::BORDER_BOTTOM_COLOR, false, Object(CssColor(CssColorParam::CURRENT)), std::bind(&PropertyParser::parseColor, _1, "border-bottom-color", ""));
 		PropertyRegistrar property015("border-right-color", Property::BORDER_RIGHT_COLOR, false, Object(CssColor(CssColorParam::CURRENT)), std::bind(&PropertyParser::parseColor, _1, "border-right-color", ""));
 		PropertyRegistrar property016("border-color", std::bind(&PropertyParser::parseColorList, _1, "border", "color"));
-		PropertyRegistrar property017("border-top-width", Property::BORDER_TOP_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, "border-top-width", ""));
-		PropertyRegistrar property018("border-left-width", Property::BORDER_LEFT_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, "border-left-width", ""));
-		PropertyRegistrar property019("border-bottom-width", Property::BORDER_BOTTOM_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, "border-bottom-width", ""));
-		PropertyRegistrar property020("border-right-width", Property::BORDER_RIGHT_WIDTH, false, Object(Length(border_width_medium)), std::bind(&PropertyParser::parseBorderWidth, _1, "border-right-width", ""));
+		PropertyRegistrar property017("border-top-width", Property::BORDER_TOP_WIDTH, false, Object(Length(border_width_medium, LengthUnits::PX)), std::bind(&PropertyParser::parseBorderWidth, _1, "border-top-width", ""));
+		PropertyRegistrar property018("border-left-width", Property::BORDER_LEFT_WIDTH, false, Object(Length(border_width_medium, LengthUnits::PX)), std::bind(&PropertyParser::parseBorderWidth, _1, "border-left-width", ""));
+		PropertyRegistrar property019("border-bottom-width", Property::BORDER_BOTTOM_WIDTH, false, Object(Length(border_width_medium, LengthUnits::PX)), std::bind(&PropertyParser::parseBorderWidth, _1, "border-bottom-width", ""));
+		PropertyRegistrar property020("border-right-width", Property::BORDER_RIGHT_WIDTH, false, Object(Length(border_width_medium, LengthUnits::PX)), std::bind(&PropertyParser::parseBorderWidth, _1, "border-right-width", ""));
 		PropertyRegistrar property021("border-width", std::bind(&PropertyParser::parseBorderWidthList, _1, "border", "width"));
 		PropertyRegistrar property022("border-top-style", Property::BORDER_TOP_STYLE, false, Object(CssBorderStyle::NONE), std::bind(&PropertyParser::parseBorderStyle, _1, "border-top-style", ""));
 		PropertyRegistrar property023("border-left-style", Property::BORDER_LEFT_STYLE, false, Object(CssBorderStyle::NONE), std::bind(&PropertyParser::parseBorderStyle, _1, "border-left-style", ""));
 		PropertyRegistrar property024("border-bottom-style", Property::BORDER_BOTTOM_STYLE, false, Object(CssBorderStyle::NONE), std::bind(&PropertyParser::parseBorderStyle, _1, "border-bottom-style", ""));
 		PropertyRegistrar property025("border-right-style", Property::BORDER_RIGHT_STYLE, false, Object(CssBorderStyle::NONE), std::bind(&PropertyParser::parseBorderStyle, _1, "border-right-style", ""));
-		//PropertyRegistrar property027("border", std::bind(&PropertyParser::parseBorderList, _1, _2));
 		PropertyRegistrar property026("display", Property::DISPLAY, false, Object(CssDisplay::INLINE), std::bind(&PropertyParser::parseDisplay, _1, "display", ""));	
 		PropertyRegistrar property027("width", Property::WIDTH, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, "width", ""));	
 		PropertyRegistrar property028("height", Property::HEIGHT, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, "height", ""));
@@ -172,6 +171,7 @@ namespace css
 		PropertyRegistrar property051("background-position", Property::BACKGROUND_POSITION, false, Object(BackgroundPosition()), std::bind(&PropertyParser::parseBackgroundPosition, _1, "background-position", ""));
 		PropertyRegistrar property052("list-style-type", Property::LIST_STYLE_TYPE, true, Object(ListStyleType()), std::bind(&PropertyParser::parseListStyleType, _1, "list-style-type", ""));
 		PropertyRegistrar property053("border-style", std::bind(&PropertyParser::parseBorderStyleList, _1, "border", "style"));
+		PropertyRegistrar property054("border", std::bind(&PropertyParser::parseBorder, _1, "border", ""));
 		// background-attachment
 		// clear
 		// clip
@@ -403,23 +403,10 @@ namespace css
 		}
 	}
 
-	StylePtr PropertyParser::parseColorInternal()
+	void PropertyParser::parseColor2(std::shared_ptr<CssColor> color)
 	{
-		auto color = CssColor::create();
-		if(isToken(TokenId::IDENT)) {
+		if(isToken(TokenId::FUNCTION)) {
 			const std::string& ref = (*it_)->getStringValue();
-			advance();
-			if(ref == "transparent") {
-				color->setParam(CssColorParam::TRANSPARENT);
-			} else if(ref == "inherit") {
-				return std::make_shared<Style>(true);
-			} else {
-				// color value is in ref.
-				color->setColor(KRE::Color(ref));
-			}
-		} else if(isToken(TokenId::FUNCTION)) {
-			const std::string& ref = (*it_)->getStringValue();
-			// XXX  we need to parse (*it_)->getParameters() here for the number list!			
 			if(ref == "rgb") {
 				int values[3] = { 255, 255, 255 };
 				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().end(), 
@@ -480,6 +467,25 @@ namespace css
 			// is #fff or #ff00ff representation
 			color->setColor(KRE::Color(ref));
 			advance();
+		}
+	}
+
+	StylePtr PropertyParser::parseColorInternal()
+	{
+		auto color = CssColor::create();
+		if(isToken(TokenId::IDENT)) {
+			const std::string& ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "transparent") {
+				color->setParam(CssColorParam::TRANSPARENT);
+			} else if(ref == "inherit") {
+				return std::make_shared<Style>(true);
+			} else {
+				// color value is in ref.
+				color->setColor(KRE::Color(ref));
+			}
+		} else {
+			parseColor2(color);
 		}
 		return color;
 	}
@@ -569,13 +575,13 @@ namespace css
 				advance();
 			} else if(ref == "thin") {
 				advance();
-				return std::make_shared<Length>(border_width_thin);
+				return std::make_shared<Length>(border_width_thin, LengthUnits::PX);
 			} else if(ref == "medium") {
 				advance();
-				return std::make_shared<Length>(border_width_medium);
+				return std::make_shared<Length>(border_width_medium, LengthUnits::PX);
 			} else if(ref == "thick") {
 				advance();
-				return std::make_shared<Length>(border_width_thick);
+				return std::make_shared<Length>(border_width_thick, LengthUnits::PX);
 			}
 		}	
 		return std::make_shared<Length>(parseLengthInternal());
@@ -1388,5 +1394,79 @@ namespace css
 			throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 		}
 		plist_.addProperty(prefix, ListStyleType::create(lst));
+	}
+
+	void PropertyParser::parseBorder(const std::string& prefix, const std::string& suffix)
+	{
+		auto len = Length::create(border_width_medium, LengthUnits::PX);
+		CssBorderStyle bs = CssBorderStyle::NONE;
+		auto color = CssColor::create();
+
+		bool done = false;
+		while(!done) {
+			if(isToken(TokenId::IDENT)) {
+				const std::string ref = (*it_)->getStringValue();
+				advance();
+				if(ref == "inherit") {
+					plist_.addProperty(prefix, std::make_shared<Style>(true));
+					return;
+				} else if(ref == "thin") {
+					len = Length::create(border_width_thin, LengthUnits::PX);
+				} else if(ref == "medium") {
+					len = Length::create(border_width_medium, LengthUnits::PX);
+				} else if(ref == "thick") {
+					len = Length::create(border_width_thick, LengthUnits::PX);
+				} else if(ref == "none") {
+					bs = CssBorderStyle::NONE;
+				} else if(ref == "hidden") {
+					bs = CssBorderStyle::HIDDEN;
+				} else if(ref == "dotted") {
+					bs = CssBorderStyle::DOTTED;
+				} else if(ref == "dashed") {
+					bs = CssBorderStyle::DASHED;
+				} else if(ref == "solid") {
+					bs = CssBorderStyle::SOLID;
+				} else if(ref == "double") {
+					bs = CssBorderStyle::DOUBLE;
+				} else if(ref == "groove") {
+					bs = CssBorderStyle::GROOVE;
+				} else if(ref == "ridge") {
+					bs = CssBorderStyle::RIDGE;
+				} else if(ref == "inset") {
+					bs = CssBorderStyle::INSET;
+				} else if(ref == "outset") {
+					bs = CssBorderStyle::OUTSET;
+				} else {
+					color->setColor(KRE::Color(ref));
+				}
+			} else if(isToken(TokenId::DIMENSION)) {
+				const std::string units = (*it_)->getStringValue();
+				xhtml::FixedPoint value = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+				advance();
+				len = Length::create(value, units);
+			} else {
+				parseColor2(color);
+			}
+
+			skipWhitespace();
+			if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+				done = true;
+			}
+		}
+		plist_.addProperty("border-top-width", len);
+		plist_.addProperty("border-left-width", len);
+		plist_.addProperty("border-bottom-width", len);
+		plist_.addProperty("border-right-width", len);
+
+		StylePtr bs_style = BorderStyle::create(bs);
+		plist_.addProperty("border-top-style", bs_style);
+		plist_.addProperty("border-left-style", bs_style);
+		plist_.addProperty("border-bottom-style", bs_style);
+		plist_.addProperty("border-right-style", bs_style);
+
+		plist_.addProperty("border-top-color", color);
+		plist_.addProperty("border-left-color", color);
+		plist_.addProperty("border-bottom-color", color);
+		plist_.addProperty("border-right-color", color);
 	}
 }

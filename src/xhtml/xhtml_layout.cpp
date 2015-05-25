@@ -361,7 +361,7 @@ namespace xhtml
 						case CssDisplay::INLINE_BLOCK: {							
 							auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
 							box->layout(*this, container);
-							return nullptr;
+							return box;
 						}
 						case CssDisplay::LIST_ITEM: {
 							auto box = parent->addChild(std::make_shared<ListItemBox>(parent, node, list_item_counter_.top()));
@@ -405,11 +405,49 @@ namespace xhtml
 				inline_element_box->layout(*this, open->getDimensions());
 				popOpenBox();
 			} else {
+				// XXX we should apply border styles to inline element here (and backgrounds)
+				std::vector<FixedPoint> padding = generatePadding();
+				std::vector<FixedPoint> border_width = generateBorderWidth();
+				std::vector<BoxPtr> boxes;
 				for(auto& child : node->getChildren()) {
 					formatNode(child, parent, parent->getDimensions());
+					if(box->getDisplay() == CssDisplay::INLINE || box->getDisplay() == CssDisplay::INLINE_BLOCK) {
+						boxes.push_back(box);
+					}
+				}
+				
+				if(!boxes.empty()) {
+					boxes.front()->setPaddingLeft(padding[1]);
+					boxes.front()->setBorderLeft(border_width[1]);
+					boxes.back()->setBorderRight(border_width[3]);
+					boxes.back()->setPaddingRight(padding[3]);
+				}
+				for(auto& box : boxes) {
+					box->setBorderTop(border_width[0]);
+					box->setBorderBottom(border_width[2]);
 				}
 			
 			}
+		}
+
+		std::vector<FixedPoint> generateBorderWidth() {
+			std::vector<FixedPoint> res;
+			res.resize(4);
+			res[0] = ctx_.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Width>().getLength().compute();
+			res[1] = ctx_.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Width>().getLength().compute();
+			res[2] = ctx_.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Width>().getLength().compute();
+			res[3] = ctx_.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Width>().getLength().compute();
+			return res;
+		}
+
+		std::vector<FixedPoint> generatePadding() {
+			std::vector<FixedPoint> res;
+			res.resize(4);
+			res[0] = ctx_.getComputedValue(Property::PADDING_TOP).getValue<Length>().compute();
+			res[1] = ctx_.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute();
+			res[2] = ctx_.getComputedValue(Property::PADDING_BOTTOM).getValue<Length>().compute();
+			res[3] = ctx_.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute();
+			return res;
 		}
 
 		void layoutInlineText(NodePtr node, BoxPtr parent) {
@@ -920,7 +958,6 @@ namespace xhtml
 		// close any open boxes.
 		eng.closeOpenBox(shared_from_this());
 
-		// XXX We should assign margin/padding/border as appropriate here.
 		for(auto& child : getChildren()) {
 			setContentHeight(child->getDimensions().content_.y + child->getDimensions().content_.height + child->getMBPHeight());
 		}

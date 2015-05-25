@@ -185,6 +185,9 @@ namespace xhtml
 		const std::vector<BoxPtr>& getLeftFloats() const { return left_floats_; }
 		const std::vector<BoxPtr>& getRightFloats() const { return right_floats_; }
 
+		CssDisplay getDisplay() const { return display_; }
+		void setDisplay(CssDisplay disp) { display_ = disp; }
+
 		const css::Width& getCssLeft() const { return css_left_; }
 		const css::Width& getCssTop() const { return css_top_; }
 		const css::Width& getCssWidth() const { return css_width_; }
@@ -200,6 +203,7 @@ namespace xhtml
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 
 		BoxId id_;
+		CssDisplay display_;
 		WeakNodePtr node_;
 		std::weak_ptr<Box> parent_;
 		Dimensions dimensions_;

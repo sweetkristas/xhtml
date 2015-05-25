@@ -106,6 +106,7 @@ namespace css
 		void parseBackgroundRepeat(const std::string& prefix, const std::string& suffix);
 		void parseBackgroundPosition(const std::string& prefix, const std::string& suffix);
 		void parseListStyleType(const std::string& prefix, const std::string& suffix);
+		void parseBorder(const std::string& prefix, const std::string& suffix);
 	private:
 		enum NumericParseOptions {
 			NUMBER = 1,
@@ -128,6 +129,7 @@ namespace css
 		StylePtr parseWidthInternal();
 		StylePtr parseBorderWidthInternal();
 		StylePtr parseBorderStyleInternal();
+		void parseColor2(std::shared_ptr<CssColor> color);
 
 		const_iterator it_;
 		const_iterator end_;
