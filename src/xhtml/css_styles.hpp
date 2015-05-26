@@ -134,6 +134,13 @@ namespace css
 		WIDTH,
 		WORD_SPACING,
 		Z_INDEX,
+
+		// CSS3 provision properties
+		BOX_SHADOW,
+		TEXT_SHADOW,
+		TRANSITION,
+		BORDER_RADIUS,
+
 		MAX_PROPERTIES,
 	};
 
@@ -250,6 +257,7 @@ namespace css
 		bool isNone() const { return is_none_; }
 		const std::string& getUri() const { return uri_; }
 		Object evaluate(const xhtml::RenderContext& rc) const override;
+		void setURI(const std::string& uri) { uri_ = uri; is_none_ = false; }
 	private:
 		bool is_none_;
 		std::string uri_;
@@ -619,14 +627,22 @@ namespace css
 		{
 		}
 		bool isAuto() const { return auto_; }
+		const xhtml::Rect& getRect() const { return rect_; }
+		void setRect(const xhtml::Rect& r) { rect_ = r; auto_ = false; }
+		void setRect(xhtml::FixedPoint left, xhtml::FixedPoint top, xhtml::FixedPoint right, xhtml::FixedPoint bottom) { 
+			rect_.x = left;
+			rect_.y = top;
+			rect_.width = right;
+			rect_.height = bottom;
+			auto_ = false; 
+		}
 		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
 	private:
 		bool auto_;
 		xhtml::Rect rect_;
 	};
 
-	enum class ContentType {
-		NONE,
+	enum class CssContentType {
 		STRING,
 		URI,
 		COUNTER,
@@ -638,19 +654,16 @@ namespace css
 		ATTRIBUTE,
 	};
 
-	// XXX this needs to store the ContentType in a vector
-	class Content : public Style
+	// encapsulates one kind of content.
+	class ContentType
 	{
 	public:
-		MAKE_FACTORY(Content);
-		Content();
-		explicit Content(ContentType type);
-		explicit Content(ContentType type, const std::string& name);
-		explicit Content(CssListStyleType lst, const std::string& name);
-		explicit Content(CssListStyleType lst, const std::string& name, const std::string& sep);
-		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+		explicit ContentType(CssContentType type);
+		explicit ContentType(CssContentType type, const std::string& name);
+		explicit ContentType(CssListStyleType lst, const std::string& name);
+		explicit ContentType(CssListStyleType lst, const std::string& name, const std::string& sep);
 	private:
-		ContentType type_;
+		CssContentType type_;
 		std::string str_;
 		std::string uri_;
 		std::string counter_name_;
@@ -659,13 +672,24 @@ namespace css
 		std::string attr_;
 	};
 
+	class Content : public Style
+	{
+	public:
+		MAKE_FACTORY(Content);
+		Content() : content_() {}	// means none/normal
+		explicit Content(const std::vector<ContentType>& content) : content_(content) {}
+		void setContent(const std::vector<ContentType>& content) { content_ = content; }
+	private:
+		std::vector<ContentType> content_;
+	};
+
 	// used for incrementing and resetting.
 	class Counter : public Style
 	{
 	public:
 		MAKE_FACTORY(Counter);
-		Counter();
-		explicit Counter(const std::vector<std::pair<std::string,int>>& counters);
+		Counter() : counters_() {}
+		explicit Counter(const std::vector<std::pair<std::string,int>>& counters) : counters_(counters) {}
 		const std::vector<std::pair<std::string,int>>& getCounters() const { return counters_; }
 		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
 	private:
@@ -700,6 +724,8 @@ namespace css
 		explicit Cursor(CssCursor c) : uris_(), cursor_(c) {}
 		explicit Cursor(const std::vector<std::string>& uris, CssCursor c) : uris_(uris), cursor_(c) {}
 		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+		void setURI(const std::vector<std::string>& uris) { uris_ = uris; }
+		void setCursor(CssCursor c) { cursor_ = c; }
 	private:
 		std::vector<std::string> uris_;
 		CssCursor cursor_;
@@ -717,5 +743,156 @@ namespace css
 		explicit ListStylePosition(CssListStylePosition pos) : pos_(pos) {}
 		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(pos_); }
 		CssListStylePosition pos_;
+	};
+
+	struct ListStyleImage : public Style
+	{
+		MAKE_FACTORY(ListStyleImage);
+		ListStyleImage() : uri_() {}
+		explicit ListStyleImage(const std::string& uri) : uri_(uri) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+		bool isNone() const { return uri_.empty(); }
+		std::string uri_;
+	};
+
+	typedef std::pair<std::string, std::string> quote_pair;
+	class Quotes : public Style
+	{
+	public:
+		MAKE_FACTORY(Quotes);
+		Quotes() : quotes_() {}
+		explicit Quotes(const std::vector<quote_pair> quotes) : quotes_(quotes) {}
+		bool isNone() const { return quotes_.empty(); }
+		const std::vector<quote_pair>& getQuotes() const { return quotes_; }
+		const quote_pair& getQuotesAtLevel(int n) { 
+			if(n < 0) {
+				static quote_pair no_quotes;
+				return no_quotes;
+			}
+			if(n < static_cast<int>(quotes_.size())) {
+				return quotes_[n];
+			}
+			return quotes_.back();
+		};
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+	private:
+		std::vector<quote_pair> quotes_;
+	};
+
+	enum class CssTextDecoration {
+		NONE,
+		UNDERLINE,
+		OVERLINE,
+		LINE_THROUGH,
+		BLINK, // N.B. We will not support blinking text.
+	};
+
+	struct TextDecoration : public Style
+	{
+		MAKE_FACTORY(TextDecoration);
+		TextDecoration() : td_(CssTextDecoration::NONE) {}
+		explicit TextDecoration(CssTextDecoration td) : td_(td) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(td_); }
+		CssTextDecoration td_;
+	};
+
+	enum class CssUnicodeBidi {
+		NORMAL,
+		EMBED,
+		BIDI_OVERRIDE,
+	};
+
+	struct UnicodeBidi : public Style
+	{
+		MAKE_FACTORY(UnicodeBidi);
+		UnicodeBidi() : bidi_(CssUnicodeBidi::NORMAL) {}
+		explicit UnicodeBidi(CssUnicodeBidi bidi) : bidi_(bidi) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(bidi_); }
+		CssUnicodeBidi bidi_;
+	};
+
+	enum class CssVerticalAlign {
+		BASELINE,
+		SUB,
+		SUPER,
+		TOP,
+		TEXT_TOP,
+		MIDDLE,
+		BOTTOM,
+		TEXT_BOTTOM,
+		
+		LENGTH,
+	};
+
+	class VerticalAlign : public Style
+	{
+	public:
+		MAKE_FACTORY(VerticalAlign);
+		VerticalAlign() : va_(CssVerticalAlign::BASELINE), len_() {}
+		explicit VerticalAlign(CssVerticalAlign va) : va_(va), len_() {}
+		explicit VerticalAlign(Length len) : va_(CssVerticalAlign::LENGTH), len_(len) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+		void setAlign(CssVerticalAlign va) { va_ = va; }
+		void setLength(const Length& len) { len_ = len; va_ = CssVerticalAlign::LENGTH; }
+		const Length& getLength() const { return len_; }
+		CssVerticalAlign getAlign() const { return va_; }
+	private:
+		CssVerticalAlign va_;
+		Length len_;
+	};
+
+	enum class CssVisibility {
+		VISIBLE,
+		HIDDEN,
+		COLLAPSE,
+	};
+
+	struct Visibility : public Style
+	{
+		MAKE_FACTORY(Visibility);
+		Visibility() : visibility_(CssVisibility::VISIBLE) {}
+		explicit Visibility(CssVisibility visibility) : visibility_(visibility) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(visibility_); }
+		CssVisibility visibility_;
+	};
+
+	class Zindex : public Style
+	{
+	public:
+		MAKE_FACTORY(Zindex);
+		Zindex() : auto_(true), index_(0) {}
+		explicit Zindex(int n) : auto_(false), index_(n) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+		void setIndex(int index) { index_ = index; auto_ = false; }
+		bool isAuto() const { return auto_; }
+		int getIndex() const { return index_; }
+	private:
+		bool auto_;
+		int index_;
+	};
+
+	class BoxShadow
+	{
+	public:
+		BoxShadow();
+		explicit BoxShadow(bool inset, const Length& x, const Length& y, const Length& blur, const Length& spread, const CssColor& color);
+	private:
+		bool inset_;
+		Length x_offset_;
+		Length y_offset_;
+		Length blur_radius_;
+		Length spread_radius_;
+		CssColor color_;
+	};
+
+	class BoxShadowStyle : public Style
+	{
+	public:
+		MAKE_FACTORY(BoxShadowStyle);
+		BoxShadowStyle() : shadows_() {}
+		BoxShadowStyle(const std::vector<BoxShadow>& shadows) : shadows_(shadows) {}
+		void setShadows(const std::vector<BoxShadow>& shadows) { shadows_ = shadows; }
+	private:
+		std::vector<BoxShadow> shadows_;
 	};
 }

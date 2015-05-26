@@ -329,8 +329,8 @@ namespace css
 		return Object(list_style_type_);
 	}
 
-	Content::Content()
-		: type_(ContentType::NONE),
+	ContentType::ContentType(CssContentType type)
+		: type_(type),
 		  str_(),
 		  uri_(),
 		  counter_name_(),
@@ -340,32 +340,7 @@ namespace css
 	{
 	}
 
-	Content::Content(ContentType type)
-		: type_(type),
-		  str_(),
-		  uri_(),
-		  counter_name_(),
-		  counter_seperator_(),
-		  counter_style_(CssListStyleType::DISC),
-		  attr_()
-	{		
-		switch(type) {
-			case ContentType::NONE:				break;
-			case ContentType::OPEN_QUOTE:		break;
-			case ContentType::CLOSE_QUOTE:		break;
-			case ContentType::NO_OPEN_QUOTE:	break;
-			case ContentType::NO_CLOSE_QUOTE:	break;
-			case ContentType::STRING:
-			case ContentType::URI:
-			case ContentType::ATTRIBUTE:
-			case ContentType::COUNTER:
-			case ContentType::COUNTERS:
-			default: 
-				ASSERT_LOG(false, "Value " << static_cast<int>(type) << " isn't valid in this context.");
-		}
-	}
-
-	Content::Content(ContentType type, const std::string& name)
+	ContentType::ContentType(CssContentType type, const std::string& name)
 		: type_(type),
 		  str_(),
 		  uri_(),
@@ -374,23 +349,17 @@ namespace css
 		  counter_style_(CssListStyleType::DISC),
 		  attr_()
 	{
-		switch(type) {
-			case ContentType::STRING:			str_ = name; break;
-			case ContentType::URI:				uri_ = name; break;
-			case ContentType::ATTRIBUTE:		attr_ = name; break;
-			case ContentType::NONE:				break;
-			case ContentType::COUNTER:			break;
-			case ContentType::COUNTERS:			break;
-			case ContentType::OPEN_QUOTE:		break;
-			case ContentType::CLOSE_QUOTE:		break;
-			case ContentType::NO_OPEN_QUOTE:	break;
-			case ContentType::NO_CLOSE_QUOTE:	break;
+		switch(type)
+		{
+			case css::CssContentType::STRING:		str_ = name; break;
+			case css::CssContentType::URI:			uri_ = name; break;
+			case css::CssContentType::ATTRIBUTE:	attr_ = name; break;
 			default: break;
 		}
 	}
 
-	Content::Content(CssListStyleType lst, const std::string& name)
-		: type_(ContentType::COUNTER),
+	ContentType::ContentType(CssListStyleType lst, const std::string& name)
+		: type_(CssContentType::COUNTER),
 		  str_(),
 		  uri_(),
 		  counter_name_(name),
@@ -400,8 +369,8 @@ namespace css
 	{
 	}
 
-	Content::Content(CssListStyleType lst, const std::string& name, const std::string& sep)
-		: type_(ContentType::COUNTERS),
+	ContentType::ContentType(CssListStyleType lst, const std::string& name, const std::string& sep)
+		: type_(CssContentType::COUNTERS),
 		  str_(),
 		  uri_(),
 		  counter_name_(name),
@@ -411,13 +380,23 @@ namespace css
 	{
 	}
 
-	Counter::Counter()
-		: counters_()
+	BoxShadow::BoxShadow()
+		: inset_(false),
+		  x_offset_(),
+		  y_offset_(),
+		  blur_radius_(),
+		  spread_radius_(),
+		  color_()
 	{
 	}
 
-	Counter::Counter(const std::vector<std::pair<std::string,int>>& counters)
-		: counters_(counters)
+	BoxShadow::BoxShadow(bool inset, const Length& x, const Length& y, const Length& blur, const Length& spread, const CssColor& color)
+		: inset_(inset),
+		  x_offset_(x),
+		  y_offset_(y),
+		  blur_radius_(blur),
+		  spread_radius_(spread),
+		  color_(color)
 	{
 	}
 }

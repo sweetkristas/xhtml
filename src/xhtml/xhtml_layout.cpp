@@ -411,9 +411,6 @@ namespace xhtml
 				std::vector<BoxPtr> boxes;
 				for(auto& child : node->getChildren()) {
 					formatNode(child, parent, parent->getDimensions());
-					if(box->getDisplay() == CssDisplay::INLINE || box->getDisplay() == CssDisplay::INLINE_BLOCK) {
-						boxes.push_back(box);
-					}
 				}
 				
 				if(!boxes.empty()) {
@@ -433,10 +430,10 @@ namespace xhtml
 		std::vector<FixedPoint> generateBorderWidth() {
 			std::vector<FixedPoint> res;
 			res.resize(4);
-			res[0] = ctx_.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Width>().getLength().compute();
-			res[1] = ctx_.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Width>().getLength().compute();
-			res[2] = ctx_.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Width>().getLength().compute();
-			res[3] = ctx_.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Width>().getLength().compute();
+			res[0] = ctx_.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Length>().compute();
+			res[1] = ctx_.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute();
+			res[2] = ctx_.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Length>().compute();
+			res[3] = ctx_.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute();
 			return res;
 		}
 

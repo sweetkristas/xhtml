@@ -107,6 +107,23 @@ namespace css
 		void parseBackgroundPosition(const std::string& prefix, const std::string& suffix);
 		void parseListStyleType(const std::string& prefix, const std::string& suffix);
 		void parseBorder(const std::string& prefix, const std::string& suffix);
+		void parseBackgroundAttachment(const std::string& prefix, const std::string& suffix);
+		void parseClear(const std::string& prefix, const std::string& suffix);
+		void parseClip(const std::string& prefix, const std::string& suffix);
+		void parseContent(const std::string& prefix, const std::string& suffix);
+		void parseCounter(const std::string& prefix, const std::string& suffix);
+		void parseCursor(const std::string& prefix, const std::string& suffix);
+		void parseListStylePosition(const std::string& prefix, const std::string& suffix);
+		void parseQuotes(const std::string& prefix, const std::string& suffix);
+		void parseTextDecoration(const std::string& prefix, const std::string& suffix);
+		void parseUnicodeBidi(const std::string& prefix, const std::string& suffix);
+		void parseVerticalAlign(const std::string& prefix, const std::string& suffix);
+		void parseVisibility(const std::string& prefix, const std::string& suffix);
+		void parseZindex(const std::string& prefix, const std::string& suffix);
+		void parseBackground(const std::string& prefix, const std::string& suffix);
+		void parseListStyle(const std::string& prefix, const std::string& suffix);
+
+		void parseBoxShadow(const std::string& prefix, const std::string& suffix);
 	private:
 		enum NumericParseOptions {
 			NUMBER = 1,
@@ -124,12 +141,14 @@ namespace css
 		void parseCSVNumberListFromIt(std::vector<TokenPtr>::const_iterator start, std::vector<TokenPtr>::const_iterator end, std::function<void(int, float, bool)> fn);
 		void parseCSVNumberList(TokenId end_token, std::function<void(int, float, bool)> fn);
 		void parseCSVStringList(TokenId end_token, std::function<void(int, const std::string&)> fn);
+		std::shared_ptr<CssColor> parseColorInternal2();
 		StylePtr parseColorInternal();
 		Length parseLengthInternal(NumericParseOptions opts=ALL);
 		StylePtr parseWidthInternal();
 		StylePtr parseBorderWidthInternal();
 		StylePtr parseBorderStyleInternal();
 		void parseColor2(std::shared_ptr<CssColor> color);
+		CssListStyleType parseListStyleTypeInt(const std::string& lst);
 
 		const_iterator it_;
 		const_iterator end_;
