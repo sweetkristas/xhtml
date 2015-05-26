@@ -21,6 +21,8 @@
 	   distribution.
 */
 
+#include <stack>
+
 #include "asserts.hpp"
 #include "formatter.hpp"
 #include "css_parser.hpp"
@@ -97,6 +99,57 @@ namespace css
 				return KRE::Color(c+m, m, x+m, a);
 			}
 			return KRE::Color(m, m, m, a);
+		}
+
+		// These are the properties that can be animated using the transition* properties.
+		std::stack<Property>& get_transitional_properties()
+		{
+			static std::stack<Property> res;
+			if(res.empty()) {
+				res.emplace(Property::BACKGROUND_COLOR);
+				res.emplace(Property::BACKGROUND_POSITION);
+				res.emplace(Property::BORDER_BOTTOM_COLOR);
+				res.emplace(Property::BORDER_BOTTOM_WIDTH);
+				res.emplace(Property::BORDER_LEFT_COLOR);
+				res.emplace(Property::BORDER_LEFT_WIDTH);
+				res.emplace(Property::BORDER_RIGHT_COLOR);
+				res.emplace(Property::BORDER_RIGHT_WIDTH);
+				res.emplace(Property::BORDER_SPACING);
+				res.emplace(Property::BOTTOM);
+				res.emplace(Property::CLIP);
+				res.emplace(Property::COLOR);
+				res.emplace(Property::FONT_SIZE);
+				res.emplace(Property::FONT_WEIGHT);
+				res.emplace(Property::HEIGHT);
+				res.emplace(Property::LEFT);
+				res.emplace(Property::LETTER_SPACING);
+				res.emplace(Property::LINE_HEIGHT);
+				res.emplace(Property::MARGIN_BOTTOM);
+				res.emplace(Property::MARGIN_LEFT);
+				res.emplace(Property::MARGIN_RIGHT);
+				res.emplace(Property::MARGIN_TOP);
+				res.emplace(Property::MAX_HEIGHT);
+				res.emplace(Property::MAX_WIDTH);
+				res.emplace(Property::MIN_HEIGHT);
+				res.emplace(Property::MIN_WIDTH);
+				res.emplace(Property::OPACITY);
+				res.emplace(Property::OUTLINE_COLOR);
+				res.emplace(Property::OUTLINE_WIDTH);
+				res.emplace(Property::PADDING_BOTTOM);
+				res.emplace(Property::PADDING_LEFT);
+				res.emplace(Property::PADDING_RIGHT);
+				res.emplace(Property::PADDING_TOP);
+				res.emplace(Property::RIGHT);
+				res.emplace(Property::TEXT_INDENT);
+				res.emplace(Property::TEXT_SHADOW);
+				res.emplace(Property::TOP);
+				res.emplace(Property::VERTICAL_ALIGN);
+				res.emplace(Property::VISIBILITY);
+				res.emplace(Property::WIDTH);
+				res.emplace(Property::WORD_SPACING);
+				res.emplace(Property::Z_INDEX);
+			}
+			return res;
 		}
 
 		struct PropertyRegistrar
@@ -219,6 +272,8 @@ namespace css
 		// transition -- transition-property, transition-duration, transition-timing-function, transition-delay
 		// text-shadow [<x-offset> <y-offset> <blur> <color of shadow>]+
 		// border-radius <dimension>
+		// opacity
+		// border-spacing
 	}
 
 	PropertyList::PropertyList()
@@ -2239,3 +2294,50 @@ namespace css
 		plist_.addProperty(prefix, BoxShadowStyle::create(bs));
 	}
 }
+
+/* Animatible properties.
+	background-color 	as color
+	background-position 	as repeatable list of simple list of length, percentage, or calc
+	border-bottom-color 	as color
+	border-bottom-width 	as length
+	border-left-color 	as color
+	border-left-width 	as length
+	border-right-color 	as color
+	border-right-width 	as length
+	border-spacing 	as simple list of length
+	border-top-color 	as color
+	border-top-width 	as length
+	bottom 	as length, percentage, or calc
+	clip 	as rectangle
+	color 	as color
+	font-size 	as length
+	font-weight 	as font weight
+	height 	as length, percentage, or calc
+	left 	as length, percentage, or calc
+	letter-spacing 	as length
+	line-height 	as either number or length
+	margin-bottom 	as length
+	margin-left 	as length
+	margin-right 	as length
+	margin-top 	as length
+	max-height 	as length, percentage, or calc
+	max-width 	as length, percentage, or calc
+	min-height 	as length, percentage, or calc
+	min-width 	as length, percentage, or calc
+	opacity 	as number
+	outline-color 	as color
+	outline-width 	as length
+	padding-bottom 	as length
+	padding-left 	as length
+	padding-right 	as length
+	padding-top 	as length
+	right 	as length, percentage, or calc
+	text-indent 	as length, percentage, or calc
+	text-shadow 	as shadow list
+	top 	as length, percentage, or calc
+	vertical-align 	as length
+	visibility 	as visibility
+	width 	as length, percentage, or calc
+	word-spacing 	as length
+	z-index 	as integer
+*/

@@ -409,7 +409,21 @@ namespace xhtml
 				std::vector<FixedPoint> padding = generatePadding();
 				std::vector<FixedPoint> border_width = generateBorderWidth();
 				std::vector<BoxPtr> boxes;
-				for(auto& child : node->getChildren()) {
+
+				auto first = node->getChildren().cbegin();
+				auto last = node->getChildren().cend()-1;
+
+				for(auto it = first; it != node->getChildren().cend(); ++it) {
+					auto& child = *it;
+					if(it == first) {
+						// XXX insert left padding
+						// XXX set left border
+					}
+					if(it == last) {
+						// XXX insert right padding
+						// XXX set right border.
+					}
+					// XXX set border top/bottom
 					formatNode(child, parent, parent->getDimensions());
 				}
 				
@@ -421,7 +435,7 @@ namespace xhtml
 				}
 				for(auto& box : boxes) {
 					box->setBorderTop(border_width[0]);
-					box->setBorderBottom(border_width[2]);
+					box->setBorderBottom(border_width[2]);					
 				}
 			
 			}
