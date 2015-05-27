@@ -279,6 +279,7 @@ namespace xhtml
 
 				offset_.emplace(point());
 				root_ = std::make_shared<BlockBox>(nullptr, node);
+				root_->init();
 				dims_.content_ = Rect(0, 0, container.x, 0);
 				root_->layout(*this, dims_);
 				return;
@@ -293,7 +294,7 @@ namespace xhtml
 			std::stack<T>& counter_;
 		};
 
-		BoxPtr formatNode(NodePtr node, BoxPtr parent, const Dimensions& container) {
+		BoxPtr formatNode(NodePtr node, BoxPtr parent, const Dimensions& container, std::function<void(BoxPtr)> pre_layout_fn=nullptr) {
 			if(node->id() == NodeId::ELEMENT) {
 				RenderContext::Manager ctx_manager(node->getProperties());
 
@@ -346,25 +347,36 @@ namespace xhtml
 							// Do not create a box for this or it's children
 							return nullptr;
 						case CssDisplay::INLINE: {
-							layoutInlineElement(node, parent);
+							layoutInlineElement(node, parent, pre_layout_fn);
 							return nullptr;
 						}
 						case CssDisplay::BLOCK: {
 							closeOpenBox(parent);
 							auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
+							if(pre_layout_fn) {
+								pre_layout_fn(box);
+							}
 							box->layout(*this, container);
-							open_.top().cursor_.x = 0;
-							open_.top().cursor_.y = 0;
+							if(!open_.empty()) {
+								open_.top().cursor_.x = 0;
+								open_.top().cursor_.y = 0;
+							}
 							//open_.top().cursor_.y = box->getDimensions().content_.y + box->getDimensions().content_.height + box->getMBPBottom();
 							return box;
 						}
 						case CssDisplay::INLINE_BLOCK: {							
 							auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
+							if(pre_layout_fn) {
+								pre_layout_fn(box);
+							}
 							box->layout(*this, container);
 							return box;
 						}
 						case CssDisplay::LIST_ITEM: {
 							auto box = parent->addChild(std::make_shared<ListItemBox>(parent, node, list_item_counter_.top()));
+							if(pre_layout_fn) {
+								pre_layout_fn(box);
+							}
 							box->layout(*this, container);
 							return nullptr;
 						}
@@ -388,7 +400,7 @@ namespace xhtml
 			} else if(node->id() == NodeId::TEXT) {
 				// these nodes are inline/static by definition.
 				// XXX if parent has any left/right pending floated elements and we're starting a new box apply them here.
-				layoutInlineText(node, parent);
+				layoutInlineText(node, parent, pre_layout_fn);
 				return nullptr;
 			} else {
 				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(node->id()));
@@ -396,49 +408,75 @@ namespace xhtml
 			return nullptr;
 		}
 
-		void layoutInlineElement(NodePtr node, BoxPtr parent) {
+		void layoutInlineElement(NodePtr node, BoxPtr parent, std::function<void(BoxPtr)> pre_layout_fn) {
 			if(node->isReplaced()) {
 				BoxPtr open = getOpenBox(parent);
 				// This should be adding to the currently open box.
 				auto inline_element_box = open->addInlineElement(node);
 				pushOpenBox();
+				if(pre_layout_fn) {
+					pre_layout_fn(inline_element_box);
+				}
 				inline_element_box->layout(*this, open->getDimensions());
 				popOpenBox();
 			} else {
 				// XXX we should apply border styles to inline element here (and backgrounds)
 				std::vector<FixedPoint> padding = generatePadding();
 				std::vector<FixedPoint> border_width = generateBorderWidth();
-				std::vector<BoxPtr> boxes;
+				std::vector<CssBorderStyle> border_style = generateBorderStyle();
+				std::vector<KRE::Color> border_color = generateBorderColor();
 
 				auto first = node->getChildren().cbegin();
 				auto last = node->getChildren().cend()-1;
 
+				bool is_first = true;
 				for(auto it = first; it != node->getChildren().cend(); ++it) {
 					auto& child = *it;
-					if(it == first) {
-						// XXX insert left padding
-						// XXX set left border
-					}
-					if(it == last) {
-						// XXX insert right padding
-						// XXX set right border.
-					}
-					// XXX set border top/bottom
-					formatNode(child, parent, parent->getDimensions());
-				}
-				
-				if(!boxes.empty()) {
-					boxes.front()->setPaddingLeft(padding[1]);
-					boxes.front()->setBorderLeft(border_width[1]);
-					boxes.back()->setBorderRight(border_width[3]);
-					boxes.back()->setPaddingRight(padding[3]);
-				}
-				for(auto& box : boxes) {
-					box->setBorderTop(border_width[0]);
-					box->setBorderBottom(border_width[2]);					
+					bool is_last = it == last;
+					formatNode(child, parent, parent->getDimensions(), [&border_color, &border_style, &padding, &border_width, &is_first, is_last](BoxPtr box) {
+						if(is_first) {
+							is_first = false;
+							box->setPaddingLeft(padding[1]);
+							box->setBorderLeft(border_width[1]);
+							box->setBorderStyleLeft(border_style[1]);
+							box->setBorderColorLeft(border_color[1]);
+						}
+						if(is_last) {
+							box->setBorderRight(border_width[3]);
+							box->setPaddingRight(padding[3]);
+							box->setBorderStyleRight(border_style[3]);
+							box->setBorderColorRight(border_color[3]);
+						}
+						box->setBorderTop(border_width[0]);
+						box->setBorderBottom(border_width[2]);
+						box->setBorderStyleTop(border_style[0]);
+						box->setBorderStyleBottom(border_style[2]);
+						box->setBorderColorTop(border_color[0]);
+						box->setBorderColorBottom(border_color[2]);
+					});
 				}
 			
 			}
+		}
+
+		std::vector<CssBorderStyle> generateBorderStyle() {
+			std::vector<CssBorderStyle> res;
+			res.resize(4);
+			res[0] = ctx_.getComputedValue(Property::BORDER_TOP_STYLE).getValue<CssBorderStyle>();
+			res[1] = ctx_.getComputedValue(Property::BORDER_LEFT_STYLE).getValue<CssBorderStyle>();
+			res[2] = ctx_.getComputedValue(Property::BORDER_BOTTOM_STYLE).getValue<CssBorderStyle>();
+			res[3] = ctx_.getComputedValue(Property::BORDER_RIGHT_STYLE).getValue<CssBorderStyle>();
+			return res;
+		}
+
+		std::vector<KRE::Color> generateBorderColor() {
+			std::vector<KRE::Color> res;
+			res.resize(4);
+			res[0] = ctx_.getComputedValue(Property::BORDER_TOP_COLOR).getValue<CssColor>().compute();
+			res[1] = ctx_.getComputedValue(Property::BORDER_LEFT_COLOR).getValue<CssColor>().compute();
+			res[2] = ctx_.getComputedValue(Property::BORDER_BOTTOM_COLOR).getValue<CssColor>().compute();
+			res[3] = ctx_.getComputedValue(Property::BORDER_RIGHT_COLOR).getValue<CssColor>().compute();
+			return res;
 		}
 
 		std::vector<FixedPoint> generateBorderWidth() {
@@ -461,7 +499,7 @@ namespace xhtml
 			return res;
 		}
 
-		void layoutInlineText(NodePtr node, BoxPtr parent) {
+		void layoutInlineText(NodePtr node, BoxPtr parent, std::function<void(BoxPtr)> pre_layout_fn) {
 			TextPtr tnode = std::dynamic_pointer_cast<Text>(node);
 			ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 			ASSERT_LOG(parent->getDimensions().content_.width != 0, "Parent content width is 0.");
@@ -481,10 +519,15 @@ namespace xhtml
 			while(it != tnode->end()) {
 				LinePtr line = tnode->reflowText(it, width);
 				if(line != nullptr && !line->line.empty()) {
-					BoxPtr txt = open->addChild(std::make_shared<TextBox>(parent, line));
-					txt->setContentX(open_.top().cursor_.x);
+					auto txt = std::make_shared<TextBox>(parent, line);
+					txt->setDescent(getDescent());
+					open->addChild(txt);
+					if(pre_layout_fn) {
+						pre_layout_fn(txt);
+					}
+					txt->setContentX(open_.top().cursor_.x + txt->getMPBLeft());
 					txt->setContentY(0);
-					txt->setContentHeight(getLineHeight());
+					txt->setContentHeight(lh);
 					FixedPoint x_inc = txt->getDimensions().content_.width + txt->getMBPWidth();
 					open_.top().cursor_.x += x_inc;
 					width -= x_inc;
@@ -541,6 +584,10 @@ namespace xhtml
 					* ctx_.getComputedValue(Property::FONT_SIZE).getValue<FixedPoint>());
 			}
 			return line_height;
+		}
+
+		FixedPoint getDescent() const {
+			return ctx_.getFontHandle()->getDescender() * (fixed_point_scale / 64);
 		}
 
 		bool isOpenBox() const { return !open_.empty() && open_.top().open_box_ != nullptr; }
@@ -648,7 +695,13 @@ namespace xhtml
 		  binfo_(),
 		  css_position_(CssPosition::STATIC)
 	{
+	}
+
+	void Box::init()
+	{
 		RenderContext& ctx = RenderContext::get();
+		color_ = ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute();
+
 		binfo_.setColor(ctx.getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute());
 		// We set repeat before the filename so we can correctly set the background texture wrap mode.
 		binfo_.setRepeat(ctx.getComputedValue(Property::BACKGROUND_REPEAT).getValue<CssBackgroundRepeat>());
@@ -663,8 +716,10 @@ namespace xhtml
 		const Property bs[4]  = { Property::BORDER_TOP_STYLE, Property::BORDER_LEFT_STYLE, Property::BORDER_BOTTOM_STYLE, Property::BORDER_RIGHT_STYLE };
 		const Property p[4]  = { Property::PADDING_TOP, Property::PADDING_LEFT, Property::PADDING_BOTTOM, Property::PADDING_RIGHT };
 		const Property m[4]  = { Property::MARGIN_TOP, Property::MARGIN_LEFT, Property::MARGIN_BOTTOM, Property::MARGIN_RIGHT };
+		const Property bc[4] = { Property::BORDER_TOP_COLOR, Property::BORDER_LEFT_COLOR, Property::BORDER_BOTTOM_COLOR, Property::BORDER_RIGHT_COLOR };
 
 		for(int n = 0; n != 4; ++n) {
+			border_color_[n] = ctx.getComputedValue(bc[n]).getValue<CssColor>().compute();
 			border_style_[n] = ctx.getComputedValue(bs[n]).getValue<CssBorderStyle>();
 			border_[n] = ctx.getComputedValue(b[n]).getValue<Length>();
 			padding_[n] = ctx.getComputedValue(p[n]).getValue<Length>();
@@ -754,6 +809,7 @@ namespace xhtml
 	BoxPtr Box::addAbsoluteElement(NodePtr node)
 	{
 		absolute_boxes_.emplace_back(std::make_shared<AbsoluteBox>(shared_from_this(), node));
+		absolute_boxes_.back()->init();
 		return absolute_boxes_.back();
 	}
 
@@ -781,6 +837,7 @@ namespace xhtml
 	BoxPtr Box::addFixedElement(NodePtr node)
 	{
 		fixed_boxes_.emplace_back(std::make_shared<BlockBox>(shared_from_this(), node));
+		fixed_boxes_.back()->init();
 		return fixed_boxes_.back();
 	}
 
@@ -788,6 +845,7 @@ namespace xhtml
 	{
 		ASSERT_LOG(id() == BoxId::LINE, "Tried to add inline element to non-line box.");
 		boxes_.emplace_back(std::make_shared<InlineElementBox>(shared_from_this(), node));
+		boxes_.back()->init();
 		return boxes_.back();
 	}
 
@@ -1275,9 +1333,15 @@ namespace xhtml
 			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
 		}
 
-		point offs = offset + point(dimensions_.content_.x, dimensions_.content_.y);
+		point offs = offset;
+		//if(id() != BoxId::TEXT) {
+			offs += point(dimensions_.content_.x, dimensions_.content_.y);
+		//}
 		handleRenderBackground(display_list, offs);
 		handleRenderBorder(display_list, offs);
+		//if(id() == BoxId::TEXT) {
+		//	offs += point(dimensions_.content_.x, dimensions_.content_.y);
+		//}
 		handleRender(display_list, offs);
 		for(auto& child : getChildren()) {
 			child->render(display_list, offs);
@@ -1319,23 +1383,10 @@ namespace xhtml
 
 	void Box::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
 	{
-		// XXX
 		auto border = std::make_shared<SolidRenderable>();
 		std::vector<KRE::vertex_color> vc;
 
 		auto& ctx = RenderContext::get();
-
-		CssBorderStyle bs[4];
-		bs[0] = ctx.getComputedValue(Property::BORDER_LEFT_STYLE).getValue<CssBorderStyle>();
-		bs[1] = ctx.getComputedValue(Property::BORDER_TOP_STYLE).getValue<CssBorderStyle>();
-		bs[2] = ctx.getComputedValue(Property::BORDER_RIGHT_STYLE).getValue<CssBorderStyle>();
-		bs[3] = ctx.getComputedValue(Property::BORDER_BOTTOM_STYLE).getValue<CssBorderStyle>();
-
-		KRE::Color bc[4];
-		bc[0] = ctx.getComputedValue(Property::BORDER_LEFT_COLOR).getValue<CssColor>().compute();
-		bc[1] = ctx.getComputedValue(Property::BORDER_TOP_COLOR).getValue<CssColor>().compute();
-		bc[2] = ctx.getComputedValue(Property::BORDER_RIGHT_COLOR).getValue<CssColor>().compute();
-		bc[3] = ctx.getComputedValue(Property::BORDER_BOTTOM_COLOR).getValue<CssColor>().compute();
 
 		FixedPoint bw[4];
 		bw[0] = dimensions_.border_.left; 
@@ -1356,31 +1407,31 @@ namespace xhtml
 		vc.reserve(24*4);
 		for(int side = 0; side != 4; ++side) {
 			// only drawing border if width > 0, alpha != 0
-			if(bw[side] > 0 && bc[side].ai() != 0) {
-				switch(bs[side]) {
+			if(bw[side] > 0 && border_color_[side].ai() != 0) {
+				switch(border_style_[side]) {
 					case CssBorderStyle::SOLID:
 						switch(side) {
-							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, bc[side].as_u8vec4()); break;
-							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, bc[side].as_u8vec4()); break;
-							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, bc[side].as_u8vec4()); break;
-							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, bc[side].as_u8vec4()); break;
+							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
+							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color_[side].as_u8vec4()); break;
+							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
+							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
 						}
 						break;
 					case CssBorderStyle::INSET: {
-						glm::u8vec4 inset(bc[side].as_u8vec4().r/2, bc[side].as_u8vec4().g/2, bc[side].as_u8vec4().b/2, bc[side].as_u8vec4().a);
+						glm::u8vec4 inset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
 						switch(side) {
 							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, inset); break;
 							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, inset); break;
-							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, bc[side].as_u8vec4()); break;
-							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, bc[side].as_u8vec4()); break;
+							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
+							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
 						}
 						break;
 					}
 					case CssBorderStyle::OUTSET: {
-						glm::u8vec4 outset(bc[side].as_u8vec4().r/2, bc[side].as_u8vec4().g/2, bc[side].as_u8vec4().b/2, bc[side].as_u8vec4().a);
+						glm::u8vec4 outset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
 						switch(side) {
-							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, bc[side].as_u8vec4()); break;
-							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, bc[side].as_u8vec4()); break;
+							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
+							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color_[side].as_u8vec4()); break;
 							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, outset); break;
 							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, outset); break;
 						}
@@ -1389,26 +1440,26 @@ namespace xhtml
 					case CssBorderStyle::DOUBLE:
 						switch(side) {
 							case 0: 
-								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, bc[side].as_u8vec4()); 
-								generate_solid_left_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
+								generate_solid_left_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
 								break;
 							case 1: 
-								generate_solid_top_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, bc[side].as_u8vec4()); 
-								generate_solid_top_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_top_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, border_color_[side].as_u8vec4()); 
+								generate_solid_top_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, border_color_[side].as_u8vec4()); 
 								break;
 							case 2: 
-								generate_solid_right_side(&vc, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, bc[side].as_u8vec4()); 
-								generate_solid_right_side(&vc, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_right_side(&vc, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
+								generate_solid_right_side(&vc, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
 								break;
 							case 3: 
-								generate_solid_bottom_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, bc[side].as_u8vec4()); 
-								generate_solid_bottom_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, bc[side].as_u8vec4()); 
+								generate_solid_bottom_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
+								generate_solid_bottom_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
 								break;
 						}
 						break;
 					case CssBorderStyle::GROOVE: {
-						glm::u8vec4 inset(bc[side].as_u8vec4().r/2, bc[side].as_u8vec4().g/2, bc[side].as_u8vec4().b/2, bc[side].as_u8vec4().a);
-						glm::u8vec4 outset(bc[side].as_u8vec4());
+						glm::u8vec4 inset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
+						glm::u8vec4 outset(border_color_[side].as_u8vec4());
 						switch(side) {
 							case 0: 
 								generate_solid_left_side(&vc, side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, inset); 
@@ -1430,8 +1481,8 @@ namespace xhtml
 						break;
 					}
 					case CssBorderStyle::RIDGE: {
-						glm::u8vec4 outset(bc[side].as_u8vec4().r/2, bc[side].as_u8vec4().g/2, bc[side].as_u8vec4().b/2, bc[side].as_u8vec4().a);
-						glm::u8vec4 inset(bc[side].as_u8vec4());
+						glm::u8vec4 outset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
+						glm::u8vec4 inset(border_color_[side].as_u8vec4());
 						switch(side) {
 							case 0: 
 								generate_solid_left_side(&vc, side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, inset); 
@@ -1454,7 +1505,7 @@ namespace xhtml
 					}
 					case CssBorderStyle::DOTTED:
 					case CssBorderStyle::DASHED:
-						ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(bs[side]));
+						ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(border_style_[side]));
 						break;
 					case CssBorderStyle::HIDDEN:
 					case CssBorderStyle::NONE:
@@ -1488,7 +1539,7 @@ namespace xhtml
 
 		auto path = getFont()->getGlyphPath(marker_);
 		auto fontr = getFont()->createRenderableFromPath(nullptr, marker_, path);
-		fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute());
+		fontr->setColor(getColor());
 		FixedPoint path_width = path.back().x - path.front().x + getFont()->calculateCharAdvance(' ');
 		fontr->setPosition(static_cast<float>(offset.x - path_width - 5) / fixed_point_scale_float, static_cast<float>(offset.y) / fixed_point_scale_float);
 		display_list->addRenderable(fontr);
@@ -1518,7 +1569,7 @@ namespace xhtml
 
 		auto& ctx = RenderContext::get();
 		auto fontr = getFont()->createRenderableFromPath(nullptr, text, path);
-		fontr->setColor(ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute());
+		fontr->setColor(getColor());
 		display_list->addRenderable(fontr);
 	}
 
@@ -1634,4 +1685,18 @@ namespace xhtml
 			display_list->addRenderable(ptr);
 		}
 	}
+
+	void TextBox::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
+	{
+		point offs = offset - point(0, getDimensions().content_.height + getDescent());
+		
+		Box::handleRenderBackground(display_list, offs);
+	}
+
+	void TextBox::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
+	{
+		point offs = offset - point(0, getDimensions().content_.height + getDescent());
+		Box::handleRenderBorder(display_list, offs);
+	}
+
 }

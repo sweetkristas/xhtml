@@ -255,6 +255,13 @@ namespace css
 		// CSS3 provisional properties
 		PropertyRegistrar property200("box-shadow", Property::BOX_SHADOW, false, Object(BoxShadowStyle()), std::bind(&PropertyParser::parseBoxShadow, _1, "box-shadow", ""));
 
+		PropertyRegistrar property210("border-image-source", Property::BORDER_IMAGE_SOURCE, false, Object(UriStyle()), std::bind(&PropertyParser::parseUri, _1, "border-image-source", ""));
+		PropertyRegistrar property211("border-image-repeat", Property::BORDER_IMAGE_REPEAT, false, Object(BorderImageRepeat()), std::bind(&PropertyParser::parseBorderImageRepeat, _1, "border-image-repeat", ""));
+		PropertyRegistrar property210("border-image-width", Property::BORDER_IMAGE_WIDTH, false, Object(WidthList()), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-width", ""));
+		PropertyRegistrar property210("border-image-outset", Property::BORDER_IMAGE_OUTSET, false, Object(WidthList()), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-outset", ""));
+		PropertyRegistrar property210("border-image-slice", Property::BORDER_IMAGE_SLICE, false, Object(BorderImageSlice()), std::bind(&PropertyParser::parseBorderImageSlice, _1, "border-image-slice", ""));
+		PropertyRegistrar property079("border-image", std::bind(&PropertyParser::parseBorderImage, _1, "border-image", ""));
+
 		// Compound properties -- still to be implemented.
 		// font
 
@@ -273,7 +280,12 @@ namespace css
 		// text-shadow [<x-offset> <y-offset> <blur> <color of shadow>]+
 		// border-radius <dimension>
 		// opacity
-		// border-spacing
+		// border-image
+		// border-image-source
+		// border-image-slice
+		// border-image-width
+		// border-image-outset
+		// border-image-stretch
 	}
 
 	PropertyList::PropertyList()
@@ -365,6 +377,16 @@ namespace css
 		return it_;
 	}
 
+	void PropertyParser::inheritProperty(const std::string& name)
+	{
+		// called to make the property with the given name as inherited
+		auto it = get_property_table().find(name);
+		if(it == get_property_table().end()) {
+			throw ParserError(formatter() << "Unable to find a parse function for property '" << name << "'");
+		}
+		plist_.addProperty(name, std::make_shared<Style>(true));
+	}
+
 	void PropertyParser::advance()
 	{
 		if(it_ != end_) {
@@ -387,9 +409,14 @@ namespace css
 		return (*it_)->id() == tok;
 	}
 
-	bool PropertyParser::isTokenDelimiter(const std::string& delim)
+	bool PropertyParser::isTokenDelimiter(const std::string& delim) const
 	{
 		return isToken(TokenId::DELIM) && (*it_)->getStringValue() == delim;
+	}
+
+	bool PropertyParser::isEndToken() const 
+	{
+		return isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!"));
 	}
 
 	std::vector<TokenPtr> PropertyParser::parseCSVList(TokenId end_token)
@@ -613,6 +640,19 @@ namespace css
 			}
 		}
 		return std::make_shared<Width>(parseLengthInternal());
+	}
+
+	Width PropertyParser::parseWidthInternal2()
+	{
+		skipWhitespace();
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			if(ref == "auto" || ref == "none") {
+				advance();
+				return Width(true);
+			}
+		}
+		return Width(parseLengthInternal());
 	}
 
 	Length PropertyParser::parseLengthInternal(NumericParseOptions opts)
@@ -1555,6 +1595,8 @@ namespace css
 			plist_.addProperty("border-left-color", color);
 			plist_.addProperty("border-bottom-color", color);
 			plist_.addProperty("border-right-color", color);
+
+			// XXX we should reset all the border-image-* properties here.
 		} else if(prefix == "outline") {
 			plist_.addProperty("outline-width", len);
 			plist_.addProperty("outline-style", bs_style);
@@ -2024,6 +2066,10 @@ namespace css
 				ct.emplace_back(CssContentType::URI, uri);
 				// XXX here would be a good place to place to have a background thread working
 				// to look up the uri and download it. or look-up in cache, etc.
+			} else if(isToken(TokenId::STRING)) {
+				const std::string str = (*it_)->getStringValue();
+				advance();
+				ct.emplace_back(CssContentType::STRING, str);
 			} else {
 				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 			}
@@ -2293,6 +2339,81 @@ namespace css
 		}
 		plist_.addProperty(prefix, BoxShadowStyle::create(bs));
 	}
+
+	void PropertyParser::parseBorderImageRepeat(const std::string& prefix, const std::string& suffix)
+	{
+		bool done = false;
+		std::vector<CssBorderImageRepeat> repeat;
+		while(!done) {
+			if(isToken(TokenId::IDENT)) {
+				const std::string ref = (*it_)->getStringValue();
+				advance();
+				if(ref == "repeat") {
+					repeat.emplace_back(CssBorderImageRepeat::REPEAT);
+				} else if(ref == "stretch") {
+					repeat.emplace_back(CssBorderImageRepeat::STRETCH);
+				} else if(ref == "round") {
+					repeat.emplace_back(CssBorderImageRepeat::ROUND);
+				} else if(ref == "space") {
+					repeat.emplace_back(CssBorderImageRepeat::SPACE);
+				} else {
+					throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
+				}
+			} else {
+				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
+			}
+			skipWhitespace();
+			if(isEndToken()) {
+				done = true;
+			}
+		}
+		if(repeat.size() == 0) {
+			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
+			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
+		}
+		if(repeat.size() == 1) {
+			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
+		}
+		plist_.addProperty(prefix, BorderImageRepeat::create(repeat[0], repeat[1]));
+	}
+
+	void PropertyParser::parseWidthList2(const std::string& prefix, const std::string& suffix)
+	{
+		std::vector<Width> widths;
+		bool done = false;
+		while(!done) {
+			widths.emplace_back(parseWidthInternal2());
+			skipWhitespace();
+			if(isEndToken()) {
+				done = true;
+			}
+		}
+		plist_.addProperty(prefix, WidthList::create(widths));
+	}
+
+	void PropertyParser::parseBorderImageSlice(const std::string& prefix, const std::string& suffix)
+	{
+		std::vector<Width> widths;
+		bool fill = false;
+		bool done = false;
+		while(!done) {
+			if(isToken(TokenId::IDENT) && (*it_)->getStringValue() == "fill") {
+				fill = true;
+			} else {
+				widths.emplace_back(parseWidthInternal2());
+			}
+			skipWhitespace();
+			if(isEndToken()) {
+				done = true;
+			}
+		}
+		plist_.addProperty(prefix, BorderImageSlice::create(widths, fill));
+	}
+
+	void PropertyParser::parseBorderImage(const std::string& prefix, const std::string& suffix)
+	{
+	}
+
 }
 
 /* Animatible properties.

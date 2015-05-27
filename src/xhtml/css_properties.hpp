@@ -74,6 +74,7 @@ namespace css
 		typedef std::vector<TokenPtr>::const_iterator const_iterator;
 		PropertyParser();
 		const_iterator parse(const std::string& name, const const_iterator& begin, const const_iterator& end);
+		void inheritProperty(const std::string& name);
 		const PropertyList& getPropertyList() const { return plist_; }
 		PropertyList& getPropertyList() { return plist_; }
 		typedef std::vector<TokenPtr>::const_iterator const_iterator;
@@ -124,6 +125,10 @@ namespace css
 		void parseListStyle(const std::string& prefix, const std::string& suffix);
 
 		void parseBoxShadow(const std::string& prefix, const std::string& suffix);
+		void parseBorderImageRepeat(const std::string& prefix, const std::string& suffix);
+		void parseWidthList2(const std::string& prefix, const std::string& suffix);
+		void parseBorderImageSlice(const std::string& prefix, const std::string& suffix);
+		void parseBorderImage(const std::string& prefix, const std::string& suffix);
 	private:
 		enum NumericParseOptions {
 			NUMBER = 1,
@@ -135,8 +140,9 @@ namespace css
 		};
 		void advance();
 		void skipWhitespace();
+		bool isEndToken() const;
 		bool isToken(TokenId tok) const;
-		bool isTokenDelimiter(const std::string& delim);
+		bool isTokenDelimiter(const std::string& delim) const;
 		std::vector<TokenPtr> PropertyParser::parseCSVList(TokenId end_token);
 		void parseCSVNumberListFromIt(std::vector<TokenPtr>::const_iterator start, std::vector<TokenPtr>::const_iterator end, std::function<void(int, float, bool)> fn);
 		void parseCSVNumberList(TokenId end_token, std::function<void(int, float, bool)> fn);
@@ -145,6 +151,7 @@ namespace css
 		StylePtr parseColorInternal();
 		Length parseLengthInternal(NumericParseOptions opts=ALL);
 		StylePtr parseWidthInternal();
+		Width parseWidthInternal2();
 		StylePtr parseBorderWidthInternal();
 		StylePtr parseBorderStyleInternal();
 		void parseColor2(std::shared_ptr<CssColor> color);

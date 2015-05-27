@@ -145,6 +145,11 @@ namespace css
 		BORDER_RADIUS,
 		BORDER_SPACING,
 		OPACITY,
+		BORDER_IMAGE_SOURCE,
+		BORDER_IMAGE_SLICE,
+		BORDER_IMAGE_WIDTH,
+		BORDER_IMAGE_OUTSET,
+		BORDER_IMAGE_REPEAT,
 
 		MAX_PROPERTIES,
 	};
@@ -899,5 +904,56 @@ namespace css
 		void setShadows(const std::vector<BoxShadow>& shadows) { shadows_ = shadows; }
 	private:
 		std::vector<BoxShadow> shadows_;
+	};
+
+	enum class CssBorderImageRepeat {
+		STRETCH,
+		REPEAT,
+		ROUND,
+		SPACE,
+	};
+	
+	struct BorderImageRepeat : public Style
+	{
+		MAKE_FACTORY(BorderImageRepeat);
+		BorderImageRepeat() : image_repeat_horiz_(CssBorderImageRepeat::STRETCH), image_repeat_vert_(CssBorderImageRepeat::STRETCH) {}
+		explicit BorderImageRepeat(CssBorderImageRepeat image_repeat_h, CssBorderImageRepeat image_repeat_v) : image_repeat_horiz_(image_repeat_h), image_repeat_vert_(image_repeat_v) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+		CssBorderImageRepeat image_repeat_horiz_;
+		CssBorderImageRepeat image_repeat_vert_;
+	};
+
+	class WidthList : public Style
+	{
+	public:
+		MAKE_FACTORY(WidthList);
+		WidthList() : widths_() {}
+		explicit WidthList(const std::vector<Width>& widths);
+		void setWidths(const std::vector<Width>& widths);
+		const Width& getTop() const { return widths_[0]; }
+		const Width& getLeft() const { return widths_[1]; }
+		const Width& getBottom() const { return widths_[2]; }
+		const Width& getRight() const { return widths_[3]; }		
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+	private:
+		Width widths_[4];
+	};
+
+	class BorderImageSlice : public Style
+	{
+	public:
+		MAKE_FACTORY(BorderImageSlice);
+		BorderImageSlice() : widths_(), fill_(false) {}
+		explicit BorderImageSlice(const std::vector<Width>& widths, bool fill);
+		const Width& getTop() const { return widths_[0]; }
+		const Width& getLeft() const { return widths_[1]; }
+		const Width& getBottom() const { return widths_[2]; }
+		const Width& getRight() const { return widths_[3]; }
+		bool isFilled() const { return fill_; }
+		void setWidths(const std::vector<Width>& widths);
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+	private:
+		Width widths_[4];
+		bool fill_;
 	};
 }

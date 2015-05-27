@@ -199,7 +199,13 @@ namespace css
 					advance();
 				}
 				
-				it_ = pp->parse(property, it_, end_);
+				// check for 'inherit' which is common to all properties
+				if(isToken(TokenId::IDENT) && (*it_)->getStringValue() == "inherit") {
+					advance();
+					pp->inheritProperty(property);
+				} else {
+					it_ = pp->parse(property, it_, end_);
+				}
 				while(isToken(TokenId::WHITESPACE)) {
 					advance();
 				}
@@ -213,6 +219,7 @@ namespace css
 						advance();
 						if(ref == "important") {
 							// add important tag to the rule in plist.
+							// XXX this should apply to only the last member added!
 							for(auto& pl : pp->getPropertyList()) {
 								pl.second.style->setImportant(true);
 							}

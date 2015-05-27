@@ -99,6 +99,8 @@ namespace xhtml
 		const Dimensions& getDimensions() const { return dimensions_; }
 		const std::vector<BoxPtr>& getChildren() const { return boxes_; }
 
+		virtual void init();
+
 		NodePtr getNode() const { return node_.lock(); }
 		BoxPtr getParent() const { return parent_.lock(); }
 
@@ -116,6 +118,16 @@ namespace xhtml
 		void setBorderTop(FixedPoint fp) { dimensions_.border_.top = fp; }
 		void setBorderRight(FixedPoint fp) { dimensions_.border_.right = fp; }
 		void setBorderBottom(FixedPoint fp) { dimensions_.border_.bottom = fp; }
+
+		void setBorderStyleTop(css::CssBorderStyle bs) { border_style_[0] = bs; }
+		void setBorderStyleLeft(css::CssBorderStyle bs) { border_style_[1] = bs; }
+		void setBorderStyleBottom(css::CssBorderStyle bs) { border_style_[2] = bs; }
+		void setBorderStyleRight(css::CssBorderStyle bs) { border_style_[3] = bs; }
+
+		void setBorderColorTop(const KRE::Color& color ) { border_color_[0] = color; }
+		void setBorderColorLeft(const KRE::Color& color) { border_color_[1] = color; }
+		void setBorderColorBottom(const KRE::Color& color) { border_color_[2] = color; }
+		void setBorderColorRight(const KRE::Color& color) { border_color_[3] = color; }
 
 		void setPaddingLeft(FixedPoint fp) { dimensions_.padding_.left = fp; }
 		void setPaddingTop(FixedPoint fp) { dimensions_.padding_.top = fp; }
@@ -172,7 +184,7 @@ namespace xhtml
 		void layoutAbsolute(LayoutEngine& eng, const Dimensions& containing);
 		void layoutFixed(LayoutEngine& eng, const Dimensions& containing);
 		
-		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); return box; }
+		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); box->init(); return box; }
 
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
 		bool ancestralTraverse(std::function<bool(const ConstBoxPtr&)> fn) const;
@@ -193,10 +205,13 @@ namespace xhtml
 		const css::Length& getCssBorder(Side n) const { return border_[static_cast<int>(n)]; }
 		const css::Length& getCssPadding(Side n) const { return padding_[static_cast<int>(n)]; }
 		const css::CssBorderStyle& getCssBorderStyle(Side n) const { return border_style_[static_cast<int>(n)]; }
-	private:
-		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
+		const KRE::Color& getColor() const { return color_; }
+
+	protected:
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
+	private:
+		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 
 		BoxId id_;
@@ -219,6 +234,8 @@ namespace xhtml
 		css::Width margin_[4];
 
 		css::CssBorderStyle border_style_[4];
+		KRE::Color border_color_[4];
+		KRE::Color color_;
 
 		css::Width css_left_;
 		css::Width css_top_;
@@ -272,6 +289,7 @@ namespace xhtml
 	{
 	public:
 		LineBox(BoxPtr parent, NodePtr node);
+		void init() override {}
 		std::string toString() const override;
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
@@ -293,140 +311,17 @@ namespace xhtml
 	public:
 		TextBox(BoxPtr parent, LinePtr line);
 		std::string toString() const override;
+		void setDescent(FixedPoint descent) { descent_ = descent; }
+		FixedPoint getDescent() const { return descent_; }
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
+		void handleRenderBackground(DisplayListPtr display_list, const point& offset) const override;
+		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
 		LinePtr line_;
 		FixedPoint space_advance_;
+		FixedPoint descent_;
 	};
 
-	
-	
-	/*
-	class LayoutBox : public std::enable_shared_from_this<LayoutBox>
-	{
-	public:
-		typedef std::vector<LayoutBoxPtr>::iterator child_iterator;
-		typedef std::vector<LayoutBoxPtr>::const_iterator const_child_iterator;
-
-		LayoutBox(LayoutBoxPtr parent, NodePtr node);
-		virtual ~LayoutBox() {}
-		static LayoutBoxPtr create(NodePtr node, int containing_width);
-		void layout(const Dimensions& containing, FixedPoint& width);
-		
-		void preOrderTraversal(std::function<void(LayoutBoxPtr, int)> fn, int nesting);
-		virtual std::string toString() const = 0;
-		const Rect& getContentDimensions() const { return dimensions_.content_; }
-
-		const Dimensions& getDimensions() const { return dimensions_; }
-		NodePtr getNode() const { return node_.lock(); }
-
-		void insertChildren(const_child_iterator pos, const std::vector<LayoutBoxPtr>& children);
-		void setBorderStyle(Side n, css::CssBorderStyle bs) { border_style_[static_cast<int>(n)] = bs; }
-		void setBorderColor(Side n, const KRE::Color& color) { border_color_[static_cast<int>(n)] = color; }
-		void setBorder(Side n, FixedPoint value);
-		FixedPoint getBorder(Side n);
-		FixedPoint getPadding(Side n);
-		css::CssBorderStyle getBorderStyle(Side n) { return border_style_[static_cast<int>(n)]; }
-		const KRE::Color& getBorderColor(Side n) { return border_color_[static_cast<int>(n)]; }
-		void setPadding(Side n, FixedPoint value);
-		void setMargins(Side n, FixedPoint value);
-		void setContentX(FixedPoint value) { dimensions_.content_.x = value; }
-		void setContentY(FixedPoint value) { dimensions_.content_.y = value; }
-
-		FixedPoint getLineHeight() const;
-
-		void render(DisplayListPtr display_list, const point& offset) const;
-		virtual point reflow(const point& offset) { return offset; }
-	protected:
-		std::vector<LayoutBoxPtr>& getChildren() { return children_; }
-		Dimensions& getDims() { return dimensions_; }
-	private:
-		WeakNodePtr node_;
-		std::vector<LayoutBoxPtr> children_;
-		Dimensions dimensions_;
-
-		virtual void renderBackground(DisplayListPtr display_list, const point& offset) const;
-		virtual void renderBorder(DisplayListPtr display_list, const point& offset) const;
-		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
-
-		virtual void handleLayout(const Dimensions& containing, FixedPoint& width) = 0;
-		static LayoutBoxPtr handleCreate(NodePtr node, LayoutBoxPtr parent);
-		static LayoutBoxPtr factory(NodePtr node, css::CssDisplay display, LayoutBoxPtr parent);
-
-		std::array<css::CssBorderStyle, 4> border_style_;
-		std::array<KRE::Color, 4> border_color_;
-
-		KRE::Color background_color_;
-	};
-
-	class AnonymousLayoutBox : public LayoutBox
-	{
-	public:
-		AnonymousLayoutBox(LayoutBoxPtr parent);
-		std::string toString() const override;
-	private:
-		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
-		void handleRender(DisplayListPtr display_list, const point& offset) const override {}
-		void renderBackground(DisplayListPtr display_list, const point& offset) const override {}
-		void renderBorder(DisplayListPtr display_list, const point& offset) const override {}
-	};
-	typedef std::shared_ptr<AnonymousLayoutBox> AnonymousLayoutBoxPtr;
-
-	class InlineLayoutBox : public LayoutBox
-	{
-	public:
-		InlineLayoutBox(LayoutBoxPtr parent, NodePtr node);
-		std::string toString() const override;
-		point reflow(const point& offset) override;
-	private:
-		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
-		std::vector<LayoutBoxPtr> layoutInlineWidth(const Dimensions& containing, FixedPoint& width);
-		void handleRender(DisplayListPtr display_list, const point& offset) const override;
-		void renderBackground(DisplayListPtr display_list, const point& offset) const override {}
-		void renderBorder(DisplayListPtr display_list, const point& offset) const override {}
-		LinesPtr lines_;
-	};
-	
-	// A child class created to handle a single line, or partial line of text.
-	class InlineTextBox : public LayoutBox
-	{
-	public:
-		InlineTextBox(LayoutBoxPtr parent, const Line& line, long space_advance);
-		std::string toString() const override;
-		point reflow(const point& offset) override;
-	private:
-		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
-		void handleRender(DisplayListPtr display_list, const point& offset) const override;
-		Line line_;
-		long space_advance_;
-	};
-
-	// Wraps a single line of InlineTextBoxes.
-	class LineBox : public LayoutBox
-	{
-	public:
-		LineBox(LayoutBoxPtr parent);
-		std::string toString() const override;
-		point reflow(const point& offset) override;
-	private:
-		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
-		void handleRender(DisplayListPtr display_list, const point& offset) const override;
-	};
-
-	class BlockLayoutBox : public LayoutBox
-	{
-	public:
-		BlockLayoutBox(LayoutBoxPtr parent, NodePtr node);
-		std::string toString() const override;
-	private:
-		void handleLayout(const Dimensions& containing, FixedPoint& width) override;
-		void layoutBlockWidth(const Dimensions& containing);
-		void layoutBlockPosition(const Dimensions& containing);
-		void layoutBlockChildren(FixedPoint& width);
-		void layoutBlockHeight(const Dimensions& containing);
-		void handleRender(DisplayListPtr display_list, const point& offset) const override;
-	};
-	*/
 	FixedPoint convert_pt_to_pixels(double pt);
 }

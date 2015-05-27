@@ -257,6 +257,10 @@ namespace KRE
 				face_ = nullptr;
 			}
 		}
+		FT_Pos getDescender() 
+		{
+			return face_->size->metrics.descender;
+		}
 		void getBoundingBox(const std::string& str, long* w, long* h) 
 		{
 			FT_GlyphSlot slot = face_->glyph;
@@ -565,6 +569,11 @@ namespace KRE
 
 	void FontHandle::getFontMetrics()
 	{
+	}
+
+	int FontHandle::getDescender() 
+	{
+		return impl_->getDescender();
 	}
 
 	const std::vector<point>& FontHandle::getGlyphPath(const std::string& text)

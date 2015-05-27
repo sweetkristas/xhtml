@@ -94,6 +94,7 @@ namespace KRE
 		const std::string& getFontFamily();
 		void renderText();
 		void getFontMetrics();
+		int getDescender();
 		rect getBoundingBox(const std::string& text);
 		FontRenderablePtr createRenderableFromPath(FontRenderablePtr r, const std::string& text, const std::vector<point>& path);
 		const std::vector<point>& getGlyphPath(const std::string& text);
