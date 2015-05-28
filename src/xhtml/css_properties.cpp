@@ -255,12 +255,12 @@ namespace css
 		// CSS3 provisional properties
 		PropertyRegistrar property200("box-shadow", Property::BOX_SHADOW, false, Object(BoxShadowStyle()), std::bind(&PropertyParser::parseBoxShadow, _1, "box-shadow", ""));
 
-		PropertyRegistrar property210("border-image-source", Property::BORDER_IMAGE_SOURCE, false, Object(UriStyle()), std::bind(&PropertyParser::parseUri, _1, "border-image-source", ""));
+		PropertyRegistrar property210("border-image-source", Property::BORDER_IMAGE_SOURCE, false, Object(UriStyle(true)), std::bind(&PropertyParser::parseUri, _1, "border-image-source", ""));
 		PropertyRegistrar property211("border-image-repeat", Property::BORDER_IMAGE_REPEAT, false, Object(BorderImageRepeat()), std::bind(&PropertyParser::parseBorderImageRepeat, _1, "border-image-repeat", ""));
-		PropertyRegistrar property210("border-image-width", Property::BORDER_IMAGE_WIDTH, false, Object(WidthList()), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-width", ""));
-		PropertyRegistrar property210("border-image-outset", Property::BORDER_IMAGE_OUTSET, false, Object(WidthList()), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-outset", ""));
-		PropertyRegistrar property210("border-image-slice", Property::BORDER_IMAGE_SLICE, false, Object(BorderImageSlice()), std::bind(&PropertyParser::parseBorderImageSlice, _1, "border-image-slice", ""));
-		PropertyRegistrar property079("border-image", std::bind(&PropertyParser::parseBorderImage, _1, "border-image", ""));
+		PropertyRegistrar property212("border-image-width", Property::BORDER_IMAGE_WIDTH, false, Object(WidthList(1)), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-width", ""));
+		PropertyRegistrar property213("border-image-outset", Property::BORDER_IMAGE_OUTSET, false, Object(WidthList(0)), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-outset", ""));
+		PropertyRegistrar property214("border-image-slice", Property::BORDER_IMAGE_SLICE, false, Object(BorderImageSlice()), std::bind(&PropertyParser::parseBorderImageSlice, _1, "border-image-slice", ""));
+		PropertyRegistrar property215("border-image", std::bind(&PropertyParser::parseBorderImage, _1, "border-image", ""));
 
 		// Compound properties -- still to be implemented.
 		// font
@@ -416,7 +416,7 @@ namespace css
 
 	bool PropertyParser::isEndToken() const 
 	{
-		return isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!"));
+		return isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!");
 	}
 
 	std::vector<TokenPtr> PropertyParser::parseCSVList(TokenId end_token)
@@ -557,7 +557,7 @@ namespace css
 		}
 	}
 
-	std::shared_ptr<CssColor> PropertyParser::parseColorInternal2()
+	std::shared_ptr<css::CssColor> PropertyParser::parseColorInternal()
 	{
 		auto color = CssColor::create();
 		if(isToken(TokenId::IDENT)) {
@@ -575,23 +575,11 @@ namespace css
 		return color;
 	}
 
-	StylePtr PropertyParser::parseColorInternal()
-	{
-		if(isToken(TokenId::IDENT)) {
-			const std::string& ref = (*it_)->getStringValue();
-			if(ref == "inherit") {
-				advance();
-				return std::make_shared<Style>(true);
-			}
-		}
-		return parseColorInternal2();
-	}
-
 	void PropertyParser::parseColorList(const std::string& prefix, const std::string& suffix)
 	{
 		StylePtr w1 = parseColorInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top" + (!suffix.empty() ? "-" + suffix : ""), w1);
 			plist_.addProperty(prefix + "-bottom" + (!suffix.empty() ? "-" + suffix : ""), w1);
 			plist_.addProperty(prefix + "-right" + (!suffix.empty() ? "-" + suffix : ""), w1);
@@ -600,7 +588,7 @@ namespace css
 		}
 		StylePtr w2 = parseColorInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top" + (!suffix.empty() ? "-" + suffix : ""), w1);
 			plist_.addProperty(prefix + "-bottom" + (!suffix.empty() ? "-" + suffix : ""), w1);
 			plist_.addProperty(prefix + "-right" + (!suffix.empty() ? "-" + suffix : ""), w2);
@@ -609,7 +597,7 @@ namespace css
 		}
 		StylePtr w3 = parseColorInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top" + (!suffix.empty() ? "-" + suffix : ""), w1);
 			plist_.addProperty(prefix + "-right" + (!suffix.empty() ? "-" + suffix : ""), w2);
 			plist_.addProperty(prefix + "-left" + (!suffix.empty() ? "-" + suffix : ""), w2);
@@ -631,10 +619,7 @@ namespace css
 		skipWhitespace();
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
-			if(ref == "inherit") {
-				advance();
-				return std::make_shared<Style>(true);
-			} else if(ref == "auto" || ref == "none") {
+			if(ref == "auto" || ref == "none") {
 				advance();
 				return std::make_shared<Width>(true);
 			}
@@ -681,9 +666,7 @@ namespace css
 		skipWhitespace();
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
-			if(ref == "inherit") {
-				advance();
-			} else if(ref == "thin") {
+			if(ref == "thin") {
 				advance();
 				return std::make_shared<Length>(border_width_thin, LengthUnits::PX);
 			} else if(ref == "medium") {
@@ -692,6 +675,8 @@ namespace css
 			} else if(ref == "thick") {
 				advance();
 				return std::make_shared<Length>(border_width_thick, LengthUnits::PX);
+			} else {
+				throw ParserError(formatter() << "Unrecognised identifier for width value, property: " << ref);
 			}
 		}	
 		return std::make_shared<Length>(parseLengthInternal());
@@ -716,7 +701,7 @@ namespace css
 	{
 		StylePtr w1 = parseWidthInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top", w1);
 			plist_.addProperty(prefix + "-bottom", w1);
 			plist_.addProperty(prefix + "-right", w1);
@@ -725,7 +710,7 @@ namespace css
 		}
 		StylePtr w2 = parseWidthInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top", w1);
 			plist_.addProperty(prefix + "-bottom", w1);
 			plist_.addProperty(prefix + "-right", w2);
@@ -734,7 +719,7 @@ namespace css
 		}
 		StylePtr w3 = parseWidthInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top", w1);
 			plist_.addProperty(prefix + "-right", w2);
 			plist_.addProperty(prefix + "-left", w2);
@@ -755,7 +740,7 @@ namespace css
 	{
 		StylePtr w1 = Length::create(parseLengthInternal());
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top", w1);
 			plist_.addProperty(prefix + "-bottom", w1);
 			plist_.addProperty(prefix + "-right", w1);
@@ -764,7 +749,7 @@ namespace css
 		}
 		StylePtr w2 = Length::create(parseLengthInternal());
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top", w1);
 			plist_.addProperty(prefix + "-bottom", w1);
 			plist_.addProperty(prefix + "-right", w2);
@@ -773,7 +758,7 @@ namespace css
 		}
 		StylePtr w3 = Length::create(parseLengthInternal());
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top", w1);
 			plist_.addProperty(prefix + "-right", w2);
 			plist_.addProperty(prefix + "-left", w2);
@@ -799,7 +784,7 @@ namespace css
 	{
 		StylePtr w1 = parseBorderWidthInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top-" + suffix, w1);
 			plist_.addProperty(prefix + "-bottom-" + suffix, w1);
 			plist_.addProperty(prefix + "-right-" + suffix, w1);
@@ -808,7 +793,7 @@ namespace css
 		}
 		StylePtr w2 = parseBorderWidthInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top-" + suffix, w1);
 			plist_.addProperty(prefix + "-bottom-" + suffix, w1);
 			plist_.addProperty(prefix + "-right-" + suffix, w2);
@@ -817,7 +802,7 @@ namespace css
 		}
 		StylePtr w3 = parseBorderWidthInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top-" + suffix, w1);
 			plist_.addProperty(prefix + "-right-" + suffix, w2);
 			plist_.addProperty(prefix + "-left-" + suffix, w2);
@@ -844,8 +829,6 @@ namespace css
 			skipWhitespace();
 			if(ref == "none") {
 				bs = CssBorderStyle::NONE;
-			} else if(ref == "inherit") {
-				return std::make_shared<Style>(true);
 			} else if(ref == "hidden") {
 				bs = CssBorderStyle::HIDDEN;
 			} else if(ref == "dotted") {
@@ -881,7 +864,7 @@ namespace css
 	{
 		StylePtr w1 = parseBorderStyleInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top-" + suffix, w1);
 			plist_.addProperty(prefix + "-bottom-" + suffix, w1);
 			plist_.addProperty(prefix + "-right-" + suffix, w1);
@@ -890,7 +873,7 @@ namespace css
 		}
 		StylePtr w2 = parseBorderStyleInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top-" + suffix, w1);
 			plist_.addProperty(prefix + "-bottom-" + suffix, w1);
 			plist_.addProperty(prefix + "-right-" + suffix, w2);
@@ -899,7 +882,7 @@ namespace css
 		}
 		StylePtr w3 = parseBorderStyleInternal();
 		skipWhitespace();
-		if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+		if(isEndToken()) {
 			plist_.addProperty(prefix + "-top-" + suffix, w1);
 			plist_.addProperty(prefix + "-right-" + suffix, w2);
 			plist_.addProperty(prefix + "-left-" + suffix, w2);
@@ -953,9 +936,6 @@ namespace css
 				display = CssDisplay::TABLE_CELL;
 			} else if(ref == "table-caption") {
 				display = CssDisplay::TABLE_CAPTION;
-			} else if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
 			} else {
 				throw ParserError(formatter() << "Unrecognised token for display property: " << ref);
 			}
@@ -971,9 +951,6 @@ namespace css
 			advance();
 			if(ref == "normal") {
 				ws = CssWhitespace::NORMAL;
-			} else if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
 			} else if(ref == "pre") {
 				ws = CssWhitespace::PRE;
 			} else if(ref == "nowrap") {
@@ -1006,10 +983,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "xx-small") {
+			if(ref == "xx-small") {
 				fs.setFontSize(FontSizeAbsolute::XX_SMALL);
 			} else if(ref == "x-small") {
 				fs.setFontSize(FontSizeAbsolute::X_SMALL);
@@ -1055,10 +1029,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "lighter") {
+			if(ref == "lighter") {
 				fw.setRelative(FontWeightRelative::LIGHTER);
 			} else if(ref == "bolder") {
 				fw.setRelative(FontWeightRelative::BOLDER);
@@ -1084,10 +1055,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "normal") {
+			if(ref == "normal") {
 				// spacing defaults to 0
 			} else {
 				throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
@@ -1113,10 +1081,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "left") {
+			if(ref == "left") {
 				ta = CssTextAlign::LEFT;
 			} else if(ref == "right") {
 				ta = CssTextAlign::RIGHT;
@@ -1139,10 +1104,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "ltr") {
+			if(ref == "ltr") {
 				dir = CssDirection::LTR;
 			} else if(ref == "rtl") {
 				dir = CssDirection::RTL;
@@ -1161,10 +1123,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "capitalize") {
+			if(ref == "capitalize") {
 				tt = CssTextTransform::CAPITALIZE;
 			} else if(ref == "uppercase") {
 				tt = CssTextTransform::UPPERCASE;
@@ -1187,10 +1146,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "normal") {
+			if(ref == "normal") {
 				// do nothing as already set in default
 			} else {
 				throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
@@ -1207,10 +1163,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "italic") {
+			if(ref == "italic") {
 				fs = CssFontStyle::ITALIC;
 			} else if(ref == "normal") {
 				fs = CssFontStyle::NORMAL;
@@ -1231,10 +1184,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "normal") {
+			if(ref == "normal") {
 				fv = CssFontVariant::NORMAL;
 			} else if(ref == "small-caps") {
 				fv = CssFontVariant::SMALL_CAPS;
@@ -1253,10 +1203,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "visible") {
+			if(ref == "visible") {
 				of = CssOverflow::VISIBLE;
 			} else if(ref == "hidden") {
 				of = CssOverflow::HIDDEN;
@@ -1281,10 +1228,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "satic") {
+			if(ref == "static") {
 				p = CssPosition::STATIC;
 			} else if(ref == "absolute") {
 				p = CssPosition::ABSOLUTE;
@@ -1307,10 +1251,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "none") {
+			if(ref == "none") {
 				p = CssFloat::NONE;
 			} else if(ref == "left") {
 				p = CssFloat::LEFT;
@@ -1330,10 +1271,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "none") {
+			if(ref == "none") {
 				plist_.addProperty(prefix, std::make_shared<UriStyle>(true));
 			} else {
 				throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
@@ -1355,10 +1293,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "repeat") {
+			if(ref == "repeat") {
 				repeat = CssBackgroundRepeat::REPEAT;
 			} else if(ref == "repeat-x") {
 				repeat = CssBackgroundRepeat::REPEAT_X;
@@ -1389,10 +1324,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "inherit") {
-					plist_.addProperty(prefix, std::make_shared<Style>(true));
-					return;
-				} else if(ref == "left") {
+				if(ref == "left") {
 					pos->setLeft(Length(0, true));
 					was_horiz_set = true; 
 				} else if(ref == "top") {
@@ -1502,15 +1434,10 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else {
-				try {
-					lst = parseListStyleTypeInt(ref);
-				} catch(ParserError&) {
-					throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
-				}
+			try {
+				lst = parseListStyleTypeInt(ref);
+			} catch(ParserError&) {
+				throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
 			}
 		} else {
 			throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
@@ -1529,10 +1456,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "inherit") {
-					plist_.addProperty(prefix, std::make_shared<Style>(true));
-					return;
-				} else if(ref == "invert") {
+				if(ref == "invert") {
 					// not supporting invert color at the moment so we just 
 					// set to current color.
 					color->setParam(CssColorParam::CURRENT);
@@ -1575,7 +1499,7 @@ namespace css
 			}
 
 			skipWhitespace();
-			if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			if(isEndToken()) {
 				done = true;
 			}
 		}
@@ -1596,7 +1520,12 @@ namespace css
 			plist_.addProperty("border-bottom-color", color);
 			plist_.addProperty("border-right-color", color);
 
-			// XXX we should reset all the border-image-* properties here.
+			// Reset all the border-image-* properties here.
+			plist_.addProperty("border-image-source", UriStyle::create(true));
+			plist_.addProperty("border-image-repeat", BorderImageRepeat::create());
+			plist_.addProperty("border-image-width", WidthList::create());
+			plist_.addProperty("border-image-outset", WidthList::create());
+			plist_.addProperty("border-image-slice", BorderImageSlice::create());
 		} else if(prefix == "outline") {
 			plist_.addProperty("outline-width", len);
 			plist_.addProperty("outline-style", bs_style);
@@ -1610,10 +1539,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "scroll") {
+			if(ref == "scroll") {
 				p = CssBackgroundAttachment::SCROLL;
 			} else if(ref == "fixed") {
 				p = CssBackgroundAttachment::FIXED;
@@ -1632,10 +1558,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "none") {
+			if(ref == "none") {
 				p = CssClear::NONE;
 			} else if(ref == "left") {
 				p = CssClear::LEFT;
@@ -1658,10 +1581,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "auto") {
+			if(ref == "auto") {
 				// do nothing is the default
 			} else {
 				throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
@@ -1697,10 +1617,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "inherit") {
-					plist_.addProperty(prefix, std::make_shared<Style>(true));
-					return;
-				} else if(ref == "none") {
+				if(ref == "none") {
 					plist_.addProperty(prefix, Counter::create());
 					return;
 				} else {
@@ -1717,7 +1634,7 @@ namespace css
 				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 			}
 			skipWhitespace();
-			if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			if(isEndToken()) {
 				done = true;
 			}
 		}
@@ -1730,10 +1647,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "inside") {
+			if(ref == "inside") {
 				lsp = CssListStylePosition::INSIDE;
 			} else if(ref == "outside") {
 				lsp = CssListStylePosition::OUTSIDE;
@@ -1752,10 +1666,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "normal") {
+			if(ref == "normal") {
 				bidi = CssUnicodeBidi::NORMAL;
 			} else if(ref == "embed") {
 				bidi = CssUnicodeBidi::EMBED;
@@ -1776,10 +1687,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "baseline") {
+			if(ref == "baseline") {
 				va->setAlign(CssVerticalAlign::BASELINE);
 			} else if(ref == "sub") {
 				va->setAlign(CssVerticalAlign::SUB);
@@ -1819,10 +1727,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "visible") {
+			if(ref == "visible") {
 				vis = CssVisibility::VISIBLE;
 			} else if(ref == "hidden") {
 				vis = CssVisibility::HIDDEN;
@@ -1843,10 +1748,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "auto") {
+			if(ref == "auto") {
 				// do nothing is default
 			} else {
 				throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
@@ -1870,10 +1772,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "inherit") {
-					plist_.addProperty(prefix, std::make_shared<Style>(true));
-					return;
-				} else if(ref == "none") {
+				if(ref == "none") {
 					plist_.addProperty(prefix, Quotes::create());
 					return;
 				} else {
@@ -1892,7 +1791,7 @@ namespace css
 			quotes.emplace_back(first_quote, second_quote);
 			
 			skipWhitespace();
-			if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			if(isEndToken()) {
 				done = true;
 			}
 		}
@@ -1905,10 +1804,7 @@ namespace css
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
-			if(ref == "inherit") {
-				plist_.addProperty(prefix, std::make_shared<Style>(true));
-				return;
-			} else if(ref == "none") {
+			if(ref == "none") {
 				td = CssTextDecoration::NONE;
 			} else if(ref == "underline") {
 				td = CssTextDecoration::UNDERLINE;
@@ -1937,10 +1833,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "inherit") {
-					plist_.addProperty(prefix, std::make_shared<Style>(true));
-					return;
-				} else if(ref == "auto") {
+				if(ref == "auto") {
 					cursor->setCursor(CssCursor::AUTO);
 				} else if(ref == "crosshair") {
 					cursor->setCursor(CssCursor::CROSSHAIR);
@@ -1987,7 +1880,7 @@ namespace css
 				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 			}
 			skipWhitespace();
-			if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			if(isEndToken()) {
 				done = true;
 			}
 		}
@@ -2003,10 +1896,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "inherit") {
-					plist_.addProperty(prefix, std::make_shared<Style>(true));
-					return;
-				} else if(ref == "none") {
+				if(ref == "none") {
 					plist_.addProperty(prefix, Content::create());
 					return;
 				} else if(ref == "normal") {
@@ -2075,7 +1965,7 @@ namespace css
 			}
 
 			skipWhitespace();
-			if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			if(isEndToken()) {
 				done = true;
 			}
 		}
@@ -2100,10 +1990,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "inherit") {
-					plist_.addProperty(prefix, std::make_shared<Style>(true));
-					return;
-				} else if(ref == "transparent") {
+				if(ref == "transparent") {
 					bc->setParam(CssColorParam::TRANSPARENT);
 				} else if(ref == "scroll") {
 					ba = CssBackgroundAttachment::SCROLL;
@@ -2152,7 +2039,7 @@ namespace css
 			}
 
 			skipWhitespace();
-			if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			if(isEndToken()) {
 				done = true;
 			}
 		}
@@ -2211,10 +2098,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "inherit") {
-					plist_.addProperty(prefix, std::make_shared<Style>(true));
-					return;
-				} else if(ref == "none") {
+				if(ref == "none") {
 					++none_counter;
 				} else if(ref == "inside") {
 					pos = CssListStylePosition::INSIDE;
@@ -2240,7 +2124,7 @@ namespace css
 			}
 
 			skipWhitespace();
-			if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			if(isEndToken()) {
 				done = true;
 			}
 		}
@@ -2273,10 +2157,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "inherit") {
-					plist_.addProperty(prefix, std::make_shared<Style>(true));
-					return;
-				} else if(ref == "none") {
+				if(ref == "none") {
 					plist_.addProperty(prefix, BoxShadowStyle::create());
 				} else if(ref == "inset") {
 					inset = true;
@@ -2321,12 +2202,12 @@ namespace css
 
 			skipWhitespace();
 			try {
-				color = parseColorInternal2();
+				color = parseColorInternal();
 			} catch(ParserError&) {
 			}
 
 			skipWhitespace();
-			if(isToken(TokenId::EOF_TOKEN) || isToken(TokenId::RBRACE) || isToken(TokenId::SEMICOLON) || isTokenDelimiter("!")) {
+			if(isEndToken()) {
 				done = true;
 			} else {
 				if(!isToken(TokenId::COMMA)) {
@@ -2340,6 +2221,21 @@ namespace css
 		plist_.addProperty(prefix, BoxShadowStyle::create(bs));
 	}
 
+	CssBorderImageRepeat PropertyParser::parseBorderImageRepeatInteral(const std::string& ref)
+	{
+		if(ref == "repeat") {
+			return CssBorderImageRepeat::REPEAT;
+		} else if(ref == "stretch") {
+			return CssBorderImageRepeat::STRETCH;
+		} else if(ref == "round") {
+			return CssBorderImageRepeat::ROUND;
+		} else if(ref == "space") {
+			return CssBorderImageRepeat::SPACE;
+		} else {
+			throw ParserError(formatter() << "Unrecognised identifier for 'border-image-repeat' property: " << ref);
+		}
+	}
+
 	void PropertyParser::parseBorderImageRepeat(const std::string& prefix, const std::string& suffix)
 	{
 		bool done = false;
@@ -2348,17 +2244,7 @@ namespace css
 			if(isToken(TokenId::IDENT)) {
 				const std::string ref = (*it_)->getStringValue();
 				advance();
-				if(ref == "repeat") {
-					repeat.emplace_back(CssBorderImageRepeat::REPEAT);
-				} else if(ref == "stretch") {
-					repeat.emplace_back(CssBorderImageRepeat::STRETCH);
-				} else if(ref == "round") {
-					repeat.emplace_back(CssBorderImageRepeat::ROUND);
-				} else if(ref == "space") {
-					repeat.emplace_back(CssBorderImageRepeat::SPACE);
-				} else {
-					throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
-				}
+				repeat.emplace_back(parseBorderImageRepeatInteral(ref));
 			} else {
 				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 			}
@@ -2412,53 +2298,108 @@ namespace css
 
 	void PropertyParser::parseBorderImage(const std::string& prefix, const std::string& suffix)
 	{
+		bool fill = false;;
+		std::vector<Width> slices;
+		std::vector<CssBorderImageRepeat> repeat;
+		std::vector<Width> outset;
+		std::vector<Width> widths;
+		std::string source;
+
+		// parse source first
+		if(isToken(TokenId::URL)) {
+			source = (*it_)->getStringValue();
+			advance();
+			skipWhitespace();
+		} else {
+			throw ParserError(formatter() << "expected uri, found: " << (*it_)->toString());
+		}
+
+		// next parse slice.
+		bool done = false;
+		while(!done) {
+			slices.emplace_back(parseWidthInternal2());
+			skipWhitespace();
+			if(isEndToken() || isTokenDelimiter("/") || isToken(TokenId::IDENT)) {
+				done = true;
+			}
+		}
+		if(isToken(TokenId::IDENT) && (*it_)->getStringValue() == "fill") {
+			advance();
+			fill = true;
+		}
+
+		skipWhitespace();
+		if(isTokenDelimiter("/")) {
+			advance();
+			skipWhitespace();
+			// optional width
+			done = false;
+			while(!done) {
+				if(isTokenDelimiter("/")) {
+					done = true;
+					break;
+				}
+				widths.emplace_back(parseWidthInternal2());
+				skipWhitespace();
+				if(isEndToken() || isTokenDelimiter("/") || isToken(TokenId::IDENT)) {
+					done = true;
+				}
+			}
+
+			if(isTokenDelimiter("/")) {
+				advance();
+				// non-optional at this point outset
+				done = false;
+				while(!done) {
+					outset.emplace_back(parseWidthInternal2());
+					skipWhitespace();
+					if(isEndToken() || isToken(TokenId::IDENT)) {
+						done = true;
+					}
+				}
+			}
+		}
+
+		skipWhitespace();
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			repeat.emplace_back(parseBorderImageRepeatInteral(ref));
+
+			skipWhitespace();
+			if(isToken(TokenId::IDENT)) {
+				const std::string ref = (*it_)->getStringValue();
+				advance();
+				repeat.emplace_back(parseBorderImageRepeatInteral(ref));
+			}
+		}
+		skipWhitespace();
+
+		if(repeat.size() == 0) {
+			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
+			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
+		}
+		if(repeat.size() == 1) {
+			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
+		}
+
+		if(source.empty()) {
+			plist_.addProperty("border-image-source", UriStyle::create(true));
+		} else {
+			plist_.addProperty("border-image-source", UriStyle::create(source));
+		}
+		plist_.addProperty("border-image-repeat", BorderImageRepeat::create(repeat[0], repeat[1]));
+		if(widths.empty()) {
+			plist_.addProperty("border-image-width", WidthList::create(1.0f));
+		} else {
+			plist_.addProperty("border-image-width", WidthList::create(widths));
+		}			
+		if(outset.empty()) {
+			plist_.addProperty("border-image-outset", WidthList::create(0.0f));
+		} else {
+			plist_.addProperty("border-image-outset", WidthList::create(outset));
+		}
+		plist_.addProperty("border-image-slice", BorderImageSlice::create(slices, fill));
 	}
 
 }
-
-/* Animatible properties.
-	background-color 	as color
-	background-position 	as repeatable list of simple list of length, percentage, or calc
-	border-bottom-color 	as color
-	border-bottom-width 	as length
-	border-left-color 	as color
-	border-left-width 	as length
-	border-right-color 	as color
-	border-right-width 	as length
-	border-spacing 	as simple list of length
-	border-top-color 	as color
-	border-top-width 	as length
-	bottom 	as length, percentage, or calc
-	clip 	as rectangle
-	color 	as color
-	font-size 	as length
-	font-weight 	as font weight
-	height 	as length, percentage, or calc
-	left 	as length, percentage, or calc
-	letter-spacing 	as length
-	line-height 	as either number or length
-	margin-bottom 	as length
-	margin-left 	as length
-	margin-right 	as length
-	margin-top 	as length
-	max-height 	as length, percentage, or calc
-	max-width 	as length, percentage, or calc
-	min-height 	as length, percentage, or calc
-	min-width 	as length, percentage, or calc
-	opacity 	as number
-	outline-color 	as color
-	outline-width 	as length
-	padding-bottom 	as length
-	padding-left 	as length
-	padding-right 	as length
-	padding-top 	as length
-	right 	as length, percentage, or calc
-	text-indent 	as length, percentage, or calc
-	text-shadow 	as shadow list
-	top 	as length, percentage, or calc
-	vertical-align 	as length
-	visibility 	as visibility
-	width 	as length, percentage, or calc
-	word-spacing 	as length
-	z-index 	as integer
-*/

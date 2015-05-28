@@ -401,9 +401,17 @@ namespace css
 	}
 
 	WidthList::WidthList(const std::vector<Width>& widths)
-		: widths_()
+		: widths_{}
 	{
 		setWidths(widths);
+	}
+
+	WidthList::WidthList(float value)
+		: widths_{}
+	{
+		for(int side = 0; side != 4; ++side) {
+			widths_[side] = Width(Length(value));
+		}
 	}
 
 	void WidthList::setWidths(const std::vector<Width>& widths)
@@ -440,34 +448,34 @@ namespace css
 	{
 		switch(widths.size()) {
 			case 0:
-				widths_[0] = widths_[1] = widths_[2] = widths_[3] = Width(Length(100, true));
+				slices_[0] = slices_[1] = slices_[2] = slices_[3] = Width(Length(100, true));
 				break;
 			case 1:
 				for(int n = 0; n != 4; ++n) {
-					widths_[n] = widths[0];
+					slices_[n] = widths[0];
 				}
 				break;
 			case 2:
-				widths_[0] = widths[0];		// top    -- top
-				widths_[1] = widths[1];		// left   -- right
-				widths_[2] = widths[2];		// bottom -- bottom
-				widths_[3] = widths[1];		// right  -- right
+				slices_[0] = widths[0];		// top    -- top
+				slices_[1] = widths[1];		// left   -- right
+				slices_[2] = widths[2];		// bottom -- bottom
+				slices_[3] = widths[1];		// right  -- right
 			case 3:
-				widths_[0] = widths[0];		// top    -- top
-				widths_[1] = widths[1];		// left   -- right
-				widths_[2] = widths[0];		// bottom -- top
-				widths_[3] = widths[1];		// right  -- right
+				slices_[0] = widths[0];		// top    -- top
+				slices_[1] = widths[1];		// left   -- right
+				slices_[2] = widths[0];		// bottom -- top
+				slices_[3] = widths[1];		// right  -- right
 				break;
 			default:
 				for(int n = 0; n != 4; ++n) {
-					widths_[n] = widths[n];
+					slices_[n] = widths[n];
 				}
 				break;
 		}
 	}
 
 	BorderImageSlice::BorderImageSlice(const std::vector<Width>& widths, bool fill)
-		: widths_(),
+		: slices_(),
 		  fill_(fill)
 	{
 		setWidths(widths);

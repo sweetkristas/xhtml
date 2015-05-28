@@ -90,6 +90,29 @@ namespace xhtml
 		css::BackgroundPosition position_;
 	};
 
+	class BorderInfo
+	{
+	public:
+		BorderInfo();
+		void init(const Dimensions& dims);
+		bool render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
+		void setFile(const std::string& filename);
+		void setRepeat(css::CssBorderImageRepeat horiz, css::CssBorderImageRepeat vert) { repeat_horiz_ = horiz; repeat_vert_ = vert; }
+		void setWidths(const std::array<float,4>& widths) { widths_ = widths; }
+		void setOutset(const std::array<float,4>& outset) { outset_ = outset; }
+		void setSlice(const std::array<float,4>& slice) { slice_ = slice; }
+		void setFill(bool fill) { fill_ = fill; }
+	private:
+		// CSS3 properties
+		KRE::TexturePtr image_;
+		bool fill_;
+		std::array<float,4> slice_;
+		std::array<float,4> outset_;
+		std::array<float,4> widths_;
+		css::CssBorderImageRepeat repeat_horiz_;
+		css::CssBorderImageRepeat repeat_vert_;
+	};
+
 	class Box : public std::enable_shared_from_this<Box>
 	{
 	public:
@@ -227,10 +250,11 @@ namespace xhtml
 		KRE::FontHandlePtr font_handle_;
 
 		BackgroundInfo binfo_;
+		BorderInfo border_info_;
 		css::CssPosition css_position_;
 
 		css::Length padding_[4];
-		css::Length border_[4];
+		std::array<css::Length,4> border_;
 		css::Width margin_[4];
 
 		css::CssBorderStyle border_style_[4];

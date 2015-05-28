@@ -147,8 +147,7 @@ namespace css
 		void parseCSVNumberListFromIt(std::vector<TokenPtr>::const_iterator start, std::vector<TokenPtr>::const_iterator end, std::function<void(int, float, bool)> fn);
 		void parseCSVNumberList(TokenId end_token, std::function<void(int, float, bool)> fn);
 		void parseCSVStringList(TokenId end_token, std::function<void(int, const std::string&)> fn);
-		std::shared_ptr<CssColor> parseColorInternal2();
-		StylePtr parseColorInternal();
+		std::shared_ptr<css::CssColor> parseColorInternal();
 		Length parseLengthInternal(NumericParseOptions opts=ALL);
 		StylePtr parseWidthInternal();
 		Width parseWidthInternal2();
@@ -156,6 +155,7 @@ namespace css
 		StylePtr parseBorderStyleInternal();
 		void parseColor2(std::shared_ptr<CssColor> color);
 		CssListStyleType parseListStyleTypeInt(const std::string& lst);
+		CssBorderImageRepeat parseBorderImageRepeatInteral(const std::string& ref);
 
 		const_iterator it_;
 		const_iterator end_;

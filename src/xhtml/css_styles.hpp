@@ -927,33 +927,32 @@ namespace css
 	{
 	public:
 		MAKE_FACTORY(WidthList);
-		WidthList() : widths_() {}
+		WidthList() : widths_{} {}
+		explicit WidthList(float value);
 		explicit WidthList(const std::vector<Width>& widths);
 		void setWidths(const std::vector<Width>& widths);
+		const std::array<Width,4>& getWidths() const { return widths_; }
 		const Width& getTop() const { return widths_[0]; }
 		const Width& getLeft() const { return widths_[1]; }
 		const Width& getBottom() const { return widths_[2]; }
-		const Width& getRight() const { return widths_[3]; }		
+		const Width& getRight() const { return widths_[3]; }
 		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
 	private:
-		Width widths_[4];
+		std::array<Width,4> widths_;
 	};
 
 	class BorderImageSlice : public Style
 	{
 	public:
 		MAKE_FACTORY(BorderImageSlice);
-		BorderImageSlice() : widths_(), fill_(false) {}
+		BorderImageSlice() : slices_{}, fill_(false) {}
 		explicit BorderImageSlice(const std::vector<Width>& widths, bool fill);
-		const Width& getTop() const { return widths_[0]; }
-		const Width& getLeft() const { return widths_[1]; }
-		const Width& getBottom() const { return widths_[2]; }
-		const Width& getRight() const { return widths_[3]; }
 		bool isFilled() const { return fill_; }
 		void setWidths(const std::vector<Width>& widths);
+		const std::array<Width,4>& getWidths() const { return slices_; }
 		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
 	private:
-		Width widths_[4];
+		std::array<Width,4> slices_;
 		bool fill_;
 	};
 }
