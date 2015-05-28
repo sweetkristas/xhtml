@@ -102,6 +102,7 @@ namespace xhtml
 		void setOutset(const std::array<float,4>& outset) { outset_ = outset; }
 		void setSlice(const std::array<float,4>& slice) { slice_ = slice; }
 		void setFill(bool fill) { fill_ = fill; }
+		bool isValid() const { return image_ != nullptr; }
 	private:
 		// CSS3 properties
 		KRE::TexturePtr image_;

@@ -844,6 +844,7 @@ namespace xhtml
 	void Box::layoutAbsolute(LayoutEngine& eng, const Dimensions& containing)
 	{
 		for(auto& abs : absolute_boxes_) {
+			RenderContext::Manager ctx_manager(abs->getNode()->getProperties());
 			abs->layout(eng, containing);
 		}
 	}
@@ -857,7 +858,7 @@ namespace xhtml
 
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		RenderContext::Manager ctx_manager(getNode()->getProperties());
+		//RenderContext::Manager ctx_manager(getNode()->getProperties());
 		handleLayout(eng, containing);
 		layoutAbsolute(eng, containing);
 		layoutFixed(eng, containing);
@@ -981,14 +982,14 @@ namespace xhtml
 
 	void Box::calculateVertMPB(FixedPoint containing_height)
 	{
-		if(getCssBorderStyle(Side::TOP) != CssBorderStyle::NONE 
-			&& getCssBorderStyle(Side::TOP) != CssBorderStyle::HIDDEN) {
+		//if((getCssBorderStyle(Side::TOP) != CssBorderStyle::NONE 
+		//	&& getCssBorderStyle(Side::TOP) != CssBorderStyle::HIDDEN) || border_info_.isValid()) {
 			setBorderTop(getCssBorder(Side::TOP).compute());
-		}
-		if(getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::NONE 
-			&& getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::HIDDEN) {
+		//}
+		//if((getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::NONE 
+		//	&& getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::HIDDEN) || border_info_.isValid()) {
 			setBorderBottom(getCssBorder(Side::BOTTOM).compute());
-		}
+		//}
 
 		setPaddingTop(getCssPadding(Side::TOP).compute(containing_height));
 		setPaddingBottom(getCssPadding(Side::BOTTOM).compute(containing_height));
@@ -999,12 +1000,12 @@ namespace xhtml
 
 	void Box::calculateHorzMPB(FixedPoint containing_width)
 	{		
-		if(getCssBorderStyle(Side::LEFT) != CssBorderStyle::NONE) {
+		//if(getCssBorderStyle(Side::LEFT) != CssBorderStyle::NONE || border_info_.isValid()) {
 			setBorderLeft(getCssBorder(Side::LEFT).compute());
-		}
-		if(getCssBorderStyle(Side::RIGHT) != CssBorderStyle::NONE) {
+		//}
+		//if(getCssBorderStyle(Side::RIGHT) != CssBorderStyle::NONE || border_info_.isValid()) {
 			setBorderRight(getCssBorder(Side::RIGHT).compute());
-		}
+		//}
 
 		setPaddingLeft(getCssPadding(Side::LEFT).compute(containing_width));
 		setPaddingRight(getCssPadding(Side::RIGHT).compute(containing_width));
