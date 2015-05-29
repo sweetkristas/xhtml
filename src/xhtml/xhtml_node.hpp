@@ -118,6 +118,8 @@ namespace xhtml
 		virtual void layoutComplete() {}
 
 		bool handleMouseMotion(bool* trigger, const point& p);
+		bool handleMouseButtonUp(bool* trigger, const point& p);
+		bool handleMouseButtonDown(bool* trigger, const point& p);
 
 		void clearProperties() { properties_.clear(); }
 		
@@ -130,6 +132,10 @@ namespace xhtml
 		std::string nodeToString() const;
 	private:
 		Node() = delete;
+		virtual bool handleMouseMotionInt(bool* trigger, const point& p) { return true; }
+		virtual bool handleMouseButtonUpInt(bool* trigger, const point& p) { return true; }
+		virtual bool handleMouseButtonDownInt(bool* trigger, const point& p) { return true; }
+
 		NodeId id_;
 		NodeList children_;
 		AttributeMap attributes_;

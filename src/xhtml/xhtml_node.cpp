@@ -248,8 +248,29 @@ namespace xhtml
 		}
 	}
 
+	bool Node::handleMouseButtonUp(bool* trigger, const point& p)
+	{
+		if(!handleMouseButtonUpInt(trigger, p)) {
+			return false;
+		}
+		// XXX
+		return true;
+	}
+
+	bool Node::handleMouseButtonDown(bool* trigger, const point& p)
+	{
+		if(!handleMouseButtonDownInt(trigger, p)) {
+			return false;
+		}
+		// XXX
+		return true;
+	}
+
 	bool Node::handleMouseMotion(bool* trigger, const point& p)
 	{
+		if(!handleMouseMotionInt(trigger, p)) {
+			return false;
+		}
 		bool hover = hasPseudoClass(css::PseudoClass::HOVER);
 		if(!hover || active_rect_.empty()) {
 			return true;
@@ -272,9 +293,7 @@ namespace xhtml
 		bool trigger = false;
 		point p(x, y);
 		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
-			if(!node->handleMouseMotion(&trigger, p)) {
-			//	return false;
-			}
+			node->handleMouseMotion(&trigger, p);
 			return true;
 		});
 		trigger_layout_ |= trigger;
@@ -283,12 +302,26 @@ namespace xhtml
 
 	bool Document::handleMouseButtonDown(bool claimed, int x, int y, unsigned button)
 	{
-		return false;
+		bool trigger = false;
+		point p(x, y);
+		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
+			node->handleMouseButtonDown(&trigger, p);
+			return true;
+		});
+		trigger_layout_ |= trigger;
+		return claimed;
 	}
 
 	bool Document::handleMouseButtonUp(bool claimed, int x, int y, unsigned button)
 	{
-		return false;
+		bool trigger = false;
+		point p(x, y);
+		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
+			node->handleMouseButtonUp(&trigger, p);
+			return true;
+		});
+		trigger_layout_ |= trigger;
+		return claimed;
 	}
 
 	// Documents do not have an owner document.

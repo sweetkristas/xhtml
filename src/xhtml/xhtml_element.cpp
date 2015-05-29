@@ -269,10 +269,128 @@ namespace xhtml
 		};
 		ElementRegistrar<OptionElement> option_element(ElementId::OPTION, "option");
 
+		enum class InputElementType {
+			TEXT,
+			PASSWORD,
+			CHECKBOX,
+			RADIO,
+			SUBMIT,
+			IMAGE,
+			RESET,
+			BUTTON,
+			HIDDEN,
+			FILE,
+		};
 		struct InputElement : public Element
 		{
-			explicit InputElement(ElementId id, const std::string& name, WeakDocumentPtr owner) : Element(id, name, owner) {}
+			explicit InputElement(ElementId id, const std::string& name, WeakDocumentPtr owner) 
+				: Element(id, name, owner),
+				  is_checked_(false),
+				  radio_tex_(KRE::Texture::createTexture("default-radiobutton.png")),
+				  radio_checked_tex_(KRE::Texture::createTexture("default-radiobutton-checked.png")),
+				  checkbox_tex_(KRE::Texture::createTexture("default-radiobutton.png")),
+				  checkbox_checked_tex_(KRE::Texture::createTexture("default-radiobutton.png"))
+			{
+			}
+			void init() override {
+				auto attr_checked = getAttribute("checked");
+				if(attr_checked) {
+					is_checked_ = true;
+				}
+				auto type = getAttribute("type");
+				if(type) {
+					const std::string& value = type->getValue();
+					if(value == "text") {
+						type_ = InputElementType::TEXT;
+					} else if(value == "password") {
+						type_ = InputElementType::PASSWORD;
+					} else if(value == "checkbox") {
+						type_ = InputElementType::CHECKBOX;
+						setDimensions(Rect(0, 0, checkbox_tex_->surfaceWidth() * 65536, checkbox_tex_->surfaceHeight() * 65536));
+					} else if(value == "radio") {
+						type_ = InputElementType::RADIO;
+						setDimensions(Rect(0, 0, radio_tex_->surfaceWidth() * 65536, radio_tex_->surfaceHeight() * 65536));
+					} else if(value == "submit") {
+						type_ = InputElementType::SUBMIT;
+					} else if(value == "image") {
+						type_ = InputElementType::IMAGE;
+					} else if(value == "reset") {
+						type_ = InputElementType::RESET;
+					} else if(value == "button") {
+						type_ = InputElementType::BUTTON;
+					} else if(value == "hidden") {
+						type_ = InputElementType::HIDDEN;
+					} else if(value == "file") {
+						type_ = InputElementType::FILE;
+					}
+				} else {
+					ASSERT_LOG(false, "'input' element had no type. asserting rather than using a default.");
+				}
+			}
+			bool handleMouseButtonUpInt(bool* trigger, const point& p) override
+			{ 
+				if(geometry::pointInRect(p, getActiveRect())) {
+					LOG_DEBUG("test1");
+					is_checked_ = !is_checked_;
+				}
+				return true; 
+			}
+			bool handleMouseButtonDownInt(bool* trigger, const point& p) override 
+			{ 
+				if(geometry::pointInRect(p, getActiveRect())) {
+					LOG_DEBUG("test2");
+				}
+				return true; 
+			}
 			bool isReplaced() const override { return true; }
+			KRE::SceneObjectPtr getRenderable()
+			{
+				switch(type_)
+				{
+					case InputElementType::CHECKBOX: {
+						// XXX this should be improved. some sort of custom
+						// SceneObject that shares state with this input element
+						// Then we can process mouse events here and dynamically
+						// have the renderable update.
+						if(is_checked_) {
+							auto b = std::make_shared<KRE::Blittable>(checkbox_checked_tex_);
+							return b;
+						} else {
+							auto b = std::make_shared<KRE::Blittable>(checkbox_tex_);
+							return b;
+						}
+					}
+					case InputElementType::RADIO: {
+						if(is_checked_) {
+							auto b = std::make_shared<KRE::Blittable>(radio_checked_tex_);
+							return b;
+						} else {
+							auto b = std::make_shared<KRE::Blittable>(radio_tex_);
+							return b;
+						}
+					}
+					case InputElementType::TEXT:
+					case InputElementType::PASSWORD:
+					case InputElementType::SUBMIT:
+					case InputElementType::IMAGE:
+					case InputElementType::RESET:
+					case InputElementType::BUTTON:
+					case InputElementType::HIDDEN:
+					case InputElementType::FILE:
+					default: 
+						ASSERT_LOG(false, "Need to add getRenderable() for InputElement of type: " << static_cast<int>(type_));
+						break;
+				}
+				return nullptr;
+			}
+		
+			InputElementType type_;
+			bool is_checked_;
+			// probably better to fold these into one texture
+			KRE::TexturePtr radio_tex_;
+			KRE::TexturePtr radio_checked_tex_;
+			KRE::TexturePtr checkbox_tex_;
+			KRE::TexturePtr checkbox_checked_tex_;
 		};
 		ElementRegistrar<InputElement> input_element(ElementId::INPUT, "input");
 

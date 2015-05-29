@@ -2258,7 +2258,7 @@ namespace css
 			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
 		}
 		if(repeat.size() == 1) {
-			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
+			repeat.push_back(repeat[0]);
 		}
 		plist_.addProperty(prefix, BorderImageRepeat::create(repeat[0], repeat[1]));
 	}
@@ -2380,7 +2380,7 @@ namespace css
 			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
 		}
 		if(repeat.size() == 1) {
-			repeat.emplace_back(CssBorderImageRepeat::STRETCH);
+			repeat.push_back(repeat[0]);
 		}
 
 		if(source.empty()) {

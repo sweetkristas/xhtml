@@ -102,8 +102,15 @@ namespace xhtml
 		void setOutset(const std::array<float,4>& outset) { outset_ = outset; }
 		void setSlice(const std::array<float,4>& slice) { slice_ = slice; }
 		void setFill(bool fill) { fill_ = fill; }
-		bool isValid() const { return image_ != nullptr; }
+		bool isValid() const { return !uri_.isNone(); }
 	private:
+		// pre-compute values.
+		css::UriStyle uri_;
+		css::WidthList border_width_;
+		css::WidthList border_outset_;
+		css::BorderImageSlice border_slice_;
+		css::BorderImageRepeat border_repeat_;
+
 		// CSS3 properties
 		KRE::TexturePtr image_;
 		bool fill_;
@@ -250,7 +257,7 @@ namespace xhtml
 		css::CssFloat cfloat_;
 		KRE::FontHandlePtr font_handle_;
 
-		BackgroundInfo binfo_;
+		BackgroundInfo background_info_;
 		BorderInfo border_info_;
 		css::CssPosition css_position_;
 

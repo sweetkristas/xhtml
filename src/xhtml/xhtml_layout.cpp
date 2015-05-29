@@ -145,9 +145,10 @@ namespace xhtml
 		public:
 			explicit TextureRenderable(KRE::TexturePtr tex) 
 				: KRE::SceneObject("TextureRenderable"), 
-				  texture_(), 
 				  attribs_() 
 			{
+				setTexture(tex);
+
 				using namespace KRE;
 				auto as = DisplayDevice::createAttributeSet(true);
 				attribs_.reset(new KRE::Attribute<vertex_texcoord>(AccessFreqHint::DYNAMIC, AccessTypeHint::DRAW));
@@ -163,7 +164,6 @@ namespace xhtml
 				attribs_->update(coords);
 			}
 		private:
-			KRE::TexturePtr texture_;
 			std::shared_ptr<KRE::Attribute<KRE::vertex_texcoord>> attribs_;
 		};
 
@@ -282,6 +282,96 @@ namespace xhtml
 			vc->emplace_back(glm::vec2(x2, y+yw), color);
 			vc->emplace_back(glm::vec2(x2, y), color);
 			vc->emplace_back(glm::vec2(x2+x2w, y+yw), color);
+		}
+
+		void render_repeat_vert(std::vector<KRE::vertex_texcoord>* coords, float l, float t, float r, float b, float xsize, float ysize, float u1, float v1, float u2, float v2)
+		{
+			// figure out the vertical centre.
+			const float centre_y = (b - t) / 2.0f;
+			// first tile is placed so that it is positioned in the middle of this.
+			const float first_tile_y1 = centre_y - ysize / 2.0f;
+			const float first_tile_y2 = centre_y + ysize / 2.0f;
+
+			const float whole_tiles_above = std::floor((first_tile_y1 - t) / ysize);
+			const float whole_tiles_below = std::floor((b - first_tile_y2) / ysize);
+			int total_whole_tiles = static_cast<int>(whole_tiles_above + whole_tiles_below) + 1;
+
+			const float start_y = first_tile_y1 - whole_tiles_above * ysize;
+			const float end_y   = first_tile_y2 + whole_tiles_below * ysize;
+
+			for(int n = 0; n < total_whole_tiles; ++n) {
+				const float y1 = start_y + n * ysize;
+				const float y2 = start_y + (n+1) * ysize;
+				coords->emplace_back(glm::vec2(l, y1), glm::vec2(u1, v1));
+				coords->emplace_back(glm::vec2(l, y2), glm::vec2(u1, v2));
+				coords->emplace_back(glm::vec2(r, y2), glm::vec2(u2, v2));
+				coords->emplace_back(glm::vec2(r, y2), glm::vec2(u2, v2));
+				coords->emplace_back(glm::vec2(l, y1), glm::vec2(u1, v1));
+				coords->emplace_back(glm::vec2(r, y1), glm::vec2(u2, v1));
+			}
+			
+			// Next we need to add the two fractional tiles.
+			// top cap
+			const float trimmed_v1 = v1 + (start_y - t) / ysize; // XXX
+			coords->emplace_back(glm::vec2(l, t), glm::vec2(u1, trimmed_v1));
+			coords->emplace_back(glm::vec2(l, start_y), glm::vec2(u1, v2));
+			coords->emplace_back(glm::vec2(r, start_y), glm::vec2(u2, v2));
+			coords->emplace_back(glm::vec2(r, start_y), glm::vec2(u2, v2));
+			coords->emplace_back(glm::vec2(l, t), glm::vec2(u1, trimmed_v1));
+			coords->emplace_back(glm::vec2(r, t), glm::vec2(u2, trimmed_v1));
+			// bottom cap
+			const float trimmed_v2 = v2 - (start_y - t) / ysize; // XXX
+			coords->emplace_back(glm::vec2(l, end_y), glm::vec2(u1, v1));
+			coords->emplace_back(glm::vec2(l, b), glm::vec2(u1, trimmed_v2));
+			coords->emplace_back(glm::vec2(r, b), glm::vec2(u2, trimmed_v2));
+			coords->emplace_back(glm::vec2(r, b), glm::vec2(u2, trimmed_v2));
+			coords->emplace_back(glm::vec2(l, end_y), glm::vec2(u1, v1));
+			coords->emplace_back(glm::vec2(r, end_y), glm::vec2(u2, v1));
+		}
+
+		void render_repeat_horiz(std::vector<KRE::vertex_texcoord>* coords, float l, float t, float r, float b, float xsize, float ysize, float u1, float v1, float u2, float v2)
+		{
+			// figure out the vertical centre.
+			const float centre_x = (l - r) / 2.0f;
+			// first tile is placed so that it is positioned in the middle of this.
+			const float first_tile_x1 = centre_x - xsize / 2.0f;
+			const float first_tile_x2 = centre_x + xsize / 2.0f;
+
+			const float whole_tiles_left = std::floor((first_tile_x1 - l) / xsize);
+			const float whole_tiles_right = std::floor((r - first_tile_x2) / xsize);
+			int total_whole_tiles = static_cast<int>(whole_tiles_left + whole_tiles_right) + 1;
+
+			const float start_x = first_tile_x1 - whole_tiles_left * xsize;
+			const float end_x   = first_tile_x2 + whole_tiles_right * xsize;
+
+			for(int n = 0; n < total_whole_tiles; ++n) {
+				const float x1 = start_x + n * xsize;
+				const float x2 = start_x + (n+1) * xsize;
+				coords->emplace_back(glm::vec2(x1, t), glm::vec2(u1, v1));
+				coords->emplace_back(glm::vec2(x2, t), glm::vec2(u1, v2));
+				coords->emplace_back(glm::vec2(x2, b), glm::vec2(u2, v2));
+				coords->emplace_back(glm::vec2(x2, b), glm::vec2(u2, v2));
+				coords->emplace_back(glm::vec2(x1, t), glm::vec2(u1, v1));
+				coords->emplace_back(glm::vec2(x1, b), glm::vec2(u2, v1));
+			}
+			
+			// Next we need to add the two fractional tiles.
+			// left cap
+			const float trimmed_u2 = u2 - (start_x - l) / xsize; // XXX
+			coords->emplace_back(glm::vec2(l, t), glm::vec2(u1, v1));
+			coords->emplace_back(glm::vec2(l, b), glm::vec2(u1, v2));
+			coords->emplace_back(glm::vec2(start_x, b), glm::vec2(trimmed_u2, v2));
+			coords->emplace_back(glm::vec2(start_x, b), glm::vec2(trimmed_u2, v2));
+			coords->emplace_back(glm::vec2(l, t), glm::vec2(u1, v1));
+			coords->emplace_back(glm::vec2(start_x, t), glm::vec2(trimmed_u2, v1));
+			// right cap
+			const float trimmed_u1 = u1 + (start_x - l) / xsize; // XXX
+			coords->emplace_back(glm::vec2(end_x, t), glm::vec2(trimmed_u1, v1));
+			coords->emplace_back(glm::vec2(end_x, b), glm::vec2(trimmed_u1, v2));
+			coords->emplace_back(glm::vec2(r, b), glm::vec2(u2, v2));
+			coords->emplace_back(glm::vec2(r, b), glm::vec2(u2, v2));
+			coords->emplace_back(glm::vec2(end_x, t), glm::vec2(trimmed_u1, v1));
+			coords->emplace_back(glm::vec2(r, t), glm::vec2(u2, v1));
 		}
 	}
 	
@@ -719,7 +809,8 @@ namespace xhtml
 		  right_floats_(),
 		  cfloat_(CssFloat::NONE),
 		  font_handle_(xhtml::RenderContext::get().getFontHandle()),
-		  binfo_(),
+		  background_info_(),
+		  border_info_(),
 		  css_position_(CssPosition::STATIC),
 		  border_{}
 	{
@@ -730,13 +821,13 @@ namespace xhtml
 		RenderContext& ctx = RenderContext::get();
 		color_ = ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute();
 
-		binfo_.setColor(ctx.getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute());
+		background_info_.setColor(ctx.getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute());
 		// We set repeat before the filename so we can correctly set the background texture wrap mode.
-		binfo_.setRepeat(ctx.getComputedValue(Property::BACKGROUND_REPEAT).getValue<CssBackgroundRepeat>());
-		binfo_.setPosition(ctx.getComputedValue(Property::BACKGROUND_POSITION).getValue<BackgroundPosition>());
+		background_info_.setRepeat(ctx.getComputedValue(Property::BACKGROUND_REPEAT).getValue<CssBackgroundRepeat>());
+		background_info_.setPosition(ctx.getComputedValue(Property::BACKGROUND_POSITION).getValue<BackgroundPosition>());
 		auto uri = ctx.getComputedValue(Property::BACKGROUND_IMAGE).getValue<UriStyle>();
 		if(!uri.isNone()) {
-			binfo_.setFile(uri.getUri());
+			background_info_.setFile(uri.getUri());
 		}
 		css_position_ = ctx.getComputedValue(Property::POSITION).getValue<CssPosition>();
 
@@ -844,7 +935,6 @@ namespace xhtml
 	void Box::layoutAbsolute(LayoutEngine& eng, const Dimensions& containing)
 	{
 		for(auto& abs : absolute_boxes_) {
-			RenderContext::Manager ctx_manager(abs->getNode()->getProperties());
 			abs->layout(eng, containing);
 		}
 	}
@@ -858,7 +948,6 @@ namespace xhtml
 
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		//RenderContext::Manager ctx_manager(getNode()->getProperties());
 		handleLayout(eng, containing);
 		layoutAbsolute(eng, containing);
 		layoutFixed(eng, containing);
@@ -982,14 +1071,14 @@ namespace xhtml
 
 	void Box::calculateVertMPB(FixedPoint containing_height)
 	{
-		//if((getCssBorderStyle(Side::TOP) != CssBorderStyle::NONE 
-		//	&& getCssBorderStyle(Side::TOP) != CssBorderStyle::HIDDEN) || border_info_.isValid()) {
+		if((getCssBorderStyle(Side::TOP) != CssBorderStyle::NONE 
+			&& getCssBorderStyle(Side::TOP) != CssBorderStyle::HIDDEN) || border_info_.isValid()) {
 			setBorderTop(getCssBorder(Side::TOP).compute());
-		//}
-		//if((getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::NONE 
-		//	&& getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::HIDDEN) || border_info_.isValid()) {
+		}
+		if((getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::NONE 
+			&& getCssBorderStyle(Side::BOTTOM) != CssBorderStyle::HIDDEN) || border_info_.isValid()) {
 			setBorderBottom(getCssBorder(Side::BOTTOM).compute());
-		//}
+		}
 
 		setPaddingTop(getCssPadding(Side::TOP).compute(containing_height));
 		setPaddingBottom(getCssPadding(Side::BOTTOM).compute(containing_height));
@@ -1000,12 +1089,12 @@ namespace xhtml
 
 	void Box::calculateHorzMPB(FixedPoint containing_width)
 	{		
-		//if(getCssBorderStyle(Side::LEFT) != CssBorderStyle::NONE || border_info_.isValid()) {
+		if(getCssBorderStyle(Side::LEFT) != CssBorderStyle::NONE || border_info_.isValid()) {
 			setBorderLeft(getCssBorder(Side::LEFT).compute());
-		//}
-		//if(getCssBorderStyle(Side::RIGHT) != CssBorderStyle::NONE || border_info_.isValid()) {
+		}
+		if(getCssBorderStyle(Side::RIGHT) != CssBorderStyle::NONE || border_info_.isValid()) {
 			setBorderRight(getCssBorder(Side::RIGHT).compute());
-		//}
+		}
 
 		setPaddingLeft(getCssPadding(Side::LEFT).compute(containing_width));
 		setPaddingRight(getCssPadding(Side::RIGHT).compute(containing_width));
@@ -1410,7 +1499,7 @@ namespace xhtml
 		if(node != nullptr && node->hasTag(ElementId::BODY)) {
 			//dims = getRootDimensions();
 		}
-		binfo_.render(display_list, offset, dims);
+		background_info_.render(display_list, offset, dims);
 	}
 
 	void Box::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
@@ -1736,7 +1825,12 @@ namespace xhtml
 	}
 
 	BorderInfo::BorderInfo()
-		: image_(),
+		: uri_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SOURCE).getValue<UriStyle>()),
+		  border_width_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_WIDTH).getValue<WidthList>()),
+		  border_outset_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_OUTSET).getValue<WidthList>()),
+		  border_slice_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SLICE).getValue<BorderImageSlice>()),
+		  border_repeat_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_REPEAT).getValue<BorderImageRepeat>()),
+		  image_(),
 		  fill_(false),
 		  slice_{},
 		  outset_{},
@@ -1749,21 +1843,18 @@ namespace xhtml
 	void BorderInfo::setFile(const std::string& filename)
 	{
 		image_ = KRE::Texture::createTexture(filename);
-		image_->setAddressModes(0, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::WRAP);
 	}
 
 	void BorderInfo::init(const Dimensions& dims)
 	{
 		std::array<FixedPoint, 4> border = { dims.border_.top, dims.border_.left, dims.border_.bottom, dims.border_.right };
 
-		auto& ctx = RenderContext::get();
-		auto uri = ctx.getComputedValue(Property::BORDER_IMAGE_SOURCE).getValue<UriStyle>();
-		if(uri.isNone()) {
+		if(uri_.isNone()) {
 			return;
 		}
-		setFile(uri.getUri());
+		setFile(uri_.getUri());
 
-		auto& outset = ctx.getComputedValue(Property::BORDER_IMAGE_OUTSET).getValue<WidthList>().getWidths();
+		auto& outset = border_outset_.getWidths();
 		for(auto side = 0; side != 4; ++side) {
 			if(outset[side].getLength().isNumber()) {
 				// If the outset is a plain number, it is take as the multiple of border_widths
@@ -1789,8 +1880,7 @@ namespace xhtml
 			+ dims.border_.right 
 			+ static_cast<FixedPoint>((outset_[0] + outset_[2]) * fixed_point_scale);
 
-		auto border_slice = ctx.getComputedValue(Property::BORDER_IMAGE_SLICE).getValue<BorderImageSlice>();
-		auto& slices = border_slice.getWidths();
+		auto& slices = border_slice_.getWidths();
 		for(auto side = 0; side != 4; ++side) {
 			const Length& slice_length = slices[side].getLength();
 			if(slice_length.isNumber()) {
@@ -1807,7 +1897,7 @@ namespace xhtml
 			ASSERT_LOG(slice_[side] >= 0, "Negative values for slices are illegal");
 		}
 
-		auto& widths = ctx.getComputedValue(Property::BORDER_IMAGE_WIDTH).getValue<WidthList>().getWidths();
+		auto& widths = border_width_.getWidths();
 		for(auto side = 0; side != 4; ++side) {
 			if(widths[side].isAuto()) {
 				// intrinsic width of corrsponding slice.
@@ -1837,10 +1927,9 @@ namespace xhtml
 			}
 		}
 
-		auto repeat = ctx.getComputedValue(Property::BORDER_IMAGE_REPEAT).getValue<BorderImageRepeat>();
-		setRepeat(repeat.image_repeat_horiz_, repeat.image_repeat_vert_);
+		setRepeat(border_repeat_.image_repeat_horiz_, border_repeat_.image_repeat_vert_);
 
-		setFill(border_slice.isFilled());
+		setFill(border_slice_.isFilled());
 	}
 
 	bool BorderInfo::render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
@@ -1898,11 +1987,8 @@ namespace xhtml
 		coords.emplace_back(glm::vec2(x2-widths_[3], y2-widths_[2]), glm::vec2(1.0f-uw2, 1.0f-vw2));
 		coords.emplace_back(glm::vec2(x2, y2-widths_[2]), glm::vec2(1.0f, 1.0f-vw2));
 
-		const float side_height = widths_[2] - widths_[0];
-		const float side_width = widths_[3] - widths_[1];
-
-		const float rounded_tiles_h = std::round(side_height / (slice_[2] - slice_[0]));
-		const float rounded_tiles_w = std::round(side_width  / (slice_[3] - slice_[1]));
+		const float side_height = x2 - x1 - (widths_[2] + widths_[0]);
+		const float side_width = y2 - y1 - (widths_[3] + widths_[1]);
 
 		// left and right sides being shown are contingent on the top/bottom slices
 		// being less than the height of the image
@@ -1935,7 +2021,10 @@ namespace xhtml
 					coords.emplace_back(glm::vec2(x2, y1+widths_[0]), glm::vec2(r_u2, r_v1));
 					break;
 				case CssBorderImageRepeat::REPEAT:
-					// XXX
+					// left side
+					render_repeat_vert(&coords, x1, y1+widths_[0], x1+widths_[1], y2-widths_[2], widths_[1], widths_[0], l_u1, l_v1, l_u2, l_v2);
+					// right side
+					render_repeat_vert(&coords, x2-widths_[3], y1+widths_[0], x2, y2-widths_[2], widths_[3], widths_[2], r_u1, r_v1, r_u2, r_v2);
 					break;
 				case CssBorderImageRepeat::ROUND:
 					// XXX
@@ -1980,7 +2069,10 @@ namespace xhtml
 					coords.emplace_back(glm::vec2(x2-widths_[3], y2-widths_[2]), glm::vec2(b_u2, b_v1));
 					break;
 				case CssBorderImageRepeat::REPEAT:
-					// XXX
+					// left side
+					render_repeat_horiz(&coords, x1+widths_[1], y1, x2-widths_[3], y1+widths_[0], widths_[1], widths_[0], t_u1, t_v1, t_u2, t_v2);
+					// right side
+					render_repeat_horiz(&coords, x1+widths_[1], y2-widths_[2], x2-widths_[3], y2, widths_[3], widths_[2], b_u1, b_v1, b_u2, b_v2);
 					break;
 				case CssBorderImageRepeat::ROUND:
 					// XXX
@@ -1995,6 +2087,20 @@ namespace xhtml
 
 		// fill
 		if(fill_ && !no_fill) {
+			if(repeat_horiz_ == CssBorderImageRepeat::STRETCH && repeat_vert_ == CssBorderImageRepeat::STRETCH) {
+				// handle this case seperately as it's the easiest, requiring no tiling.
+				const float m_u1 = uw1;
+				const float m_v1 = vw1;
+				const float m_u2 = 1.0f - uw2;
+				const float m_v2 = 1.0f - vw2;
+
+				coords.emplace_back(glm::vec2(x1+widths_[1], y1+widths_[0]), glm::vec2(m_u1, m_v1));
+				coords.emplace_back(glm::vec2(x1+widths_[1], y2-widths_[2]), glm::vec2(m_u1, m_v2));
+				coords.emplace_back(glm::vec2(x2-widths_[3], y2-widths_[2]), glm::vec2(m_u2, m_v2));
+				coords.emplace_back(glm::vec2(x2-widths_[3], y2-widths_[2]), glm::vec2(m_u2, m_v2));
+				coords.emplace_back(glm::vec2(x1+widths_[1], y1+widths_[0]), glm::vec2(m_u1, m_v1));
+				coords.emplace_back(glm::vec2(x2-widths_[3], y1+widths_[0]), glm::vec2(m_u2, m_v1));
+			}
 		}
 
 		// pass co-ordinates to renderable object and add to display list ready for rendering.
