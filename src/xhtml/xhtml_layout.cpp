@@ -312,7 +312,7 @@ namespace xhtml
 			
 			// Next we need to add the two fractional tiles.
 			// top cap
-			const float trimmed_v1 = v1 + (start_y - t) / ysize; // XXX
+			const float trimmed_v1 = v1 + (v2 - v1) * (1.0f - (start_y - t) / ysize); // XXX
 			coords->emplace_back(glm::vec2(l, t), glm::vec2(u1, trimmed_v1));
 			coords->emplace_back(glm::vec2(l, start_y), glm::vec2(u1, v2));
 			coords->emplace_back(glm::vec2(r, start_y), glm::vec2(u2, v2));
@@ -320,7 +320,7 @@ namespace xhtml
 			coords->emplace_back(glm::vec2(l, t), glm::vec2(u1, trimmed_v1));
 			coords->emplace_back(glm::vec2(r, t), glm::vec2(u2, trimmed_v1));
 			// bottom cap
-			const float trimmed_v2 = v2 - (start_y - t) / ysize; // XXX
+			const float trimmed_v2 = v2 - (v2 - v1) * (1.0f - (start_y - t) / ysize); // XXX
 			coords->emplace_back(glm::vec2(l, end_y), glm::vec2(u1, v1));
 			coords->emplace_back(glm::vec2(l, b), glm::vec2(u1, trimmed_v2));
 			coords->emplace_back(glm::vec2(r, b), glm::vec2(u2, trimmed_v2));
@@ -332,7 +332,7 @@ namespace xhtml
 		void render_repeat_horiz(std::vector<KRE::vertex_texcoord>* coords, float l, float t, float r, float b, float xsize, float ysize, float u1, float v1, float u2, float v2)
 		{
 			// figure out the vertical centre.
-			const float centre_x = (l - r) / 2.0f;
+			const float centre_x = (r - l) / 2.0f;
 			// first tile is placed so that it is positioned in the middle of this.
 			const float first_tile_x1 = centre_x - xsize / 2.0f;
 			const float first_tile_x2 = centre_x + xsize / 2.0f;
@@ -357,21 +357,77 @@ namespace xhtml
 			
 			// Next we need to add the two fractional tiles.
 			// left cap
-			const float trimmed_u2 = u2 - (start_x - l) / xsize; // XXX
-			coords->emplace_back(glm::vec2(l, t), glm::vec2(u1, v1));
-			coords->emplace_back(glm::vec2(l, b), glm::vec2(u1, v2));
-			coords->emplace_back(glm::vec2(start_x, b), glm::vec2(trimmed_u2, v2));
-			coords->emplace_back(glm::vec2(start_x, b), glm::vec2(trimmed_u2, v2));
-			coords->emplace_back(glm::vec2(l, t), glm::vec2(u1, v1));
-			coords->emplace_back(glm::vec2(start_x, t), glm::vec2(trimmed_u2, v1));
+			const float trimmed_u1 = u1 + (u2 - u1) * (1.0f - (start_x - l) / xsize); // XXX
+			coords->emplace_back(glm::vec2(l, t), glm::vec2(trimmed_u1, v1));
+			coords->emplace_back(glm::vec2(l, b), glm::vec2(trimmed_u1, v2));
+			coords->emplace_back(glm::vec2(start_x, b), glm::vec2(u2, v2));
+			coords->emplace_back(glm::vec2(start_x, b), glm::vec2(u2, v2));
+			coords->emplace_back(glm::vec2(l, t), glm::vec2(trimmed_u1, v1));
+			coords->emplace_back(glm::vec2(start_x, t), glm::vec2(u2, v1));
 			// right cap
-			const float trimmed_u1 = u1 + (start_x - l) / xsize; // XXX
-			coords->emplace_back(glm::vec2(end_x, t), glm::vec2(trimmed_u1, v1));
-			coords->emplace_back(glm::vec2(end_x, b), glm::vec2(trimmed_u1, v2));
-			coords->emplace_back(glm::vec2(r, b), glm::vec2(u2, v2));
-			coords->emplace_back(glm::vec2(r, b), glm::vec2(u2, v2));
-			coords->emplace_back(glm::vec2(end_x, t), glm::vec2(trimmed_u1, v1));
-			coords->emplace_back(glm::vec2(r, t), glm::vec2(u2, v1));
+			const float trimmed_u2 = u2 - (u2 - u1) * (1.0f - (start_x - l) / xsize); // XXX
+			coords->emplace_back(glm::vec2(end_x, t), glm::vec2(u1, v1));
+			coords->emplace_back(glm::vec2(end_x, b), glm::vec2(u1, v2));
+			coords->emplace_back(glm::vec2(r, b), glm::vec2(trimmed_u2, v2));
+			coords->emplace_back(glm::vec2(r, b), glm::vec2(trimmed_u2, v2));
+			coords->emplace_back(glm::vec2(end_x, t), glm::vec2(u1, v1));
+			coords->emplace_back(glm::vec2(r, t), glm::vec2(trimmed_u2, v1));
+		}
+
+		void render_round_vert(std::vector<KRE::vertex_texcoord>* coords, float l, float t, float r, float b, float xsize, float ysize, float u1, float v1, float u2, float v2, bool use_space=false)
+		{
+			// total height of space
+			const float height = b - t;
+			// total number of whole tiles that can fit in space
+			const float whole_tiles = std::floor(height / ysize);
+			if(whole_tiles <= 0) {
+				return;
+			}
+			float y_spacer = 0.0f;
+			if(!use_space) {
+				ysize = height / whole_tiles;
+			} else {
+				y_spacer = (height - whole_tiles * ysize) / (whole_tiles + 1.0f);
+			}
+			const int total_whole_tiles = static_cast<int>(whole_tiles);
+			for(int n = 0; n < total_whole_tiles; ++n) {
+				const float y1 = t + n * ysize + (n+1)*y_spacer;
+				const float y2 = t + (n+1) * ysize + (n+1)*y_spacer;
+				coords->emplace_back(glm::vec2(l, y1), glm::vec2(u1, v1));
+				coords->emplace_back(glm::vec2(l, y2), glm::vec2(u1, v2));
+				coords->emplace_back(glm::vec2(r, y2), glm::vec2(u2, v2));
+				coords->emplace_back(glm::vec2(r, y2), glm::vec2(u2, v2));
+				coords->emplace_back(glm::vec2(l, y1), glm::vec2(u1, v1));
+				coords->emplace_back(glm::vec2(r, y1), glm::vec2(u2, v1));
+			}
+		}
+
+		void render_round_horiz(std::vector<KRE::vertex_texcoord>* coords, float l, float t, float r, float b, float xsize, float ysize, float u1, float v1, float u2, float v2, bool use_space=false)
+		{
+			// total height of space
+			const float width = r - l;
+			// total number of whole tiles that can fit in space
+			const float whole_tiles = std::floor(width / xsize);
+			if(whole_tiles <= 0) {
+				return;
+			}
+			float x_spacer = 0.0f;
+			if(!use_space) {
+				xsize = width / whole_tiles;
+			} else {
+				x_spacer = (width - whole_tiles * xsize) / (whole_tiles + 1.0f);
+			}
+			const int total_whole_tiles = static_cast<int>(whole_tiles);
+			for(int n = 0; n < total_whole_tiles; ++n) {
+				const float x1 = l + n * xsize + (n+1) * x_spacer;
+				const float x2 = l + (n+1) * xsize + (n+2) * x_spacer;
+				coords->emplace_back(glm::vec2(x1, t), glm::vec2(u1, v1));
+				coords->emplace_back(glm::vec2(x2, t), glm::vec2(u1, v2));
+				coords->emplace_back(glm::vec2(x2, b), glm::vec2(u2, v2));
+				coords->emplace_back(glm::vec2(x2, b), glm::vec2(u2, v2));
+				coords->emplace_back(glm::vec2(x1, t), glm::vec2(u1, v1));
+				coords->emplace_back(glm::vec2(x1, b), glm::vec2(u2, v1));
+			}
 		}
 	}
 	
@@ -952,6 +1008,7 @@ namespace xhtml
 		layoutAbsolute(eng, containing);
 		layoutFixed(eng, containing);
 
+		// need to call this after doing layout, since we need to now what the computed padding/border values are.
 		border_info_.init(dimensions_);
 	}
 
@@ -1842,7 +1899,8 @@ namespace xhtml
 
 	void BorderInfo::setFile(const std::string& filename)
 	{
-		image_ = KRE::Texture::createTexture(filename);
+		image_ = KRE::Texture::createTexture(filename, KRE::TextureType::TEXTURE_2D, 4);
+		image_->setFiltering(0, KRE::Texture::Filtering::LINEAR, KRE::Texture::Filtering::LINEAR, KRE::Texture::Filtering::POINT);
 	}
 
 	void BorderInfo::init(const Dimensions& dims)
@@ -2027,10 +2085,16 @@ namespace xhtml
 					render_repeat_vert(&coords, x2-widths_[3], y1+widths_[0], x2, y2-widths_[2], widths_[3], widths_[2], r_u1, r_v1, r_u2, r_v2);
 					break;
 				case CssBorderImageRepeat::ROUND:
-					// XXX
+					// left side
+					render_round_vert(&coords, x1, y1+widths_[0], x1+widths_[1], y2-widths_[2], widths_[1], widths_[0], l_u1, l_v1, l_u2, l_v2);
+					// right side
+					render_round_vert(&coords, x2-widths_[3], y1+widths_[0], x2, y2-widths_[2], widths_[3], widths_[2], r_u1, r_v1, r_u2, r_v2);
 					break;
 				case CssBorderImageRepeat::SPACE:
-					// ugly special case
+					// left side
+					render_round_vert(&coords, x1, y1+widths_[0], x1+widths_[1], y2-widths_[2], widths_[1], widths_[0], l_u1, l_v1, l_u2, l_v2, true);
+					// right side
+					render_round_vert(&coords, x2-widths_[3], y1+widths_[0], x2, y2-widths_[2], widths_[3], widths_[2], r_u1, r_v1, r_u2, r_v2, true);
 					break;
 			}
 		} else {
@@ -2069,16 +2133,22 @@ namespace xhtml
 					coords.emplace_back(glm::vec2(x2-widths_[3], y2-widths_[2]), glm::vec2(b_u2, b_v1));
 					break;
 				case CssBorderImageRepeat::REPEAT:
-					// left side
+					// top-side
 					render_repeat_horiz(&coords, x1+widths_[1], y1, x2-widths_[3], y1+widths_[0], widths_[1], widths_[0], t_u1, t_v1, t_u2, t_v2);
-					// right side
+					// bottom-side
 					render_repeat_horiz(&coords, x1+widths_[1], y2-widths_[2], x2-widths_[3], y2, widths_[3], widths_[2], b_u1, b_v1, b_u2, b_v2);
 					break;
 				case CssBorderImageRepeat::ROUND:
-					// XXX
+					// top-side
+					render_round_horiz(&coords, x1+widths_[1], y1, x2-widths_[3], y1+widths_[0], widths_[1], widths_[0], t_u1, t_v1, t_u2, t_v2);
+					// bottom-side
+					render_round_horiz(&coords, x1+widths_[1], y2-widths_[2], x2-widths_[3], y2, widths_[3], widths_[2], b_u1, b_v1, b_u2, b_v2);
 					break;
 				case CssBorderImageRepeat::SPACE:
-					// ugly special case
+					// top-side
+					render_round_horiz(&coords, x1+widths_[1], y1, x2-widths_[3], y1+widths_[0], widths_[1], widths_[0], t_u1, t_v1, t_u2, t_v2, true);
+					// bottom-side
+					render_round_horiz(&coords, x1+widths_[1], y2-widths_[2], x2-widths_[3], y2, widths_[3], widths_[2], b_u1, b_v1, b_u2, b_v2, true);
 					break;
 			}
 		} else {
