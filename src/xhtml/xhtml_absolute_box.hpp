@@ -1,5 +1,5 @@
 /*
-	Copyright (C) 2013-2014 by Kristina Simpson <sweet.kristas@gmail.com>
+	Copyright (C) 2003-2013 by Kristina Simpson <sweet.kristas@gmail.com>
 	
 	This software is provided 'as-is', without any express or implied
 	warranty. In no event will the authors be held liable for any damages
@@ -23,19 +23,22 @@
 
 #pragma once
 
-#include <ft2build.h>
-#include FT_FREETYPE_H
-#include FT_STROKER_H
+#include "xhtml_box.hpp"
 
-#include <vector>
-
-namespace KRE
+namespace xhtml
 {
-	namespace FT
+	class AbsoluteBox : public Box
 	{
-		// Get a font face from a file.
-		FT_Face get_font_face(const std::string& font_file, int index=0);
-		// convert a utf8 encoding strings into a series of glyph indicies in the font face.
-		std::vector<unsigned> get_glyphs_from_string(FT_Face face, const std::string& utf8);
-	}
+	public:
+		AbsoluteBox(BoxPtr parent, NodePtr node);
+		std::string toString() const override;
+	private:
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void handleRender(DisplayListPtr display_list, const point& offset) const override;
+
+		// need to store these, since by the time layout happens we no longer have the right
+		// render context available.
+		css::Width css_rect_[4]; // l,t,r,b
+	};
+
 }

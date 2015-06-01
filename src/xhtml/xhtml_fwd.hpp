@@ -59,4 +59,16 @@ namespace xhtml
 		FixedPoint width;
 		FixedPoint height;
 	};
+
+	class LayoutEngine;
+	class Box;
+	class RootBox;
+	typedef std::shared_ptr<Box> BoxPtr;
+	typedef std::shared_ptr<const Box> ConstBoxPtr;
+	typedef std::shared_ptr<RootBox> RootBoxPtr;
+
+	class DisplayList;
+	typedef std::shared_ptr<DisplayList> DisplayListPtr;
+
+	struct Dimensions;
 }

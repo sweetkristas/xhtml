@@ -40,8 +40,8 @@ namespace KRE
 	namespace
 	{
 		const int default_dpi = 96;
-		const int surface_width = 1024;
-		const int surface_height = 1024;
+		const int surface_width = 2048;
+		const int surface_height = 2048;
 
 		font_path_cache& get_font_path_cache()
 		{
@@ -285,6 +285,15 @@ namespace KRE
 			// This is to ensure that the returned dimensions are tight, i.e. the final advance is replaced by the width of the character.
 			*w = (pen.x - slot->linearHoriAdvance + slot->metrics.width*65536L);
 			*h = (pen.y - slot->linearHoriAdvance + slot->metrics.height*65536L);
+		}
+
+		std::vector<unsigned> getGlyphs(const std::string& text)
+		{
+			std::vector<unsigned> res;
+			for(auto cp : utils::utf8_to_codepoint(text)) {
+				res.emplace_back(FT_Get_Char_Index(face_, cp));
+			}
+			return res;
 		}
 
 		const std::vector<point>& getGlyphPath(const std::string& text)
@@ -599,5 +608,15 @@ namespace KRE
 	const GlyphInfo& FontHandle::getGlyphInfo(char32_t cp)
 	{
 		return impl_->getGlyphInfo(cp);
+	}
+
+	std::vector<unsigned> FontHandle::getGlyphs(const std::string& text)
+	{
+		return impl_->getGlyphs(text);
+	}
+
+	void* FontHandle::getRawFontHandle()
+	{
+		return impl_->face_;
 	}
 }

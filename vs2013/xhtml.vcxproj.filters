@@ -28,6 +28,12 @@
     <Filter Include="Test Files">
       <UniqueIdentifier>{67e4ce04-6245-4411-9193-eb285e0ad4af}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\SVG">
+      <UniqueIdentifier>{99a9c217-8d3c-4066-bd5d-672945641cc2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\SVG">
+      <UniqueIdentifier>{660c181d-ab01-42bb-9ded-56db51deecd3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\main.cpp">
@@ -258,9 +264,6 @@
     <ClCompile Include="..\src\xhtml\css_stylesheet.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\xhtml\xhtml_layout.cpp">
-      <Filter>Source Files\xhtml</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\xhtml\xhtml_text_node.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
@@ -271,6 +274,81 @@
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
     <ClCompile Include="..\src\xhtml\to_roman.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_attribs.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_container.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_element.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_gradient.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_paint.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_parse.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_path_parse.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_shapes.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_style.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_transform.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\svg_utils.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\svg\easy_svg.cpp">
+      <Filter>Source Files\SVG</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_layout_engine.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_line_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_root_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_text_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_block_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_background_info.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_border_info.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_inline_element_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_inline_block_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_absolute_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_listitem_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\xhtml\solid_renderable.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
   </ItemGroup>
@@ -575,9 +653,6 @@
     <ClInclude Include="..\src\xhtml\css_stylesheet.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\xhtml\xhtml_layout.hpp">
-      <Filter>Header Files\xhtml</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\xhtml\xhtml_text_node.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
@@ -588,6 +663,90 @@
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
     <ClInclude Include="..\src\xhtml\to_roman.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_attribs.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_container.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_element.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_fwd.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_gradient.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_length.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_paint.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_parse.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_path_parse.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_render.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_shapes.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_style.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\svg_transform.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\utils.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\svg\easy_svg.hpp">
+      <Filter>Header Files\SVG</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_block_box.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_box.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_layout_engine.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_line_box.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_root_box.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_text_box.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_border_info.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_background_info.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_inline_element_box.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_inline_block_box.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_absolute_box.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_listitem_box.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\solid_renderable.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
   </ItemGroup>

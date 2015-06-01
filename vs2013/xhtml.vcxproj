@@ -72,6 +72,18 @@
     <ClCompile Include="..\src\kre\VGraphOGLFixed.cpp" />
     <ClCompile Include="..\src\kre\WindowManager.cpp" />
     <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\svg\easy_svg.cpp" />
+    <ClCompile Include="..\src\svg\svg_attribs.cpp" />
+    <ClCompile Include="..\src\svg\svg_container.cpp" />
+    <ClCompile Include="..\src\svg\svg_element.cpp" />
+    <ClCompile Include="..\src\svg\svg_gradient.cpp" />
+    <ClCompile Include="..\src\svg\svg_paint.cpp" />
+    <ClCompile Include="..\src\svg\svg_parse.cpp" />
+    <ClCompile Include="..\src\svg\svg_path_parse.cpp" />
+    <ClCompile Include="..\src\svg\svg_shapes.cpp" />
+    <ClCompile Include="..\src\svg\svg_style.cpp" />
+    <ClCompile Include="..\src\svg\svg_transform.cpp" />
+    <ClCompile Include="..\src\svg\svg_utils.cpp" />
     <ClCompile Include="..\src\unit_test.cpp" />
     <ClCompile Include="..\src\variant.cpp" />
     <ClCompile Include="..\src\variant_utils.cpp" />
@@ -85,12 +97,24 @@
     <ClCompile Include="..\src\xhtml\document_object_model.cpp" />
     <ClCompile Include="..\src\xhtml\dom_exception.cpp" />
     <ClCompile Include="..\src\xhtml\font_freetype.cpp" />
+    <ClCompile Include="..\src\xhtml\solid_renderable.cpp" />
     <ClCompile Include="..\src\xhtml\to_roman.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_absolute_box.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_background_info.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_block_box.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_border_info.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_element.cpp" />
-    <ClCompile Include="..\src\xhtml\xhtml_layout.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_inline_block_box.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_inline_element_box.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_layout_engine.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_line_box.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_listitem_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_node.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_parser.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_render_ctx.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_root_box.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_text_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_text_node.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -174,6 +198,21 @@
     <ClInclude Include="..\src\kre\WindowManager.hpp" />
     <ClInclude Include="..\src\kre\WindowManagerFwd.hpp" />
     <ClInclude Include="..\src\profile_timer.hpp" />
+    <ClInclude Include="..\src\svg\easy_svg.hpp" />
+    <ClInclude Include="..\src\svg\svg_attribs.hpp" />
+    <ClInclude Include="..\src\svg\svg_container.hpp" />
+    <ClInclude Include="..\src\svg\svg_element.hpp" />
+    <ClInclude Include="..\src\svg\svg_fwd.hpp" />
+    <ClInclude Include="..\src\svg\svg_gradient.hpp" />
+    <ClInclude Include="..\src\svg\svg_length.hpp" />
+    <ClInclude Include="..\src\svg\svg_paint.hpp" />
+    <ClInclude Include="..\src\svg\svg_parse.hpp" />
+    <ClInclude Include="..\src\svg\svg_path_parse.hpp" />
+    <ClInclude Include="..\src\svg\svg_render.hpp" />
+    <ClInclude Include="..\src\svg\svg_shapes.hpp" />
+    <ClInclude Include="..\src\svg\svg_style.hpp" />
+    <ClInclude Include="..\src\svg\svg_transform.hpp" />
+    <ClInclude Include="..\src\svg\utils.hpp" />
     <ClInclude Include="..\src\unit_test.hpp" />
     <ClInclude Include="..\src\utf8_to_codepoint.hpp" />
     <ClInclude Include="..\src\variant.hpp" />
@@ -188,16 +227,28 @@
     <ClInclude Include="..\src\xhtml\document_object_model.hpp" />
     <ClInclude Include="..\src\xhtml\dom_exception.hpp" />
     <ClInclude Include="..\src\xhtml\font_freetype.hpp" />
+    <ClInclude Include="..\src\xhtml\solid_renderable.hpp" />
     <ClInclude Include="..\src\xhtml\to_roman.hpp" />
     <ClInclude Include="..\src\xhtml\variant_object.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_absolute_box.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_background_info.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_block_box.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_border_info.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_element.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_element_id.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_fwd.hpp" />
-    <ClInclude Include="..\src\xhtml\xhtml_layout.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_inline_block_box.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_inline_element_box.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_layout_engine.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_line_box.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_listitem_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_node.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_parser.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_render_ctx.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_root_box.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_text_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_text_node.hpp" />
   </ItemGroup>
   <ItemGroup>
@@ -259,7 +310,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\src\xhtml;..\src\kre;..\src;..\external\include;..\external\include\SDL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\xhtml;..\src\svg;..\src\kre;..\src;..\external\include;..\external\include\SDL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -277,7 +328,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\src\xhtml;..\src\kre;..\src;..\external\include;..\external\include\SDL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\src\xhtml;..\src\svg;..\src\kre;..\src;..\external\include;..\external\include\SDL;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>

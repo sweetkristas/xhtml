@@ -39,7 +39,8 @@
 #include "display_list.hpp"
 #include "font_freetype.hpp"
 #include "xhtml.hpp"
-#include "xhtml_layout.hpp"
+#include "xhtml_layout_engine.hpp"
+#include "xhtml_root_box.hpp"
 #include "xhtml_node.hpp"
 #include "xhtml_render_ctx.hpp"
 
@@ -59,7 +60,7 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 		doc->processStyleRules();
 		}
 
-		xhtml::BoxPtr layout = nullptr;
+		xhtml::RootBoxPtr layout = nullptr;
 		{
 		profile::manager pman("layout");
 		layout = xhtml::Box::createLayout(doc, width, height);
@@ -142,6 +143,7 @@ int main(int argc, char* argv[])
 	hints.add("renderer", "opengl");
 	hints.add("dpi_aware", true);
 	hints.add("use_vsync", true);
+	hints.add("resizeable", true);
 
 	LOG_DEBUG("Creating window of size: " << width << "x" << height);
 	auto main_wnd = wm.createWindow(width, height, hints.build());
@@ -195,23 +197,21 @@ int main(int argc, char* argv[])
 				doc->handleMouseButtonDown(false, e.button.x, e.button.y, e.button.button);
 			} else if(e.type == SDL_MOUSEBUTTONUP) {
 				doc->handleMouseButtonUp(false, e.button.x, e.button.y, e.button.button);
+			} else if(e.type == SDL_WINDOWEVENT) {
+				const SDL_WindowEvent& wnd = e.window;
+				if(wnd.event == SDL_WINDOWEVENT_RESIZED) {
+					doc->triggerLayout();
+					width = wnd.data1;
+					height = wnd.data2;
+					main_wnd->notifyNewWindowSize(width, height);
+					DisplayDevice::getCurrent()->setDefaultCamera(std::make_shared<Camera>("ortho1", 0, width, 0, height));
+				}
 			}
 		}
 
 		main_wnd->clear(ClearFlags::ALL);
 
 		check_layout(width, height, doc, display_list, scene);
-
-		//Canvas::getInstance()->blitTexture(txt, 0, rect(0, 200));
-	
-		/*layout->preOrderTraversal([canvas](xhtml::LayoutBoxPtr box) {
-			auto css_color = box->getNodeStyle("color");
-			if(!css_color.empty()) {
-				canvas->drawSolidRect(box->getContentDimensions().as_type<int>(), css_color.getValue<css::CssColor>().getColor());
-			} else {
-				canvas->drawSolidRect(box->getContentDimensions().as_type<int>(), Color::colorBlueviolet());
-			}
-		});*/
 
 		// Called once a cycle before rendering.
 		Uint32 current_tick_time = SDL_GetTicks();

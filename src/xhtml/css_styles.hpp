@@ -154,6 +154,13 @@ namespace css
 		MAX_PROPERTIES,
 	};
 
+	enum class Side {
+		TOP,
+		LEFT,
+		BOTTOM, 
+		RIGHT,
+	};
+
 	enum class CssColorParam {
 		NONE,
 		TRANSPARENT,
@@ -622,7 +629,7 @@ namespace css
 		MAKE_FACTORY(Clear);
 		Clear() : clr_(CssClear::NONE) {}
 		explicit Clear(CssClear clr) : clr_(clr) {}
-		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(clr_); }
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
 		CssClear clr_;
 	};
 

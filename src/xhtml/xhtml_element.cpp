@@ -27,6 +27,7 @@
 
 #include "asserts.hpp"
 #include "css_parser.hpp"
+#include "easy_svg.hpp"
 #include "xhtml_element.hpp"
 
 #include "Blittable.hpp"
@@ -160,27 +161,25 @@ namespace xhtml
 					auto attr_h = getAttribute("height");
 					auto attr_src = getAttribute("src");
 					auto attr_alt = getAttribute("alt");
-					Rect r;
+					rect r;
 					if(attr_src != nullptr && !attr_src->getValue().empty()) {
-						tex_ = KRE::Texture::createTexture(attr_src->getValue());					
-						r.width = tex_->width() * 65536;
-						r.height = tex_->height() * 65536;
+						tex_ = KRE::Texture::createTexture(attr_src->getValue());
+						r = rect(0, 0, tex_->width(), tex_->height());
 					} else if(attr_alt != nullptr && !attr_alt->getValue().empty()) {
 						// Render the alt text. This could be improved. 16 below represents a 12pt font.
 						tex_ = KRE::Font::getInstance()->renderText(attr_alt->getValue(), KRE::Color::colorWhite(), 16, true, "FreeSerif.ttf");
-						r.width = tex_->width() * 65536;
-						r.height = tex_->height() * 65536;
+						r = rect(0, 0, tex_->width(), tex_->height());
 					}
 					if(attr_w != nullptr) {
 						try {
-							r.width = boost::lexical_cast<int>(attr_w->getValue()) * 65536;
+							r.set_w(boost::lexical_cast<int>(attr_w->getValue()));
 						} catch(boost::bad_lexical_cast&) {
 							LOG_ERROR("Unable to convert 'img' tag 'width' attribute to number: " << attr_w->getValue());
 						}
 					}
 					if(attr_h != nullptr) {
 						try {
-							r.height = boost::lexical_cast<int>(attr_h->getValue()) * 65536;
+							r.set_h(boost::lexical_cast<int>(attr_h->getValue()));
 						} catch(boost::bad_lexical_cast&) {
 							LOG_ERROR("Unable to convert 'img' tag 'height' attribute to number: " << attr_h->getValue());
 						}
@@ -194,7 +193,7 @@ namespace xhtml
 			{
 				if(tex_ != nullptr) {
 					auto b = std::make_shared<KRE::Blittable>(tex_);
-					b->setDrawRect(rect(0, 0, getDimensions().width/65536, getDimensions().height/65536));
+					b->setDrawRect(getDimensions());
 					return b;
 				}
 				return nullptr;
@@ -286,11 +285,38 @@ namespace xhtml
 			explicit InputElement(ElementId id, const std::string& name, WeakDocumentPtr owner) 
 				: Element(id, name, owner),
 				  is_checked_(false),
-				  radio_tex_(KRE::Texture::createTexture("default-radiobutton.png")),
-				  radio_checked_tex_(KRE::Texture::createTexture("default-radiobutton-checked.png")),
-				  checkbox_tex_(KRE::Texture::createTexture("default-radiobutton.png")),
-				  checkbox_checked_tex_(KRE::Texture::createTexture("default-radiobutton.png"))
+				  width_(16),
+				  height_(16),
+				  radio_tex_(KRE::svg_texture_from_file("radiobutton.svg", width_, height_)),
+				  radio_checked_tex_(KRE::svg_texture_from_file("radiobutton-checked.svg", width_, height_)),
+				  checkbox_tex_(KRE::svg_texture_from_file("checkbox.svg", width_, height_)),
+				  checkbox_checked_tex_(KRE::svg_texture_from_file("checkbox-checked.svg", width_, height_))
 			{
+			}
+			void handleSetDimensions(const rect& r) override {
+				width_ = r.w();
+				height_ = r.h();
+				switch(type_) {
+					case InputElementType::CHECKBOX:
+						checkbox_tex_ = KRE::svg_texture_from_file("checkbox.svg", width_, height_);
+						checkbox_checked_tex_ = KRE::svg_texture_from_file("checkbox-checked.svg", width_, height_);
+						break;
+					case InputElementType::RADIO:
+						radio_tex_ = KRE::svg_texture_from_file("radiobutton.svg", width_, height_);
+						radio_checked_tex_ = KRE::svg_texture_from_file("radiobutton-checked.svg", width_, height_);
+						break;
+					case InputElementType::TEXT:
+					case InputElementType::PASSWORD:
+					case InputElementType::SUBMIT:
+					case InputElementType::IMAGE:
+					case InputElementType::RESET:
+					case InputElementType::BUTTON:
+					case InputElementType::HIDDEN:
+					case InputElementType::FILE:
+					default: 
+						ASSERT_LOG(false, "Need to add getRenderable() for InputElement of type: " << static_cast<int>(type_));
+						break;
+				}			
 			}
 			void init() override {
 				auto attr_checked = getAttribute("checked");
@@ -306,10 +332,10 @@ namespace xhtml
 						type_ = InputElementType::PASSWORD;
 					} else if(value == "checkbox") {
 						type_ = InputElementType::CHECKBOX;
-						setDimensions(Rect(0, 0, checkbox_tex_->surfaceWidth() * 65536, checkbox_tex_->surfaceHeight() * 65536));
+						setDimensions(rect(0, 0, width_, height_));
 					} else if(value == "radio") {
 						type_ = InputElementType::RADIO;
-						setDimensions(Rect(0, 0, radio_tex_->surfaceWidth() * 65536, radio_tex_->surfaceHeight() * 65536));
+						setDimensions(rect(0, 0, width_, height_));
 					} else if(value == "submit") {
 						type_ = InputElementType::SUBMIT;
 					} else if(value == "image") {
@@ -345,8 +371,7 @@ namespace xhtml
 			bool isReplaced() const override { return true; }
 			KRE::SceneObjectPtr getRenderable()
 			{
-				switch(type_)
-				{
+				switch(type_) {
 					case InputElementType::CHECKBOX: {
 						// XXX this should be improved. some sort of custom
 						// SceneObject that shares state with this input element
@@ -385,6 +410,8 @@ namespace xhtml
 			}
 		
 			InputElementType type_;
+			int width_;
+			int height_;
 			bool is_checked_;
 			// probably better to fold these into one texture
 			KRE::TexturePtr radio_tex_;

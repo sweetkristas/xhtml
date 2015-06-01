@@ -101,6 +101,8 @@ namespace KRE
 		int calculateCharAdvance(char32_t cp);
 		int getScaleFactor() const { return 65536; }
 		const GlyphInfo& getGlyphInfo(char32_t cp);
+		std::vector<unsigned> getGlyphs(const std::string& text);
+		void* getRawFontHandle();
 	private:
 		class Impl;
 		std::unique_ptr<Impl> impl_;

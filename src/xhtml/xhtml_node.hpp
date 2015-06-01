@@ -124,7 +124,8 @@ namespace xhtml
 		void clearProperties() { properties_.clear(); }
 		
 		// for elements
-		virtual const Rect& getDimensions() { static Rect res; return res; }
+		const rect& getDimensions() { return dimensions_; }
+		void setDimensions(const rect& r) { dimensions_ = r; handleSetDimensions(r); }
 		virtual KRE::SceneObjectPtr getRenderable() { return nullptr; }
 		// is this element replaced, replaced elements generate a seperate box during layout.
 		virtual bool isReplaced() const { return false; }
@@ -135,6 +136,7 @@ namespace xhtml
 		virtual bool handleMouseMotionInt(bool* trigger, const point& p) { return true; }
 		virtual bool handleMouseButtonUpInt(bool* trigger, const point& p) { return true; }
 		virtual bool handleMouseButtonDownInt(bool* trigger, const point& p) { return true; }
+		virtual void handleSetDimensions(const rect& r) {}
 
 		NodeId id_;
 		NodeList children_;
@@ -149,6 +151,8 @@ namespace xhtml
 		css::PseudoClass pclass_;
 		css::PseudoClass active_pclass_;
 		rect active_rect_;
+
+		rect dimensions_;
 	};
 
 	class Document : public Node
@@ -163,6 +167,7 @@ namespace xhtml
 		bool handleMouseButtonDown(bool claimed, int x, int y, unsigned button);
 		bool handleMouseButtonUp(bool claimed, int x, int y, unsigned button);
 
+		void triggerLayout() { trigger_layout_ = true; }
 		bool needsLayout() const { return trigger_layout_; }
 		void layoutComplete() override { trigger_layout_ = false; }
 	protected:

@@ -207,22 +207,12 @@ namespace xhtml
 					ls_acc += letter_spacing;
 				}
 			}
-			// XXX we should enforce a minimum of one-word per line even if it overflows.
 			if(break_at_line_ && length_acc + word.advance.back().x + line_.space_advance > remaining_line_width) {
-				// if text-align is set to justify we can add more spaces to bring the outer word aligned to the maximum_line_width
-				// XXX this code is still slightly wrong as it will make the advance of the next character align with the edge
-				// rather than the bounding box of the last glyph.
-				/*if(text_align == css::CssTextAlign::JUSTIFY) {
-					long space_to_add = current_line_width - length_acc;
-					// only add padding if more than one word per line.
-					// XXX if this is the last line we don't justify it.
-					if(lines.lines.back().size() > 1) {
-						space_to_add /= (lines.lines.back().size() - 1);
-						for(auto& w : lines.lines.back()) {
-							w.advance.back().x += space_to_add;
-						}
-					}
-				}*/
+				// Enforce a minimum of one-word per line even if it overflows.
+				if(current_line->line.empty() && !word.word.empty()) {
+					current_line->line.emplace_back(word);
+					++start;
+				}
 
 				current_line->is_end_line = true;
 				return current_line;
