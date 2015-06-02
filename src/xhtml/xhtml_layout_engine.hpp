@@ -69,12 +69,17 @@ namespace xhtml
 
 		FixedPoint getWidthAtPosition(FixedPoint y, FixedPoint width) const;
 
+		bool hasFloatsAtCursor() const;
+		bool hasFloatsAtPosition(FixedPoint y) const;
+
 		void moveCursorToClearFloats(css::CssClear float_clear);
 
 		const Dimensions& getDimensions() const { return dims_; }
 
 		static FixedPoint getFixedPointScale() { return 65536; }
 		static float getFixedPointScaleFloat() { return 65536.0f; }
+
+		const point& getOffset();
 	private:
 		RootBoxPtr root_;
 		Dimensions dims_;
@@ -89,6 +94,7 @@ namespace xhtml
 		std::stack<OpenBox> open_;
 
 		std::stack<int> list_item_counter_;
+		std::stack<point> offset_;
 	};
 
 }

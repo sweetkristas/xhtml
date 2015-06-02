@@ -430,8 +430,33 @@ namespace xhtml
 
 		struct ButtonElement : public Element
 		{
-			explicit ButtonElement(ElementId id, const std::string& name, WeakDocumentPtr owner) : Element(id, name, owner) {}
+			explicit ButtonElement(ElementId id, const std::string& name, WeakDocumentPtr owner) 
+				: Element(id, name, owner) ,
+				  width_(240),
+				  height_(100),
+				  tex_(KRE::svg_texture_from_file("button.svg", width_, height_))
+			{
+			}
+			void init() override {
+				setDimensions(rect(0, 0, width_, height_));
+			}
+			void handleSetDimensions(const rect& r) override {
+				width_ = r.w();
+				height_ = r.h();
+				tex_ = KRE::svg_texture_from_file("button.svg", width_, height_);
+			}
 			bool isReplaced() const override { return true; }
+			KRE::SceneObjectPtr getRenderable()
+			{
+				if(tex_ != nullptr) {
+					return std::make_shared<KRE::Blittable>(tex_);
+				}
+				return nullptr;
+			}
+			int width_;
+			int height_;
+			bool dims_set_;
+			KRE::TexturePtr tex_;
 		};
 		ElementRegistrar<ButtonElement> button_element(ElementId::BUTTON, "button");
 

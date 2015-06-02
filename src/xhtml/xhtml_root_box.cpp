@@ -59,10 +59,8 @@ namespace xhtml
 		layoutFixed(eng, containing);
 	}
 
-	void RootBox::handleRender(DisplayListPtr display_list, const point& offset) const 
+	void RootBox::handleEndRender(DisplayListPtr display_list, const point& offset) const
 	{
-		BlockBox::handleRender(display_list, offset);
-
 		for(auto& lf : left_floats_) {
 			lf->render(display_list, offset);
 		}
@@ -83,8 +81,8 @@ namespace xhtml
 		const FixedPoint lh = eng.getLineHeight();
 		const FixedPoint box_w = box->getDimensions().content_.width;
 
-		FixedPoint x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y) : eng.getX2AtPosition(y);
-		FixedPoint w = eng.getWidthAtPosition(y, getDimensions().content_.width);
+		FixedPoint x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) : eng.getX2AtPosition(y + eng.getOffset().y);
+		FixedPoint w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
 		bool placed = false;
 		while(!placed) {
 			if(w > box_w) {
@@ -93,8 +91,8 @@ namespace xhtml
 				placed = true;
 			} else {
 				y += lh;
-				x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y) : eng.getX2AtPosition(y);
-				w = eng.getWidthAtPosition(y, getDimensions().content_.width);
+				x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) : eng.getX2AtPosition(y + eng.getOffset().y);
+				w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
 			}
 		}
 

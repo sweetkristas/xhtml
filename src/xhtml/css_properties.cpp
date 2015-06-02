@@ -201,7 +201,7 @@ namespace css
 		PropertyRegistrar property028("height", Property::HEIGHT, false, Object(Width(true)), std::bind(&PropertyParser::parseWidth, _1, "height", ""));
 		PropertyRegistrar property029("white-space", Property::WHITE_SPACE, true, Object(CssWhitespace::NORMAL), std::bind(&PropertyParser::parseWhitespace, _1, "white-space", ""));	
 		PropertyRegistrar property030("font-family", Property::FONT_FAMILY, true, Object(get_default_fonts()), std::bind(&PropertyParser::parseFontFamily, _1, "font-family", ""));	
-		PropertyRegistrar property031("font-size", Property::FONT_SIZE, true, Object(default_font_size), std::bind(&PropertyParser::parseFontSize, _1, "font-size", ""));
+		PropertyRegistrar property031("font-size", Property::FONT_SIZE, true, Object(Length(default_font_size, LengthUnits::PT)), std::bind(&PropertyParser::parseFontSize, _1, "font-size", ""));
 		PropertyRegistrar property032("font-style", Property::FONT_STYLE, true, Object(CssFontStyle::NORMAL), std::bind(&PropertyParser::parseFontStyle, _1, "font-style", ""));
 		PropertyRegistrar property033("font-variant", Property::FONT_VARIANT, true, Object(CssFontVariant::NORMAL), std::bind(&PropertyParser::parseFontVariant, _1, "font-variant", ""));
 		PropertyRegistrar property034("font-weight", Property::FONT_WEIGHT, true, Object(400), std::bind(&PropertyParser::parseFontWeight, _1, "font-weight", ""));

@@ -120,13 +120,13 @@ namespace xhtml
 				+ dimensions_.border_.top + dimensions_.border_.bottom;
 		}
 
-		FixedPoint getMPBLeft() {
+		FixedPoint getMBPLeft() {
 			return dimensions_.margin_.left
 				+ dimensions_.padding_.left
 				+ dimensions_.border_.left;
 		}
 
-		FixedPoint getMPBTop() {
+		FixedPoint getMBPTop() {
 			return dimensions_.margin_.top
 				+ dimensions_.padding_.top
 				+ dimensions_.border_.top;
@@ -136,6 +136,12 @@ namespace xhtml
 			return dimensions_.margin_.bottom
 				+ dimensions_.padding_.bottom
 				+ dimensions_.border_.bottom;
+		}
+
+		FixedPoint getMBPRight() {
+			return dimensions_.margin_.right
+				+ dimensions_.padding_.right
+				+ dimensions_.border_.right;
 		}
 
 		static RootBoxPtr createLayout(NodePtr node, int containing_width, int containing_height);
@@ -176,6 +182,7 @@ namespace xhtml
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
+		virtual void handleEndRender(DisplayListPtr display_list, const point& offset) const {}
 
 		BoxId id_;
 		WeakNodePtr node_;

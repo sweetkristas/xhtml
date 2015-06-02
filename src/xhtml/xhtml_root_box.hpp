@@ -43,7 +43,7 @@ namespace xhtml
 		const std::vector<BoxPtr>& getRightFloats() const { return right_floats_; }
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
-		virtual void handleRender(DisplayListPtr display_list, const point& offset) const override;
+		void handleEndRender(DisplayListPtr display_list, const point& offset) const override;
 
 		std::vector<BoxPtr> fixed_boxes_;
 		std::vector<BoxPtr> left_floats_;

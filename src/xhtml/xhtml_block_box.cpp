@@ -138,15 +138,15 @@ namespace xhtml
 		calculateVertMPB(containing_height);
 
 		// inline-block boxes don't have there X/Y set here.
-		setContentX(getMPBLeft());
-		setContentY(containing.content_.height + getMPBTop());
+		setContentX(getMBPLeft());
+		setContentY(containing.content_.height + getMBPTop());
 
 		if(getPosition() == CssPosition::FIXED) {
 			if(!getCssLeft().isAuto()) {
-				setContentX(getCssLeft().getLength().compute(containing.content_.width) + getMPBLeft());
+				setContentX(getCssLeft().getLength().compute(containing.content_.width) + getMBPLeft());
 			}
 			if(!getCssTop().isAuto()) {
-				setContentY(getCssTop().getLength().compute(containing.content_.height) + getMPBTop());
+				setContentY(getCssTop().getLength().compute(containing.content_.height) + getMBPTop());
 			}
 		} 
 	}

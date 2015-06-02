@@ -147,7 +147,7 @@ namespace css
 				res = static_cast<int>((static_cast<float>(value_)/fixed_point_scale_float) * dpi * 3.0f / (72.0f * 4.0f) * fixed_point_scale_float);
 				break;
 			case LengthUnits::EM: {
-				float fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<xhtml::FixedPoint>() / (72.0f * fixed_point_scale_float);
+				float fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<Length>().compute() / (72.0f * fixed_point_scale_float);
 				res = static_cast<xhtml::FixedPoint>(fs * static_cast<float>(value_ * dpi));
 				break;
 			}
@@ -187,7 +187,7 @@ namespace css
 	Object FontSize::evaluate(const xhtml::RenderContext& ctx) const
 	{
 		float res = 0;
-		xhtml::FixedPoint parent_fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<xhtml::FixedPoint>();
+		xhtml::FixedPoint parent_fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<Length>().compute();
 		if(is_absolute_) {
 			res = get_font_size_table(static_cast<float>(ctx.getDPI()))[static_cast<int>(absolute_)];
 		} else if(is_relative_) {
@@ -198,11 +198,11 @@ namespace css
 				res = parent_fs / 1.15f;
 			}
 		} else if(is_length_) {
-			return Object(length_.compute(parent_fs));
+			return Object(length_);
 		} else {
 			ASSERT_LOG(false, "FontSize has no definite size defined!");
 		}
-		return Object(xhtml::FixedPoint(res * fixed_point_scale));
+		return Object(Length(xhtml::FixedPoint(res * fixed_point_scale)));
 	}
 
 	FontFamily::FontFamily() 

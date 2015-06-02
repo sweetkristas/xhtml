@@ -79,10 +79,12 @@ namespace xhtml
 			ctx_(RenderContext::get()), 
 			cursor_(),
 			open_(), 
-			list_item_counter_()
+			list_item_counter_(),
+			offset_()
 	{
 		cursor_.emplace(0, 0);
 		list_item_counter_.emplace(0);
+		offset_.emplace(point());
 	}
 
 	void LayoutEngine::formatNode(NodePtr node, BoxPtr parent, const point& container) 
@@ -100,6 +102,8 @@ namespace xhtml
 
 	BoxPtr LayoutEngine::formatNode(NodePtr node, BoxPtr parent, const Dimensions& container, std::function<void(BoxPtr)> pre_layout_fn) 
 	{
+		StackManager<point> offset_manager(offset_, offset_.top() + point(parent->getDimensions().content_.x, parent->getDimensions().content_.y));
+
 		if(node->id() == NodeId::ELEMENT) {
 			RenderContext::Manager ctx_manager(node->getProperties());
 
@@ -133,7 +137,6 @@ namespace xhtml
 			} else {
 				if(cfloat != CssFloat::NONE) {
 					bool saved_open = false;
-					FixedPoint y = 0;
 					if(isOpenBox()) {
 						saved_open = true;
 						pushOpenBox();
@@ -141,7 +144,7 @@ namespace xhtml
 					// XXX need to add an offset to position for the float box based on body margin.
 					// XXX if the current display is one of the CssDisplay::TABLE* styles then this should be
 					// a table box rather than a block box.
-					root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, node), cfloat, y);
+					root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, node), cfloat, parent->getDimensions().content_.y + cursor_.top().y);
 					if(saved_open) {
 						popOpenBox();
 						open_.top().open_box_->setContentX(open_.top().open_box_->getDimensions().content_.x + getXAtCursor());
@@ -158,13 +161,12 @@ namespace xhtml
 					}
 					case CssDisplay::BLOCK: {
 						closeOpenBox();
+						cursor_.emplace(point());
 						auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
 						if(pre_layout_fn) {
 							pre_layout_fn(box);
 						}
 						box->layout(*this, container);
-						cursor_.top().y = box->getDimensions().content_.height + box->getDimensions().content_.y + box->getMBPHeight();
-						cursor_.top().x = getXAtPosition(cursor_.top().y);
 						return box;
 					}
 					case CssDisplay::INLINE_BLOCK: {							
@@ -182,8 +184,6 @@ namespace xhtml
 							pre_layout_fn(box);
 						}
 						box->layout(*this, container);
-						cursor_.top().x = 0;
-						cursor_.top().y += box->getDimensions().content_.height + box->getMBPHeight() + box->getMPBTop();
 						return nullptr;
 					}
 					case CssDisplay::TABLE:
@@ -332,8 +332,17 @@ namespace xhtml
 		tnode->transformText(true);
 		auto it = tnode->begin();
 		while(it != tnode->end()) {
+			auto saved_it = it;
 			LinePtr line = tnode->reflowText(it, width);
 			if(line != nullptr && !line->line.empty()) {
+				// is the line larger than available space and are there floats present?
+				if(line->line.back().advance.back().x > width && hasFloatsAtCursor()) {
+					cursor_.top().y += lh;
+					cursor_.top().x = getXAtCursor();
+					it = saved_it;
+					continue;
+				}
+
 				auto txt = std::make_shared<TextBox>(open, line);
 				open->addChild(txt);
 				if(pre_layout_fn) {
@@ -348,7 +357,7 @@ namespace xhtml
 			if((line != nullptr && line->is_end_line) || width < 0) {
 				closeOpenBox();
 				cursor_.top().y += lh;
-				cursor_.top().x = getXAtPosition(cursor_.top().y);
+				cursor_.top().x = getXAtCursor();
 				open = getOpenBox(parent);
 				width = getWidthAtCursor(parent->getDimensions().content_.width);
 			}
@@ -372,7 +381,7 @@ namespace xhtml
 		if(open_.top().open_box_ == nullptr) {
 			open_.top().parent_ = parent;
 			open_.top().open_box_ = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
-			open_.top().open_box_->setContentX(getXAtPosition(cursor_.top().y));
+			open_.top().open_box_->setContentX(getXAtCursor());
 			open_.top().open_box_->setContentY(cursor_.top().y);
 			open_.top().open_box_->setContentWidth(getWidthAtCursor(parent->getDimensions().content_.width));
 		}
@@ -397,7 +406,7 @@ namespace xhtml
 		FixedPoint line_height = lh.compute();
 		if(lh.isPercent() || lh.isNumber()) {
 			line_height = static_cast<FixedPoint>(line_height / getFixedPointScaleFloat()
-				* ctx_.getComputedValue(Property::FONT_SIZE).getValue<FixedPoint>());
+				* ctx_.getComputedValue(Property::FONT_SIZE).getValue<Length>().compute());
 		}
 		return line_height;
 	}
@@ -423,11 +432,11 @@ namespace xhtml
 
 	FixedPoint LayoutEngine::getWidthAtCursor(FixedPoint width) const 
 	{
-		return getWidthAtPosition(getCursor().y, width);
+		return getWidthAtPosition(getCursor().y + offset_.top().y, width);
 	}
 
 	FixedPoint LayoutEngine::getXAtCursor() const {
-		return getXAtPosition(getCursor().y);
+		return getXAtPosition(getCursor().y + offset_.top().y);
 	}
 
 	FixedPoint LayoutEngine::getXAtPosition(FixedPoint y) const 
@@ -437,7 +446,7 @@ namespace xhtml
 		// a linear search through them seems fine at this point.
 		for(auto& lf : root_->getLeftFloats()) {
 			auto& dims = lf->getDimensions();
-			if(y >= (lf->getMPBTop() + dims.content_.y) && y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+			if(y >= (lf->getMBPTop() + dims.content_.y) && y <= (lf->getMBPTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
 				x = std::max(x, lf->getMBPWidth() + lf->getDimensions().content_.x + dims.content_.width);
 			}
 		}
@@ -451,7 +460,7 @@ namespace xhtml
 		// a linear search through them seems fine at this point.
 		for(auto& rf : root_->getRightFloats()) {
 			auto& dims = rf->getDimensions();
-			if(y >= (rf->getMPBTop() + dims.content_.y) && y <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+			if(y >= (rf->getMBPTop() + dims.content_.y) && y <= (rf->getMBPTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
 				x2 = std::min(x2, rf->getMBPWidth() + dims.content_.width);
 			}
 		}
@@ -464,17 +473,23 @@ namespace xhtml
 		// a linear search through them seems fine at this point.
 		for(auto& lf : root_->getLeftFloats()) {
 			auto& dims = lf->getDimensions();
-			if(y >= (lf->getMPBTop() + dims.content_.y) && y <= (lf->getMPBTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+			if(y >= (lf->getMBPTop() + dims.content_.y) && y <= (lf->getMBPTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
 				width -= lf->getMBPWidth() + dims.content_.width;
 			}
 		}
 		for(auto& rf : root_->getRightFloats()) {
 			auto& dims = rf->getDimensions();
-			if(y >= (rf->getMPBTop() + dims.content_.y) && y <= (rf->getMPBTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+			if(y >= (rf->getMBPTop() + dims.content_.y) && y <= (rf->getMBPTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
 				width -= rf->getMBPWidth() + dims.content_.width;
 			}
 		}
 		return width < 0 ? 0 : width;
+	}
+
+	const point& LayoutEngine::getOffset()
+	{
+		ASSERT_LOG(!offset_.empty(), "There was no item on the offset stack -- programmer logic bug.");
+		return offset_.top();
 	}
 
 	void LayoutEngine::moveCursorToClearFloats(CssClear float_clear)
@@ -491,7 +506,29 @@ namespace xhtml
 			}
 		}
 		if(new_y != cursor_.top().y) {
-			cursor_.top() = point(getXAtPosition(new_y), new_y);
+			cursor_.top() = point(getXAtPosition(new_y + offset_.top().y), new_y);
 		}
+	}
+
+	bool LayoutEngine::hasFloatsAtCursor() const
+	{
+		return hasFloatsAtPosition(cursor_.top().y + offset_.top().y);
+	}
+
+	bool LayoutEngine::hasFloatsAtPosition(FixedPoint y) const
+	{
+		for(auto& lf : root_->getLeftFloats()) {
+			auto& dims = lf->getDimensions();
+			if(y >= (lf->getMBPTop() + dims.content_.y) && y <= (lf->getMBPTop() + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+				return true;
+			}
+		}
+		for(auto& rf : root_->getRightFloats()) {
+			auto& dims = rf->getDimensions();
+			if(y >= (rf->getMBPTop() + dims.content_.y) && y <= (rf->getMBPTop() + rf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

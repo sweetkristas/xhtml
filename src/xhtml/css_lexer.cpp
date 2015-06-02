@@ -268,6 +268,9 @@ namespace css
 			//LOG_DEBUG("cp_string: " << ss.str());
 		}
 		
+		if(cp_string_.empty()) {
+			return;
+		}
 
 		// tokenize string.
 		it_ = 0;

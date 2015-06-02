@@ -23,6 +23,7 @@
 
 #include "xhtml_line_box.hpp"
 #include "xhtml_layout_engine.hpp"
+#include "solid_renderable.hpp"
 
 namespace xhtml
 {
@@ -40,17 +41,15 @@ namespace xhtml
 
 	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		//setContentX(0);
-		//setContentY(eng.getCursor().y);
-
 		FixedPoint max_height = 0;
-		//FixedPoint width = 0;
+		FixedPoint width = !getChildren().empty() 
+			? getChildren().back()->getDimensions().content_.width +  getChildren().back()->getDimensions().content_.x + getChildren().back()->getMBPRight()
+			: containing.content_.width;
 		for(auto& child : getChildren()) {
-			//width += child->getMBPWidth() + child->getDimensions().content_.width;
-			max_height = std::max(max_height, child->getDimensions().content_.height);
+			max_height = std::max(max_height, child->getDimensions().content_.height);			
 		}
-		//setContentWidth(width);
 		setContentHeight(max_height);
+		setContentWidth(width);
 	}
 
 	void LineBox::handleRender(DisplayListPtr display_list, const point& offset) const
@@ -58,4 +57,14 @@ namespace xhtml
 		// do nothing
 	}
 
+	void LineBox::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
+	{
+		// add a debug background, around content.
+		/*rect r(getDimensions().content_.x + offset.x, 
+			getDimensions().content_.y + offset.y, 
+			getDimensions().content_.width, 
+			getDimensions().content_.height);
+		auto sr = std::make_shared<SolidRenderable>(r, KRE::Color::colorSlateblue());
+		display_list->addRenderable(sr);*/
+	}
 }

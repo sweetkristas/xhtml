@@ -259,7 +259,7 @@ namespace KRE
 		}
 		FT_Pos getDescender() 
 		{
-			return face_->size->metrics.descender;
+			return face_->size->metrics.descender * (65536/64);
 		}
 		void getBoundingBox(const std::string& str, long* w, long* h) 
 		{

@@ -97,8 +97,8 @@ namespace xhtml
 		calculateHorzMPB(containing_width);
 		calculateVertMPB(containing_height);
 
-		setContentX(left + getMPBLeft());
-		setContentY(top + getMPBTop());
+		setContentX(left + getMBPLeft());
+		setContentY(top + getMBPTop());
 		setContentWidth(width - getMBPWidth());
 		setContentHeight(height - getMBPHeight());
 

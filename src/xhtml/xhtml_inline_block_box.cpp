@@ -29,7 +29,8 @@ namespace xhtml
 	using namespace css;
 
 	InlineBlockBox::InlineBlockBox(BoxPtr parent, NodePtr node)
-		: Box(BoxId::INLINE_BLOCK, parent, node)
+		: Box(BoxId::INLINE_BLOCK, parent, node),
+		  is_replacable_(false)
 	{
 	}
 
@@ -47,10 +48,10 @@ namespace xhtml
 		bool is_replaced = false;
 		if(node != nullptr && node->id() == NodeId::ELEMENT) {
 			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
-			is_replaced = node->isReplaced();
+			is_replacable_ = node->isReplaced();
 		}
 
-		if(is_replaced) {
+		if(is_replacable_) {
 			calculateHorzMPB(containing.content_.width);
 			setContentRect(Rect(0, 0, node->getDimensions().w() * LayoutEngine::getFixedPointScale(), node->getDimensions().h() * LayoutEngine::getFixedPointScale()));
 			auto css_width = getCssWidth();
@@ -63,6 +64,11 @@ namespace xhtml
 			}
 			if(!css_width.isAuto() || !css_height.isAuto()) {
 				node->setDimensions(rect(0, 0, getDimensions().content_.width/LayoutEngine::getFixedPointScale(), getDimensions().content_.height/LayoutEngine::getFixedPointScale()));
+			}
+			// add this to set a default width to the containing box if it is zero. we should re-evaluate the actual width
+			// based on the children size.
+			if(getDimensions().content_.width == 0) {
+				setContentWidth(containing.content_.width);
 			}
 			layoutPosition(eng, containing);
 			layoutChildren(eng);
@@ -141,7 +147,7 @@ namespace xhtml
 		setContentX(eng.getCursor().x);
 		// 0 aligns the top of the box with the baseline,
 		// setting to negative height aligns the bottom of the box with the baseline.
-		setContentY(-getDimensions().content_.height);
+		setContentY(0/*-getDimensions().content_.height*/);
 		//eng.incrCursor(getDimensions().content_.width + getMBPWidth());
 	}
 
@@ -171,6 +177,14 @@ namespace xhtml
 		if(getCssWidth().isAuto()) {
 			setContentWidth(width);
 			eng.incrCursor(getDimensions().content_.width + getMBPWidth());
+
+			if(is_replacable_) {
+				FixedPoint w = getDimensions().content_.width + getDimensions().padding_.left + getDimensions().padding_.right;
+				FixedPoint h = getDimensions().content_.height + getDimensions().padding_.top + getDimensions().padding_.bottom;
+				node->setDimensions(rect(0, 0, w/LayoutEngine::getFixedPointScale(), h/LayoutEngine::getFixedPointScale()));
+
+				// XXX we should center the child lineboxes.
+			}
 		}
 	}
 
@@ -200,10 +214,14 @@ namespace xhtml
 		NodePtr node = getNode();
 		if(node != nullptr && node->isReplaced()) {
 			auto r = node->getRenderable();
-			r->setPosition(glm::vec3(static_cast<float>(offset.x)/LayoutEngine::getFixedPointScaleFloat(),
-				static_cast<float>(offset.y)/LayoutEngine::getFixedPointScaleFloat(),
-				0.0f));
-			display_list->addRenderable(r);
+			if(r == nullptr) {
+				LOG_ERROR("No renderable returned for repalced element: " << node->toString());
+			} else {
+				r->setPosition(glm::vec3(static_cast<float>(offset.x)/LayoutEngine::getFixedPointScaleFloat(),
+					static_cast<float>(offset.y)/LayoutEngine::getFixedPointScaleFloat(),
+					0.0f));
+				display_list->addRenderable(r);
+			}
 		}
 	}
 }

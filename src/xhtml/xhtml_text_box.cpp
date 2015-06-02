@@ -53,7 +53,7 @@ namespace xhtml
 		setContentWidth(width);
 
 		const FixedPoint lh = eng.getLineHeight();
-		setContentX(eng.getCursor().x + getMPBLeft());
+		setContentX(eng.getCursor().x + getMBPLeft());
 		setContentY(lh);
 		setContentHeight(lh);
 	}

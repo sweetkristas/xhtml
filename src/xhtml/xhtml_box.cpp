@@ -258,6 +258,8 @@ namespace xhtml
 			ab->render(display_list, point(0, 0));
 		}
 
+		handleEndRender(display_list, offs);
+
 		// set the active rect on any parent node.
 		if(node != nullptr) {
 			auto& dims = getDimensions();

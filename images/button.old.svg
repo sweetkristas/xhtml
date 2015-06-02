@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   version="1.1"
+   width="240"
+   height="100"
+   pointer-events="none">
+  <defs
+     id="defs4">
+    <linearGradient
+       id="linearGradient3159">
+      <stop
+         id="stop3163"
+         style="stop-color:#000000;stop-opacity:0"
+         offset="0">
+	<animate id="a1" attributeName="stop-opacity" values="0;0.5;0" dur="2s" repeatCount="indefinite"/>
+      </stop>
+      <stop
+         id="stop3161"
+         style="stop-color:#000000;stop-opacity:0.5"
+         offset="1" />
+    </linearGradient>
+    <linearGradient
+       id="linearGradient3030">
+      <stop
+         id="stop3032"
+         style="stop-color:#ffffff;stop-opacity:1"
+         offset="0" />
+      <stop
+         id="stop3034"
+         style="stop-color:#ffffff;stop-opacity:0"
+         offset="1" />
+    </linearGradient>
+    <linearGradient
+       x1="120"
+       y1="10"
+       x2="120"
+       y2="50"
+       id="linearGradient3113"
+       xlink:href="#linearGradient3030"
+       gradientUnits="userSpaceOnUse" />
+    <radialGradient
+       cx="120"
+       cy="170"
+       r="100"
+       fx="120"
+       fy="170"
+       id="radialGradient3165"
+       xlink:href="#linearGradient3159"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(0,-0.72727275,2,0,-220,170)" />
+  </defs>
+  <g id="layer1">
+    <rect
+       width="220"
+       height="80"
+       ry="40"
+       x="10"
+       y="10"
+       id="ButtonBase"
+       style="fill:#ff0000;stroke:none">
+      <!--
+      <animate id="aWidth" attributeName="width" from="80" to="220" dur="3s"/>
+      <animate id="aX"     attributeName="x"     from="80" to="10"  dur="3s"/>
+      <animateColor attributeName="fill" values="red;blue;red" dur="12s" repeatCount="indefinite"/>
+      -->
+    </rect>
+    <rect
+       width="220"
+       height="80"
+       ry="40"
+       x="10"
+       y="10"
+       id="ButtonGlow"
+       style="fill:url(#radialGradient3165);stroke:none" />
+    <path
+       d="m 50,15 140,0 c 11.08,0 22.51667,10.914008 20,20 C 208.16563,41.622482 201.08,40 190,40 L 50.00005,40 C 38.92005,40 31.834332,41.622512 30,35 27.483323,25.914009 38.92,15 50,15 z"
+       id="ButtonHighlight"
+       style="fill:url(#linearGradient3113)" />
+  </g>
+</svg>
