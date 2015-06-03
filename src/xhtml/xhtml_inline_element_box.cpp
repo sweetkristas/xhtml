@@ -51,11 +51,6 @@ namespace xhtml
 		setContentWidth(max_w);
 	}
 
-	void InlineElementBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
-	{
-		ASSERT_LOG(false, "XXX InlineElementBox::handleReLayout()");
-	}
-
 	std::string InlineElementBox::toString() const
 	{
 		std::ostringstream ss;

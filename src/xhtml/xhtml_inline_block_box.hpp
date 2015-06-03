@@ -40,7 +40,6 @@ namespace xhtml
 
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
-		void handleReLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		
 		// set if the element is replaceable.
 		bool is_replacable_;

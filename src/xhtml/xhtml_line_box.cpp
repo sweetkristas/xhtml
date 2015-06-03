@@ -52,11 +52,6 @@ namespace xhtml
 		setContentWidth(width);
 	}
 
-	void LineBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
-	{
-		handleLayout(eng, containing);
-	}
-
 	void LineBox::handleRender(DisplayListPtr display_list, const point& offset) const
 	{
 		// do nothing

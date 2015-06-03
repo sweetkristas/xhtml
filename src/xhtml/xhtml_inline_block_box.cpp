@@ -209,11 +209,6 @@ namespace xhtml
 		//}
 	}
 
-	void InlineBlockBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
-	{
-		ASSERT_LOG(false, "XXX InlineBlockBox::handleReLayout()");
-	}
-
 	void InlineBlockBox::handleRender(DisplayListPtr display_list, const point& offset) const
 	{
 		NodePtr node = getNode();

@@ -58,10 +58,6 @@ namespace xhtml
 		setContentHeight(lh);
 	}
 
-	void TextBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
-	{		
-	}
-
 	void TextBox::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
 	{
 		//point offs = offset - point(0, getDimensions().content_.height + getFont()->getDescender());		

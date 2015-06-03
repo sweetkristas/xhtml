@@ -81,6 +81,8 @@ namespace xhtml
 		static float getFixedPointScaleFloat() { return 65536.0f; }
 
 		const point& getOffset();
+
+		BoxPtr getAnonBox() const { return !anon_block_box_.empty() ? anon_block_box_.top() : nullptr; }
 	private:
 		RootBoxPtr root_;
 		Dimensions dims_;

@@ -37,7 +37,6 @@ namespace xhtml
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBackground(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
-		void handleReLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		LinePtr line_;
 		FixedPoint space_advance_;
 	};

@@ -143,11 +143,6 @@ namespace xhtml
 		setContentHeight(content_->getDimensions().content_.height);
 	}
 
-	void ListItemBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
-	{
-		ASSERT_LOG(false, "XXX ListItemBox::handleReLayout()");
-	}
-
 	void ListItemBox::handleRender(DisplayListPtr display_list, const point& offset) const 
 	{
 		auto& ctx = RenderContext::get();

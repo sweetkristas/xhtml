@@ -46,11 +46,6 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void AbsoluteBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
-	{
-		ASSERT_LOG(false, "XXX AbsoluteBox::handleReLayout()");
-	}
-
 	void AbsoluteBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		Rect container = containing.content_;

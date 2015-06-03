@@ -76,7 +76,8 @@ namespace xhtml
 		BoxId id() const { return id_; }
 		const Dimensions& getDimensions() const { return dimensions_; }
 		const std::vector<BoxPtr>& getChildren() const { return boxes_; }
-		bool isBlockBox() const { return id_ == BoxId::BLOCK || id_ == BoxId::LIST_ITEM || id_ == BoxId::TABLE; }
+		bool isBlockBox() const { return id_ == BoxId::BLOCK || id_ == BoxId::LIST_ITEM || id_ == BoxId::TABLE || id_ == BoxId::ANON_BLOCK_BOX; }
+		bool isInit() const { return init_done_; }
 
 		virtual void init();
 
@@ -150,7 +151,6 @@ namespace xhtml
 		static RootBoxPtr createLayout(NodePtr node, int containing_width, int containing_height);
 
 		void layout(LayoutEngine& eng, const Dimensions& containing);
-		void reLayout(LayoutEngine& eng, const Dimensions& containing);
 		virtual std::string toString() const = 0;
 
 		BoxPtr addAbsoluteElement(NodePtr node);
@@ -186,7 +186,6 @@ namespace xhtml
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
-		virtual void handleReLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 		virtual void handleEndRender(DisplayListPtr display_list, const point& offset) const {}
 

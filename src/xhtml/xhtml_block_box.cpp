@@ -163,9 +163,9 @@ namespace xhtml
 					eng.pushOpenBox();
 				}
  				BoxPtr box_child = eng.formatNode(child, shared_from_this(), getDimensions());
-				if(box_child != nullptr) {
-					setContentHeight(box_child->getDimensions().content_.y + box_child->getDimensions().content_.height + box_child->getMBPBottom());
-				}
+				//if(box_child != nullptr) {
+				//	setContentHeight(box_child->getDimensions().content_.y + box_child->getDimensions().content_.height + box_child->getMBPBottom());
+				//}
 				if(getPosition() == CssPosition::FIXED) {
 					eng.closeOpenBox();
 					eng.popOpenBox();
@@ -175,6 +175,16 @@ namespace xhtml
 
 		// close any open boxes.
 		eng.closeOpenBox();
+
+		// horrible ugly kludge.
+		for(auto& child : getChildren()) {
+			if(child->isBlockBox()) {
+				if(child->id() == BoxId::ANON_BLOCK_BOX) {
+					child->layout(eng, getDimensions());
+				}
+				setContentHeight(child->getDimensions().content_.y + child->getDimensions().content_.height + child->getMBPBottom());
+			}
+		}
 
 		FixedPoint width = 0;
 		//bool has_block_box = false;
@@ -218,19 +228,6 @@ namespace xhtml
 		}*/
 	}
 	
-	void BlockBox::reLayoutChildren(LayoutEngine& eng)
-	{
-		for(auto& child : getChildren()) {
-			child->reLayout(eng, getDimensions());
-		}
-
-		FixedPoint width = 0;
-		for(auto& child : getChildren()) {
-			width = std::max(width, child->getDimensions().content_.width + child->getMBPWidth());
-			setContentHeight(child->getDimensions().content_.y + child->getDimensions().content_.height + child->getMBPHeight());
-		}
-	}
-
 	void BlockBox::layoutHeight(const Dimensions& containing)
 	{
 		RenderContext& ctx = RenderContext::get();
@@ -250,11 +247,6 @@ namespace xhtml
 		//		setContentHeight(max_h);
 		//	}
 		//}
-	}
-
-	void BlockBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
-	{
-		reLayoutChildren(eng);
 	}
 
 	void BlockBox::handleRender(DisplayListPtr display_list, const point& offset) const

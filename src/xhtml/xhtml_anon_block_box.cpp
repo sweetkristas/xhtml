@@ -56,9 +56,4 @@ namespace xhtml
 	{
 		// nothing need be done.
 	}
-
-	void AnonBlockBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing)
-	{
-		ASSERT_LOG(false, "AnonBlockBox::handleReLayout");
-	}
 }

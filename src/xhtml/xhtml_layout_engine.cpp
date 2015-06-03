@@ -172,11 +172,14 @@ namespace xhtml
 						}
 						if(node->hasChildBlockBox()) {
 							anon_block_box_.emplace(std::make_shared<AnonBlockBox>(box));
+						} else {
+							anon_block_box_.emplace(nullptr);
 						}
 						box->layout(*this, container);
-						if(node->hasChildBlockBox()) {
-							anon_block_box_.pop();
-						}
+						//if(node->hasChildBlockBox()) {
+						//	anon_block_box_.top()->layout(*this, box->getDimensions());
+						//}
+						anon_block_box_.pop();
 						return box;
 					}
 					case CssDisplay::INLINE_BLOCK: {							
@@ -403,8 +406,19 @@ namespace xhtml
 			pushOpenBox();				
 		}
 		if(open_.top().open_box_ == nullptr) {
-			open_.top().parent_ = parent;
-			open_.top().open_box_ = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
+			auto anon_box = anon_block_box_.top();
+			if(anon_box == nullptr) {
+				open_.top().parent_ = parent;
+				open_.top().open_box_ = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
+			} else {
+				if(!anon_box->isInit()) {
+					parent->addChild(anon_box);
+					cursor_.top().y = 0;
+					cursor_.top().x = 0;
+				}
+				open_.top().parent_ = anon_box;
+				open_.top().open_box_ = anon_box->addChild(std::make_shared<LineBox>(anon_box, nullptr));
+			}
 			open_.top().open_box_->setContentX(getXAtCursor());
 			open_.top().open_box_->setContentY(cursor_.top().y);
 			open_.top().open_box_->setContentWidth(getWidthAtCursor(parent->getDimensions().content_.width));

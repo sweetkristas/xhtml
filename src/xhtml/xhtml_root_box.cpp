@@ -59,11 +59,6 @@ namespace xhtml
 		layoutFixed(eng, containing);
 	}
 
-	void RootBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
-	{
-		ASSERT_LOG(false, "XXX RootBox::handleReLayout()");
-	}
-
 	void RootBox::handleEndRender(DisplayListPtr display_list, const point& offset) const
 	{
 		for(auto& lf : left_floats_) {
