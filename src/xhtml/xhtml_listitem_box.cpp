@@ -26,6 +26,7 @@
 
 #include "xhtml_block_box.hpp"
 #include "xhtml_listitem_box.hpp"
+#include "xhtml_layout_engine.hpp"
 
 namespace xhtml
 {
@@ -60,7 +61,11 @@ namespace xhtml
 	std::string ListItemBox::toString() const 
 	{
 		std::ostringstream ss;
-		ss << "ListItemBox: " << getDimensions().content_ << ", content: " << content_->toString();
+		ss << "ListItemBox: " << getDimensions().content_ << "\n";
+		content_->preOrderTraversal([&ss](BoxPtr box, int n) {
+			std::string indent(n*2, ' ');
+			ss << indent << box->toString() << "\n";
+		}, 2);
 		return ss.str();
 	}
 
@@ -138,6 +143,11 @@ namespace xhtml
 		setContentHeight(content_->getDimensions().content_.height);
 	}
 
+	void ListItemBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
+	{
+		ASSERT_LOG(false, "XXX ListItemBox::handleReLayout()");
+	}
+
 	void ListItemBox::handleRender(DisplayListPtr display_list, const point& offset) const 
 	{
 		auto& ctx = RenderContext::get();
@@ -148,9 +158,9 @@ namespace xhtml
 		// XXX should figure out if there is a cleaner way of doing this, basically we want the list marker to be offset by the 
 		// content's first child's position.
 		auto y = 0;
-		if(content_->getChildren().size() > 0) {
-			y = content_->getChildren().front()->getDimensions().content_.y;
-		}
+		//if(content_->getChildren().size() > 0) {
+		//	y = content_->getChildren().front()->getDimensions().content_.y;
+		//}
 		for(auto& p : path) {
 			new_path.emplace_back(p.x + offset.x - 5 - path_width, p.y + offset.y + y);
 		}

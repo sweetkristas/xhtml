@@ -36,16 +36,16 @@ namespace xhtml
 		explicit LayoutEngine();
 
 		void formatNode(NodePtr node, BoxPtr parent, const point& container);
-		BoxPtr formatNode(NodePtr node, BoxPtr parent, const Dimensions& container, std::function<void(BoxPtr)> pre_layout_fn=nullptr);
+		BoxPtr formatNode(NodePtr node, BoxPtr parent, const Dimensions& container, std::function<void(BoxPtr, bool)> pre_layout_fn=nullptr);
 
-		void layoutInlineElement(NodePtr node, BoxPtr parent, std::function<void(BoxPtr)> pre_layout_fn);
+		void layoutInlineElement(NodePtr node, BoxPtr parent, std::function<void(BoxPtr, bool)> pre_layout_fn);
 
 		std::vector<css::CssBorderStyle> generateBorderStyle();
 		std::vector<KRE::Color> generateBorderColor();
 		std::vector<FixedPoint> generateBorderWidth();
 		std::vector<FixedPoint> generatePadding();
 
-		void layoutInlineText(NodePtr node, BoxPtr parent, std::function<void(BoxPtr)> pre_layout_fn);
+		void layoutInlineText(NodePtr node, BoxPtr parent, std::function<void(BoxPtr, bool)> pre_layout_fn);
 		void pushOpenBox();
 		void popOpenBox();
 
@@ -61,6 +61,7 @@ namespace xhtml
 		
 		const point& getCursor() const;
 		void incrCursor(FixedPoint x);
+		void pushNewCursor();
 
 		FixedPoint getWidthAtCursor(FixedPoint width) const;
 		FixedPoint getXAtCursor() const;
@@ -95,6 +96,8 @@ namespace xhtml
 
 		std::stack<int> list_item_counter_;
 		std::stack<point> offset_;
+		// Additional anonymous block box that may be needed during layout.
+		std::stack<BoxPtr> anon_block_box_;
 	};
 
 }

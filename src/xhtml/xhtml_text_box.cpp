@@ -58,16 +58,19 @@ namespace xhtml
 		setContentHeight(lh);
 	}
 
+	void TextBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
+	{		
+	}
+
 	void TextBox::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
 	{
-		point offs = offset - point(0, getDimensions().content_.height + getFont()->getDescender());
-		
-		Box::handleRenderBackground(display_list, offs);
+		//point offs = offset - point(0, getDimensions().content_.height + getFont()->getDescender());		
+		//Box::handleRenderBackground(display_list, offs);
 	}
 
 	void TextBox::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
 	{
-		point offs = offset - point(0, getDimensions().content_.height + getFont()->getDescender());
+		point offs = offset - point(0, getDimensions().content_.height);
 		Box::handleRenderBorder(display_list, offs);
 	}
 
@@ -76,7 +79,7 @@ namespace xhtml
 		std::vector<point> path;
 		std::string text;
 		int dim_x = offset.x;
-		int dim_y = offset.y;
+		int dim_y = offset.y + getFont()->getDescender();
 		for(auto& word : line_->line) {
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);

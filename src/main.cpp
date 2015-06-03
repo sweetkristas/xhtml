@@ -90,6 +90,11 @@ xhtml::DocumentPtr load_xhtml(const std::string& ua_ss, const std::string& test_
 	// whitespace can only be processed after applying styles.
 	doc->processWhitespace();
 
+	{
+		profile::manager pman_load("pre-process anon blocks");
+		doc->processAnonBoxes();
+	}
+
 	/*doc->preOrderTraversal([](xhtml::NodePtr n) {
 		LOG_DEBUG(n->toString());
 		return true;

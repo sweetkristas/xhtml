@@ -27,10 +27,10 @@
 
 namespace xhtml
 {
-	class InlineElementBox : public Box
+	class AnonBlockBox : public Box
 	{
 	public:
-		InlineElementBox(BoxPtr parent, NodePtr node);
+		AnonBlockBox(BoxPtr parent);
 		std::string toString() const override;
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;

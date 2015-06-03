@@ -22,6 +22,7 @@
 */
 
 #include "xhtml_layout_engine.hpp"
+#include "xhtml_anon_block_box.hpp"
 #include "xhtml_block_box.hpp"
 #include "xhtml_inline_block_box.hpp"
 #include "xhtml_listitem_box.hpp"
@@ -80,11 +81,13 @@ namespace xhtml
 			cursor_(),
 			open_(), 
 			list_item_counter_(),
-			offset_()
+			offset_(),
+			anon_block_box_()
 	{
 		cursor_.emplace(0, 0);
 		list_item_counter_.emplace(0);
 		offset_.emplace(point());
+		anon_block_box_.emplace(nullptr);
 	}
 
 	void LayoutEngine::formatNode(NodePtr node, BoxPtr parent, const point& container) 
@@ -100,7 +103,7 @@ namespace xhtml
 		}
 	}
 
-	BoxPtr LayoutEngine::formatNode(NodePtr node, BoxPtr parent, const Dimensions& container, std::function<void(BoxPtr)> pre_layout_fn) 
+	BoxPtr LayoutEngine::formatNode(NodePtr node, BoxPtr parent, const Dimensions& container, std::function<void(BoxPtr, bool)> pre_layout_fn) 
 	{
 		StackManager<point> offset_manager(offset_, offset_.top() + point(parent->getDimensions().content_.x, parent->getDimensions().content_.y));
 
@@ -161,29 +164,40 @@ namespace xhtml
 					}
 					case CssDisplay::BLOCK: {
 						closeOpenBox();
-						cursor_.emplace(point());
+						cursor_.top().x = 0;
+						cursor_.top().y = 0;
 						auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
 						if(pre_layout_fn) {
-							pre_layout_fn(box);
+							pre_layout_fn(box, false);
+						}
+						if(node->hasChildBlockBox()) {
+							anon_block_box_.emplace(std::make_shared<AnonBlockBox>(box));
 						}
 						box->layout(*this, container);
+						if(node->hasChildBlockBox()) {
+							anon_block_box_.pop();
+						}
 						return box;
 					}
 					case CssDisplay::INLINE_BLOCK: {							
 						BoxPtr open = getOpenBox(parent);
+						pushNewCursor();
 						auto box = open->addChild(std::make_shared<InlineBlockBox>(open, node));
 						if(pre_layout_fn) {
-							pre_layout_fn(box);
+							pre_layout_fn(box, false);
 						}
 						box->layout(*this, container);
+						cursor_.pop();
 						return box;
 					}
 					case CssDisplay::LIST_ITEM: {
 						auto box = parent->addChild(std::make_shared<ListItemBox>(parent, node, list_item_counter_.top()));
 						if(pre_layout_fn) {
-							pre_layout_fn(box);
+							pre_layout_fn(box, false);
 						}
 						box->layout(*this, container);
+						cursor_.top().y = box->getMBPHeight() + box->getDimensions().content_.height;
+						cursor_.top().x = 0;
 						return nullptr;
 					}
 					case CssDisplay::TABLE:
@@ -213,7 +227,7 @@ namespace xhtml
 		return nullptr;
 	}
 
-	void LayoutEngine::layoutInlineElement(NodePtr node, BoxPtr parent, std::function<void(BoxPtr)> pre_layout_fn) 
+	void LayoutEngine::layoutInlineElement(NodePtr node, BoxPtr parent, std::function<void(BoxPtr, bool)> pre_layout_fn) 
 	{
 		if(node->isReplaced()) {
 			BoxPtr open = getOpenBox(parent);
@@ -221,7 +235,7 @@ namespace xhtml
 			auto inline_element_box = open->addInlineElement(node);
 			pushOpenBox();
 			if(pre_layout_fn) {
-				pre_layout_fn(inline_element_box);
+				pre_layout_fn(inline_element_box, false);
 			}
 			inline_element_box->layout(*this, open->getDimensions());
 			popOpenBox();
@@ -243,7 +257,7 @@ namespace xhtml
 			for(auto it = first; it != node->getChildren().cend(); ++it) {
 				auto& child = *it;
 				bool is_last = it == last;
-				formatNode(child, parent, parent->getDimensions(), [&border_color, &border_style, &padding, &border_width, &is_first, is_last](BoxPtr box) {
+				formatNode(child, parent, parent->getDimensions(), [&border_color, &border_style, &padding, &border_width, &is_first, is_last](BoxPtr box, bool last) {
 					if(is_first) {
 						is_first = false;
 						box->setPaddingLeft(padding[1]);
@@ -251,7 +265,7 @@ namespace xhtml
 						box->getBorderInfo().setBorderStyleLeft(border_style[1]);
 						box->getBorderInfo().setBorderColorLeft(border_color[1]);
 					}
-					if(is_last) {
+					if(is_last && last) {
 						box->setBorderRight(border_width[3]);
 						box->setPaddingRight(padding[3]);
 						box->getBorderInfo().setBorderStyleRight(border_style[3]);
@@ -267,6 +281,12 @@ namespace xhtml
 			}
 			
 		}
+	}
+
+	void LayoutEngine::pushNewCursor()
+	{
+		cursor_.emplace(point());
+		cursor_.top().x = 0;
 	}
 
 	std::vector<CssBorderStyle> LayoutEngine::generateBorderStyle() 
@@ -313,7 +333,7 @@ namespace xhtml
 		return res;
 	}
 
-	void LayoutEngine::layoutInlineText(NodePtr node, BoxPtr parent, std::function<void(BoxPtr)> pre_layout_fn) 
+	void LayoutEngine::layoutInlineText(NodePtr node, BoxPtr parent, std::function<void(BoxPtr, bool)> pre_layout_fn) 
 	{
 		TextPtr tnode = std::dynamic_pointer_cast<Text>(node);
 		ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
@@ -338,26 +358,30 @@ namespace xhtml
 				// is the line larger than available space and are there floats present?
 				if(line->line.back().advance.back().x > width && hasFloatsAtCursor()) {
 					cursor_.top().y += lh;
-					cursor_.top().x = getXAtCursor();
+					cursor_.top().x = 0;
+					open_.top().open_box_->setContentX(getXAtCursor());
+					open_.top().open_box_->setContentY(cursor_.top().y);
 					it = saved_it;
+					width = getWidthAtCursor(parent->getDimensions().content_.width) - cursor_.top().x;
 					continue;
 				}
 
 				auto txt = std::make_shared<TextBox>(open, line);
 				open->addChild(txt);
 				if(pre_layout_fn) {
-					pre_layout_fn(txt);
+					pre_layout_fn(txt, it == tnode->end());
 				}
-				txt->layout(*this, parent->getDimensions());
+				txt->layout(*this, open->getDimensions());
 				FixedPoint x_inc = txt->getDimensions().content_.width + txt->getMBPWidth();
 				cursor_.top().x += x_inc;
 				width -= x_inc;
 			}
 			
 			if((line != nullptr && line->is_end_line) || width < 0) {
+				BoxPtr box = open_.top().open_box_;
 				closeOpenBox();
-				cursor_.top().y += lh;
-				cursor_.top().x = getXAtCursor();
+				cursor_.top().y += box->getDimensions().content_.height;
+				cursor_.top().x = 0;				
 				open = getOpenBox(parent);
 				width = getWidthAtCursor(parent->getDimensions().content_.width);
 			}
@@ -413,7 +437,7 @@ namespace xhtml
 
 	FixedPoint LayoutEngine::getDescent() const 
 	{
-		return ctx_.getFontHandle()->getDescender() * (getFixedPointScale() / 64);
+		return ctx_.getFontHandle()->getDescender();
 	}
 
 	const point& LayoutEngine::getCursor() const 

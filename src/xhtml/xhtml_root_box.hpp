@@ -44,6 +44,7 @@ namespace xhtml
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleEndRender(DisplayListPtr display_list, const point& offset) const override;
+		void handleReLayout(LayoutEngine& eng, const Dimensions& containing) override;
 
 		std::vector<BoxPtr> fixed_boxes_;
 		std::vector<BoxPtr> left_floats_;

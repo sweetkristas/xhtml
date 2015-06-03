@@ -178,6 +178,11 @@ namespace xhtml
 		border_info_.init(dimensions_);
 	}
 
+	void Box::reLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
+		handleReLayout(eng, containing);
+	}
+
 	BoxPtr Box::addInlineElement(NodePtr node)
 	{
 		ASSERT_LOG(id() == BoxId::LINE, "Tried to add inline element to non-line box.");

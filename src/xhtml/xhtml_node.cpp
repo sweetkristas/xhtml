@@ -60,7 +60,10 @@ namespace xhtml
 		  properties_(),
 		  pclass_(css::PseudoClass::NONE),
 		  active_pclass_(css::PseudoClass::NONE),
-		  active_rect_()
+		  active_rect_(),
+		  dimensions_(),
+		  has_child_block_boxes_(false),
+		  is_block_box_(false)
 	{
 	}
 
@@ -152,6 +155,32 @@ namespace xhtml
 			return false;
 		}
 		return true;
+	}
+
+	// Pre-compute any nodes which have child block boxes for which we need to add an anonymous block boxes
+	// during layout.
+	void Node::processAnonBoxes()
+	{
+		std::unique_ptr<RenderContext::Manager> ctx_manager = nullptr;
+
+		if(id_ == NodeId::ELEMENT) {
+			ctx_manager.reset(new RenderContext::Manager(getProperties()));
+			RenderContext& ctx = RenderContext::get();
+			const css::CssDisplay display = ctx.getComputedValue(css::Property::DISPLAY).getValue<css::CssDisplay>();
+			const css::CssFloat cfloat = ctx.getComputedValue(css::Property::FLOAT).getValue<css::CssFloat>();
+			const css::CssPosition position = ctx.getComputedValue(css::Property::POSITION).getValue<css::CssPosition>();
+			if(cfloat == css::CssFloat::NONE 
+				&& (position == css::CssPosition::STATIC || position == css::CssPosition::RELATIVE) 
+				&& (display == css::CssDisplay::BLOCK || display == css::CssDisplay::LIST_ITEM || display == css::CssDisplay::TABLE)) {
+				is_block_box_ = true;
+			}
+		}
+		for(auto& c : children_) {
+			c->processAnonBoxes();
+			if(c->isBlockBox()) {
+				has_child_block_boxes_ = true;
+			}
+		}
 	}
 
 	bool Node::ancestralTraverse(std::function<bool(NodePtr)> fn)

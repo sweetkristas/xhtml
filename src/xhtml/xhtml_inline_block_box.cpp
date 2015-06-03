@@ -168,7 +168,7 @@ namespace xhtml
 			}
 		}
 
-		FixedPoint width = 0;
+		FixedPoint width = getDimensions().content_.width;
 		for(auto& child : getChildren()) {
 			width = std::max(width, child->getDimensions().content_.width + child->getMBPWidth());
 			setContentHeight(child->getDimensions().content_.y + child->getDimensions().content_.height + child->getMBPHeight());
@@ -207,6 +207,11 @@ namespace xhtml
 		//		setContentHeight(max_h);
 		//	}
 		//}
+	}
+
+	void InlineBlockBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
+	{
+		ASSERT_LOG(false, "XXX InlineBlockBox::handleReLayout()");
 	}
 
 	void InlineBlockBox::handleRender(DisplayListPtr display_list, const point& offset) const

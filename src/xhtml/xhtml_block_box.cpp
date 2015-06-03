@@ -37,6 +37,10 @@ namespace xhtml
 	{
 		std::ostringstream ss;
 		ss << "BlockBox: " << getDimensions().content_;
+		auto node = getNode();
+		if(node != nullptr) {
+			ss << " has child block boxes: " << (node->hasChildBlockBox() ? "yes" : "no");
+		}
 		return ss.str();
 	}
 
@@ -137,7 +141,6 @@ namespace xhtml
 
 		calculateVertMPB(containing_height);
 
-		// inline-block boxes don't have there X/Y set here.
 		setContentX(getMBPLeft());
 		setContentY(containing.content_.height + getMBPTop());
 
@@ -174,6 +177,54 @@ namespace xhtml
 		eng.closeOpenBox();
 
 		FixedPoint width = 0;
+		//bool has_block_box = false;
+		for(auto& child : getChildren()) {
+			width = std::max(width, child->getDimensions().content_.width + child->getMBPWidth());
+			setContentHeight(child->getDimensions().content_.y + child->getDimensions().content_.height + child->getMBPHeight());
+
+			/*if(child->isBlockBox()) {
+				has_block_box = true;
+			}*/
+		}
+
+		/*if(has_block_box) {
+			//  if a block container box has a block-level box inside it, then we force it to have only block-level boxes inside it.
+			// e.g. <div>Some Text<p>More Text</p></div> then the "Some Text" shall be wrapped in a block box.
+			std::vector<BoxPtr> children = getChildren();
+			getChildren().clear();
+			std::shared_ptr<BlockBox> open = nullptr;
+			for(auto child : children) {
+				if(child->isBlockBox()) {
+					if(open != nullptr) {
+						getChildren().emplace_back(open);
+						open.reset();
+					}
+					getChildren().emplace_back(child);
+				} else {
+					if(open == nullptr) {
+						open = std::make_shared<BlockBox>(shared_from_this(), nullptr);
+						open->init();
+					}
+					open->getChildren().emplace_back(child);
+				}
+			}
+			if(open != nullptr) {
+				getChildren().emplace_back(open);
+			}
+
+			for(auto& child : getChildren()) {
+				child->reLayout(eng, getDimensions());
+			}
+		}*/
+	}
+	
+	void BlockBox::reLayoutChildren(LayoutEngine& eng)
+	{
+		for(auto& child : getChildren()) {
+			child->reLayout(eng, getDimensions());
+		}
+
+		FixedPoint width = 0;
 		for(auto& child : getChildren()) {
 			width = std::max(width, child->getDimensions().content_.width + child->getMBPWidth());
 			setContentHeight(child->getDimensions().content_.y + child->getDimensions().content_.height + child->getMBPHeight());
@@ -199,6 +250,11 @@ namespace xhtml
 		//		setContentHeight(max_h);
 		//	}
 		//}
+	}
+
+	void BlockBox::handleReLayout(LayoutEngine& eng, const Dimensions& containing) 
+	{
+		reLayoutChildren(eng);
 	}
 
 	void BlockBox::handleRender(DisplayListPtr display_list, const point& offset) const

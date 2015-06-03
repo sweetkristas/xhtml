@@ -35,6 +35,7 @@ namespace xhtml
 		std::string toString() const override;
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void handleReLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
 	};
