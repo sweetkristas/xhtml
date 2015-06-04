@@ -157,7 +157,7 @@ namespace xhtml
 		BoxPtr addInlineElement(NodePtr node);
 		void layoutAbsolute(LayoutEngine& eng, const Dimensions& containing);
 		
-		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); box->init(); return box; }
+		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); box->setParent(shared_from_this()); box->init(); return box; }
 
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
 		bool ancestralTraverse(std::function<bool(const ConstBoxPtr&)> fn) const;
@@ -188,6 +188,7 @@ namespace xhtml
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 		virtual void handleEndRender(DisplayListPtr display_list, const point& offset) const {}
+		void setParent(BoxPtr parent) { parent_ = parent; }
 
 		BoxId id_;
 		WeakNodePtr node_;

@@ -60,8 +60,8 @@ namespace xhtml
 
 	void TextBox::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
 	{
-		//point offs = offset - point(0, getDimensions().content_.height + getFont()->getDescender());		
-		//Box::handleRenderBackground(display_list, offs);
+		point offs = offset - point(0, getDimensions().content_.height);
+		Box::handleRenderBackground(display_list, offs);
 	}
 
 	void TextBox::handleRenderBorder(DisplayListPtr display_list, const point& offset) const

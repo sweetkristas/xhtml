@@ -176,29 +176,35 @@ namespace xhtml
 							anon_block_box_.emplace(nullptr);
 						}
 						box->layout(*this, container);
-						//if(node->hasChildBlockBox()) {
-						//	anon_block_box_.top()->layout(*this, box->getDimensions());
-						//}
 						anon_block_box_.pop();
 						return box;
 					}
 					case CssDisplay::INLINE_BLOCK: {							
-						BoxPtr open = getOpenBox(parent);
-						pushNewCursor();
-						auto box = open->addChild(std::make_shared<InlineBlockBox>(open, node));
+						auto ibox = std::make_shared<InlineBlockBox>(nullptr, node);
+						ibox->init();
 						if(pre_layout_fn) {
-							pre_layout_fn(box, false);
+							pre_layout_fn(ibox, false);
 						}
-						box->layout(*this, container);
-						cursor_.pop();
-						return box;
+						ibox->layout(*this, container);
+						if(ibox->getDimensions().content_.width + ibox->getMBPWidth() >= getWidthAtCursor(container.content_.width)) {
+							closeOpenBox();
+						}
+						BoxPtr open = getOpenBox(parent);
+						open->addChild(ibox);
+						return anon_block_box_.top();
 					}
 					case CssDisplay::LIST_ITEM: {
 						auto box = parent->addChild(std::make_shared<ListItemBox>(parent, node, list_item_counter_.top()));
 						if(pre_layout_fn) {
 							pre_layout_fn(box, false);
 						}
+						if(node->hasChildBlockBox()) {
+							anon_block_box_.emplace(std::make_shared<AnonBlockBox>(box));
+						} else {
+							anon_block_box_.emplace(nullptr);
+						}
 						box->layout(*this, container);
+						anon_block_box_.pop();
 						cursor_.top().y = box->getMBPHeight() + box->getDimensions().content_.height;
 						cursor_.top().x = 0;
 						return nullptr;
@@ -223,7 +229,7 @@ namespace xhtml
 		} else if(node->id() == NodeId::TEXT) {
 			// these nodes are inline/static by definition.
 			layoutInlineText(node, parent, pre_layout_fn);
-			return nullptr;
+			return anon_block_box_.top();
 		} else {
 			ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(node->id()));
 		}
@@ -290,6 +296,11 @@ namespace xhtml
 	{
 		cursor_.emplace(point());
 		cursor_.top().x = 0;
+	}
+
+	void LayoutEngine::popCursor()
+	{
+		cursor_.pop();
 	}
 
 	std::vector<CssBorderStyle> LayoutEngine::generateBorderStyle() 

@@ -78,6 +78,9 @@ namespace xhtml
 
 	void Box::init()
 	{
+		if(init_done_) {
+			return;
+		}
 		RenderContext& ctx = RenderContext::get();
 		color_ = ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute();
 

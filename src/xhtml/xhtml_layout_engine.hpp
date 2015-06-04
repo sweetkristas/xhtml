@@ -62,6 +62,7 @@ namespace xhtml
 		const point& getCursor() const;
 		void incrCursor(FixedPoint x);
 		void pushNewCursor();
+		void popCursor();
 
 		FixedPoint getWidthAtCursor(FixedPoint width) const;
 		FixedPoint getXAtCursor() const;

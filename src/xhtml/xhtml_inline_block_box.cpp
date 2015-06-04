@@ -74,8 +74,8 @@ namespace xhtml
 			layoutChildren(eng);
 		} else {
 			layoutWidth(containing);
-			layoutPosition(eng, containing);
 			layoutChildren(eng);
+			layoutPosition(eng, containing);
 			layoutHeight(containing);
 		}
 	}
@@ -144,10 +144,16 @@ namespace xhtml
 		calculateVertMPB(containing_height);
 
 		//eng.moveCursorToFitWidth(getDimensions().content_.width + getMBPWidth(), containing.content_.width);
-		setContentX(eng.getCursor().x);
+		if(getDimensions().content_.width >= containing.content_.width) {
+			setContentX(0);
+			setContentY(eng.getLineHeight());
+		} else {
+			//setContentX(eng.getCursor().x);
+			setContentY(0);
+			setContentX(0);
+		}
 		// 0 aligns the top of the box with the baseline,
 		// setting to negative height aligns the bottom of the box with the baseline.
-		setContentY(0/*-getDimensions().content_.height*/);
 		//eng.incrCursor(getDimensions().content_.width + getMBPWidth());
 	}
 
@@ -155,17 +161,22 @@ namespace xhtml
 	{
 		NodePtr node = getNode();
 		if(node != nullptr) {
+			eng.pushNewCursor();
 			for(auto& child : node->getChildren()) {
 				eng.pushOpenBox();
  				
 				BoxPtr box_child = eng.formatNode(child, shared_from_this(), getDimensions());
 				if(box_child != nullptr) {
+					if(box_child->id() == BoxId::ANON_BLOCK_BOX) {
+						box_child->layout(eng, getDimensions());
+					}
 					setContentHeight(box_child->getDimensions().content_.y + box_child->getDimensions().content_.height + box_child->getMBPBottom());
 				}
 
 				eng.closeOpenBox();
 				eng.popOpenBox();
 			}
+			eng.popCursor();
 		}
 
 		FixedPoint width = getDimensions().content_.width;
