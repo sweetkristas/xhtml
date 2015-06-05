@@ -76,13 +76,13 @@ namespace xhtml
 		BoxId id() const { return id_; }
 		const Dimensions& getDimensions() const { return dimensions_; }
 		const std::vector<BoxPtr>& getChildren() const { return boxes_; }
+		const std::vector<BoxPtr>& getChildrenConst() const { return boxes_; }
 		bool isBlockBox() const { return id_ == BoxId::BLOCK || id_ == BoxId::LIST_ITEM || id_ == BoxId::TABLE || id_ == BoxId::ANON_BLOCK_BOX; }
-		bool isInit() const { return init_done_; }
-
-		virtual void init();
 
 		NodePtr getNode() const { return node_.lock(); }
 		BoxPtr getParent() const { return parent_.lock(); }
+
+		void addChild(BoxPtr box) { boxes_.emplace_back(box); }
 
 		void setContentRect(const Rect& r) { dimensions_.content_ = r; }
 		void setContentX(FixedPoint x) { dimensions_.content_.x = x; }
@@ -111,6 +111,12 @@ namespace xhtml
 
 		void calculateVertMPB(FixedPoint containing_height);
 		void calculateHorzMPB(FixedPoint containing_width);
+
+		// These all refer to the content parameters
+		FixedPoint getLeft() const { return dimensions_.content_.x; }
+		FixedPoint getTop() const { return dimensions_.content_.y; }
+		FixedPoint getWidth() const { return dimensions_.content_.width; }
+		FixedPoint getHeight() const { return dimensions_.content_.height; }
 
 		FixedPoint getMBPWidth() { 
 			return dimensions_.margin_.left + dimensions_.margin_.right
@@ -153,12 +159,9 @@ namespace xhtml
 		void layout(LayoutEngine& eng, const Dimensions& containing);
 		virtual std::string toString() const = 0;
 
-		BoxPtr addAbsoluteElement(NodePtr node);
-		BoxPtr addInlineElement(NodePtr node);
+		void addAbsoluteElement(BoxPtr abs);
 		void layoutAbsolute(LayoutEngine& eng, const Dimensions& containing);
 		
-		BoxPtr addChild(BoxPtr box) { boxes_.emplace_back(box); box->setParent(shared_from_this()); box->init(); return box; }
-
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
 		bool ancestralTraverse(std::function<bool(const ConstBoxPtr&)> fn) const;
 
@@ -168,8 +171,10 @@ namespace xhtml
 		void render(DisplayListPtr display_list, const point& offset) const;
 		KRE::FontHandlePtr getFont() const { return font_handle_; }
 
-		const css::Width& getCssLeft() const { return css_left_; }
-		const css::Width& getCssTop() const { return css_top_; }
+		const css::Width& getCssLeft() const { return css_sides_[1]; }
+		const css::Width& getCssTop() const { return css_sides_[0]; }
+		const css::Width& getCssRight() const { return css_sides_[3]; }
+		const css::Width& getCssBottom() const { return css_sides_[2]; }
 		const css::Width& getCssWidth() const { return css_width_; }
 		const css::Width& getCssHeight() const { return css_height_; }
 		const css::Width& getCssMargin(css::Side n) const { return margin_[static_cast<int>(n)]; }
@@ -177,18 +182,26 @@ namespace xhtml
 		const css::Length& getCssPadding(css::Side n) const { return padding_[static_cast<int>(n)]; }
 		const KRE::Color& getColor() const { return color_; }
 
+		css::CssVerticalAlign getVerticalAlign() const { return vertical_align_; }
+		css::CssTextAlign getTextAlign() const { return text_align_; }
+
 		BorderInfo& getBorderInfo() { return border_info_; }
 		const BorderInfo& getBorderInfo() const { return border_info_; }
 
+		virtual FixedPoint getBaselineOffset() const { return dimensions_.content_.height; }
+		virtual FixedPoint getBottomOffset() const { return dimensions_.content_.height; }
 	protected:
 		std::vector<BoxPtr>& getChildren() { return boxes_; }
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
+		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 		virtual void handleEndRender(DisplayListPtr display_list, const point& offset) const {}
+
 		void setParent(BoxPtr parent) { parent_ = parent; }
+		void init();
 
 		BoxId id_;
 		WeakNodePtr node_;
@@ -209,11 +222,9 @@ namespace xhtml
 
 		KRE::Color color_;
 
-		css::Width css_left_;
-		css::Width css_top_;
+		std::array<css::Width, 4> css_sides_;
 		css::Width css_width_;
 		css::Width css_height_;
-		bool init_done_;
 		css::CssClear float_clear_;
 		css::CssVerticalAlign vertical_align_;
 		css::CssTextAlign text_align_;

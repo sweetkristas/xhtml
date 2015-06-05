@@ -28,6 +28,7 @@
 #include "xhtml_box.hpp"
 #include "xhtml_inline_element_box.hpp"
 #include "xhtml_layout_engine.hpp"
+#include "xhtml_line_box.hpp"
 
 namespace xhtml
 {
@@ -65,22 +66,18 @@ namespace xhtml
 		  border_{},
 		  margin_{},
 		  color_(),
-		  css_left_(),
-		  css_top_(),
+		  css_sides_(),
 		  css_width_(),
 		  css_height_(),
-		  init_done_(id_ == BoxId::LINE || id_ == BoxId::TEXT ? true : false),
 		  float_clear_(CssClear::NONE),
 		  vertical_align_(CssVerticalAlign::BASELINE),
 		  text_align_(CssTextAlign::NORMAL)
 	{
+		init();
 	}
 
 	void Box::init()
 	{
-		if(init_done_) {
-			return;
-		}
 		RenderContext& ctx = RenderContext::get();
 		color_ = ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute();
 
@@ -104,14 +101,15 @@ namespace xhtml
 			margin_[n] = ctx.getComputedValue(m[n]).getValue<Width>();
 		}
 
-		css_left_ = ctx.getComputedValue(Property::LEFT).getValue<Width>();
-		css_top_ = ctx.getComputedValue(Property::TOP).getValue<Width>();
+		css_sides_[0] = ctx.getComputedValue(Property::TOP).getValue<Width>();
+		css_sides_[1] = ctx.getComputedValue(Property::LEFT).getValue<Width>();
+		css_sides_[2] = ctx.getComputedValue(Property::BOTTOM).getValue<Width>();
+		css_sides_[3] = ctx.getComputedValue(Property::RIGHT).getValue<Width>();
+
 		css_width_ = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
 		css_height_ = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
 
 		float_clear_ = ctx.getComputedValue(Property::CLEAR).getValue<css::Clear>().clr_;
-
-		init_done_ = true;
 	}
 
 	RootBoxPtr Box::createLayout(NodePtr node, int containing_width, int containing_height)
@@ -120,7 +118,7 @@ namespace xhtml
 		// search for the body element then render that content.
 		node->preOrderTraversal([&e, containing_width, containing_height](NodePtr node){
 			if(node->id() == NodeId::ELEMENT && node->hasTag(ElementId::BODY)) {
-				e.formatNode(node, nullptr, point(containing_width * LayoutEngine::getFixedPointScale(), containing_height * LayoutEngine::getFixedPointScale()));
+				e.layoutRoot(node, nullptr, point(containing_width * LayoutEngine::getFixedPointScale(), containing_height * LayoutEngine::getFixedPointScale()));
 				return false;
 			}
 			return true;
@@ -153,11 +151,9 @@ namespace xhtml
 		}
 	}
 
-	BoxPtr Box::addAbsoluteElement(NodePtr node)
+	void Box::addAbsoluteElement(BoxPtr abs_box)
 	{
-		absolute_boxes_.emplace_back(std::make_shared<AbsoluteBox>(shared_from_this(), node));
-		absolute_boxes_.back()->init();
-		return absolute_boxes_.back();
+		absolute_boxes_.emplace_back(abs_box);
 	}
 
 	void Box::layoutAbsolute(LayoutEngine& eng, const Dimensions& containing)
@@ -169,24 +165,26 @@ namespace xhtml
 
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		ASSERT_LOG(init_done_, "init() wasn't called before layout -- this is super bad and a serious programming bug.");
-
-		// If we have a clear flag set, then mvoe the cursor in the layout engine to clear appropriate floats.
+		// If we have a clear flag set, then move the cursor in the layout engine to clear appropriate floats.
 		eng.moveCursorToClearFloats(float_clear_);
 
+		if(getNode() != nullptr) {
+			handlePreChildLayout(eng, containing);
+			LineBoxPtr open = nullptr;
+			boxes_ = eng.layoutChildren(getNode()->getChildren(), shared_from_this(), open);
+			if(open != nullptr && !open->boxes_.empty()) {
+				boxes_.emplace_back(open);
+			}
+			for(auto& child : boxes_) {
+				child->layout(eng, getDimensions());
+			}
+		}
+		
 		handleLayout(eng, containing);
 		layoutAbsolute(eng, containing);
 
 		// need to call this after doing layout, since we need to now what the computed padding/border values are.
 		border_info_.init(dimensions_);
-	}
-
-	BoxPtr Box::addInlineElement(NodePtr node)
-	{
-		ASSERT_LOG(id() == BoxId::LINE, "Tried to add inline element to non-line box.");
-		boxes_.emplace_back(std::make_shared<InlineElementBox>(shared_from_this(), node));
-		boxes_.back()->init();
-		return boxes_.back();
 	}
 
 	point Box::getOffset() const

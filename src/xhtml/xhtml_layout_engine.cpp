@@ -22,9 +22,11 @@
 */
 
 #include "xhtml_layout_engine.hpp"
+#include "xhtml_absolute_box.hpp"
 #include "xhtml_anon_block_box.hpp"
 #include "xhtml_block_box.hpp"
 #include "xhtml_inline_block_box.hpp"
+#include "xhtml_inline_element_box.hpp"
 #include "xhtml_listitem_box.hpp"
 #include "xhtml_line_box.hpp"
 #include "xhtml_root_box.hpp"
@@ -76,377 +78,171 @@ namespace xhtml
 	// XXX We're not handling text alignment or justification yet.
 	LayoutEngine::LayoutEngine() 
 		: root_(nullptr), 
-			dims_(), 
-			ctx_(RenderContext::get()), 
-			cursor_(),
-			open_(), 
-			list_item_counter_(),
-			offset_(),
-			anon_block_box_()
+		  dims_(), 
+		  ctx_(RenderContext::get()), 
+		  cursor_(),
+		  list_item_counter_(),
+		  offset_()
 	{
-		cursor_.emplace(0, 0);
 		list_item_counter_.emplace(0);
 		offset_.emplace(point());
-		anon_block_box_.emplace(nullptr);
 	}
 
-	void LayoutEngine::formatNode(NodePtr node, BoxPtr parent, const point& container) 
+	void LayoutEngine::layoutRoot(NodePtr node, BoxPtr parent, const point& container) 
 	{
 		if(root_ == nullptr) {
 			RenderContext::Manager ctx_manager(node->getProperties());
 
 			root_ = std::make_shared<RootBox>(nullptr, node);
-			root_->init();
 			dims_.content_ = Rect(0, 0, container.x, 0);
 			root_->layout(*this, dims_);
 			return;
 		}
 	}
-
-	BoxPtr LayoutEngine::formatNode(NodePtr node, BoxPtr parent, const Dimensions& container, std::function<void(BoxPtr, bool)> pre_layout_fn) 
+	
+	std::vector<BoxPtr> LayoutEngine::layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box)
 	{
-		StackManager<point> offset_manager(offset_, offset_.top() + point(parent->getDimensions().content_.x, parent->getDimensions().content_.y));
+		StackManager<point> offset_manager(offset_, point(parent->getLeft(), parent->getTop()));
 
-		if(node->id() == NodeId::ELEMENT) {
-			RenderContext::Manager ctx_manager(node->getProperties());
+		std::vector<BoxPtr> res;
+		BoxPtr open_anon_box = nullptr;
+		for(auto& child : children) {
+			if(child->id() == NodeId::ELEMENT) {
+				RenderContext::Manager ctx_manager(child->getProperties());
 
-			std::unique_ptr<StackManager<int>> li_manager;
-			if(node->hasTag(ElementId::UL) || node->hasTag(ElementId::OL)) {
-				li_manager.reset(new StackManager<int>(list_item_counter_, 0));
-			}
-			if(node->hasTag(ElementId::LI) ) {
-				auto &top = list_item_counter_.top();
-				++top;
-			}
-
-			const CssDisplay display = ctx_.getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
-			const CssFloat cfloat = ctx_.getComputedValue(Property::FLOAT).getValue<CssFloat>();
-			const CssPosition position = ctx_.getComputedValue(Property::POSITION).getValue<CssPosition>();
-
-			if(display == CssDisplay::NONE) {
-				// Do not create a box for this or it's children
-				// early return
-				return nullptr;
-			}
-
-			if(position == CssPosition::ABSOLUTE) {
-				// absolute positioned elements are taken out of the normal document flow
-				parent->addAbsoluteElement(node);
-				return nullptr;
-			} else if(position == CssPosition::FIXED) {
-				// fixed positioned elements are taken out of the normal document flow
-				root_->addFixedElement(node);
-				return nullptr;
-			} else {
-				if(cfloat != CssFloat::NONE) {
-					bool saved_open = false;
-					if(isOpenBox()) {
-						saved_open = true;
-						pushOpenBox();
-					}
-					// XXX need to add an offset to position for the float box based on body margin.
-					// XXX if the current display is one of the CssDisplay::TABLE* styles then this should be
-					// a table box rather than a block box.
-					root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, node), cfloat, parent->getDimensions().content_.y + cursor_.top().y);
-					if(saved_open) {
-						popOpenBox();
-						open_.top().open_box_->setContentX(open_.top().open_box_->getDimensions().content_.x + getXAtCursor());
-					}
-					return nullptr;
+				// Adjust counters for list items as needed
+				std::unique_ptr<StackManager<int>> li_manager;
+				if(child->hasTag(ElementId::UL) || child->hasTag(ElementId::OL)) {
+					li_manager.reset(new StackManager<int>(list_item_counter_, 0));
 				}
-				switch(display) {
-					case CssDisplay::NONE:
-						// Do not create a box for this or it's children
-						return nullptr;
-					case CssDisplay::INLINE: {
-						layoutInlineElement(node, parent, pre_layout_fn);
-						return nullptr;
-					}
-					case CssDisplay::BLOCK: {
-						closeOpenBox();
-						cursor_.top().x = 0;
-						cursor_.top().y = 0;
-						auto box = parent->addChild(std::make_shared<BlockBox>(parent, node));
-						if(pre_layout_fn) {
-							pre_layout_fn(box, false);
-						}
-						if(node->hasChildBlockBox()) {
-							anon_block_box_.emplace(std::make_shared<AnonBlockBox>(box));
-						} else {
-							anon_block_box_.emplace(nullptr);
-						}
-						box->layout(*this, container);
-						anon_block_box_.pop();
-						return box;
-					}
-					case CssDisplay::INLINE_BLOCK: {							
-						auto ibox = std::make_shared<InlineBlockBox>(nullptr, node);
-						ibox->init();
-						if(pre_layout_fn) {
-							pre_layout_fn(ibox, false);
-						}
-						ibox->layout(*this, container);
-						if(ibox->getDimensions().content_.width + ibox->getMBPWidth() >= getWidthAtCursor(container.content_.width)) {
-							closeOpenBox();
-						}
-						BoxPtr open = getOpenBox(parent);
-						open->addChild(ibox);
-						return anon_block_box_.top();
-					}
-					case CssDisplay::LIST_ITEM: {
-						auto box = parent->addChild(std::make_shared<ListItemBox>(parent, node, list_item_counter_.top()));
-						if(pre_layout_fn) {
-							pre_layout_fn(box, false);
-						}
-						if(node->hasChildBlockBox()) {
-							anon_block_box_.emplace(std::make_shared<AnonBlockBox>(box));
-						} else {
-							anon_block_box_.emplace(nullptr);
-						}
-						box->layout(*this, container);
-						anon_block_box_.pop();
-						cursor_.top().y = box->getMBPHeight() + box->getDimensions().content_.height;
-						cursor_.top().x = 0;
-						return nullptr;
-					}
-					case CssDisplay::TABLE:
-					case CssDisplay::INLINE_TABLE:
-					case CssDisplay::TABLE_ROW_GROUP:
-					case CssDisplay::TABLE_HEADER_GROUP:
-					case CssDisplay::TABLE_FOOTER_GROUP:
-					case CssDisplay::TABLE_ROW:
-					case CssDisplay::TABLE_COLUMN_GROUP:
-					case CssDisplay::TABLE_COLUMN:
-					case CssDisplay::TABLE_CELL:
-					case CssDisplay::TABLE_CAPTION:
-						ASSERT_LOG(false, "FIXME: LayoutEngine::formatNode(): " << display_string(display));
-						break;
-					default:
-						ASSERT_LOG(false, "illegal display value: " << static_cast<int>(display));
-						break;
+				if(child->hasTag(ElementId::LI) ) {
+					auto &top = list_item_counter_.top();
+					++top;
 				}
-			}
-		} else if(node->id() == NodeId::TEXT) {
-			// these nodes are inline/static by definition.
-			layoutInlineText(node, parent, pre_layout_fn);
-			return anon_block_box_.top();
-		} else {
-			ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(node->id()));
-		}
-		return nullptr;
-	}
 
-	void LayoutEngine::layoutInlineElement(NodePtr node, BoxPtr parent, std::function<void(BoxPtr, bool)> pre_layout_fn) 
-	{
-		if(node->isReplaced()) {
-			BoxPtr open = getOpenBox(parent);
-			// This should be adding to the currently open box.
-			auto inline_element_box = open->addInlineElement(node);
-			pushOpenBox();
-			if(pre_layout_fn) {
-				pre_layout_fn(inline_element_box, false);
-			}
-			inline_element_box->layout(*this, open->getDimensions());
-			popOpenBox();
-		} else {
-			if(node->getChildren().empty()) {
-				return;
-			}
+				const CssDisplay display = ctx_.getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
+				const CssFloat cfloat = ctx_.getComputedValue(Property::FLOAT).getValue<CssFloat>();
+				const CssPosition position = ctx_.getComputedValue(Property::POSITION).getValue<CssPosition>();
 
-			// XXX we should apply border styles to inline element here (and backgrounds)
-			std::vector<FixedPoint> padding = generatePadding();
-			std::vector<FixedPoint> border_width = generateBorderWidth();
-			std::vector<CssBorderStyle> border_style = generateBorderStyle();
-			std::vector<KRE::Color> border_color = generateBorderColor();
-
-			auto first = node->getChildren().cbegin();
-			auto last = node->getChildren().cend()-1;
-
-			bool is_first = true;
-			for(auto it = first; it != node->getChildren().cend(); ++it) {
-				auto& child = *it;
-				bool is_last = it == last;
-				formatNode(child, parent, parent->getDimensions(), [&border_color, &border_style, &padding, &border_width, &is_first, is_last](BoxPtr box, bool last) {
-					if(is_first) {
-						is_first = false;
-						box->setPaddingLeft(padding[1]);
-						box->setBorderLeft(border_width[1]);
-						box->getBorderInfo().setBorderStyleLeft(border_style[1]);
-						box->getBorderInfo().setBorderColorLeft(border_color[1]);
-					}
-					if(is_last && last) {
-						box->setBorderRight(border_width[3]);
-						box->setPaddingRight(padding[3]);
-						box->getBorderInfo().setBorderStyleRight(border_style[3]);
-						box->getBorderInfo().setBorderColorRight(border_color[3]);
-					}
-					box->setBorderTop(border_width[0]);
-					box->setBorderBottom(border_width[2]);
-					box->getBorderInfo().setBorderStyleTop(border_style[0]);
-					box->getBorderInfo().setBorderStyleBottom(border_style[2]);
-					box->getBorderInfo().setBorderColorTop(border_color[0]);
-					box->getBorderInfo().setBorderColorBottom(border_color[2]);
-				});
-			}
-			
-		}
-	}
-
-	void LayoutEngine::pushNewCursor()
-	{
-		cursor_.emplace(point());
-		cursor_.top().x = 0;
-	}
-
-	void LayoutEngine::popCursor()
-	{
-		cursor_.pop();
-	}
-
-	std::vector<CssBorderStyle> LayoutEngine::generateBorderStyle() 
-	{
-		std::vector<CssBorderStyle> res;
-		res.resize(4);
-		res[0] = ctx_.getComputedValue(Property::BORDER_TOP_STYLE).getValue<CssBorderStyle>();
-		res[1] = ctx_.getComputedValue(Property::BORDER_LEFT_STYLE).getValue<CssBorderStyle>();
-		res[2] = ctx_.getComputedValue(Property::BORDER_BOTTOM_STYLE).getValue<CssBorderStyle>();
-		res[3] = ctx_.getComputedValue(Property::BORDER_RIGHT_STYLE).getValue<CssBorderStyle>();
-		return res;
-	}
-
-	std::vector<KRE::Color> LayoutEngine::generateBorderColor() 
-	{
-		std::vector<KRE::Color> res;
-		res.resize(4);
-		res[0] = ctx_.getComputedValue(Property::BORDER_TOP_COLOR).getValue<CssColor>().compute();
-		res[1] = ctx_.getComputedValue(Property::BORDER_LEFT_COLOR).getValue<CssColor>().compute();
-		res[2] = ctx_.getComputedValue(Property::BORDER_BOTTOM_COLOR).getValue<CssColor>().compute();
-		res[3] = ctx_.getComputedValue(Property::BORDER_RIGHT_COLOR).getValue<CssColor>().compute();
-		return res;
-	}
-
-	std::vector<FixedPoint> LayoutEngine::generateBorderWidth() 
-	{
-		std::vector<FixedPoint> res;
-		res.resize(4);
-		res[0] = ctx_.getComputedValue(Property::BORDER_TOP_WIDTH).getValue<Length>().compute();
-		res[1] = ctx_.getComputedValue(Property::BORDER_LEFT_WIDTH).getValue<Length>().compute();
-		res[2] = ctx_.getComputedValue(Property::BORDER_BOTTOM_WIDTH).getValue<Length>().compute();
-		res[3] = ctx_.getComputedValue(Property::BORDER_RIGHT_WIDTH).getValue<Length>().compute();
-		return res;
-	}
-
-	std::vector<FixedPoint> LayoutEngine::generatePadding() 
-	{
-		std::vector<FixedPoint> res;
-		res.resize(4);
-		res[0] = ctx_.getComputedValue(Property::PADDING_TOP).getValue<Length>().compute();
-		res[1] = ctx_.getComputedValue(Property::PADDING_LEFT).getValue<Length>().compute();
-		res[2] = ctx_.getComputedValue(Property::PADDING_BOTTOM).getValue<Length>().compute();
-		res[3] = ctx_.getComputedValue(Property::PADDING_RIGHT).getValue<Length>().compute();
-		return res;
-	}
-
-	void LayoutEngine::layoutInlineText(NodePtr node, BoxPtr parent, std::function<void(BoxPtr, bool)> pre_layout_fn) 
-	{
-		TextPtr tnode = std::dynamic_pointer_cast<Text>(node);
-		ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
-		ASSERT_LOG(parent->getDimensions().content_.width != 0, "Parent content width is 0.");
-
-		const FixedPoint lh = getLineHeight();
-		BoxPtr open = getOpenBox(parent);
-		FixedPoint width = getWidthAtCursor(parent->getDimensions().content_.width) - cursor_.top().x;
-		while(width == 0) {
-			cursor_.top().y += lh;
-			width = getWidthAtCursor(parent->getDimensions().content_.width);
-			open_.top().open_box_->setContentX(getXAtCursor());
-			open_.top().open_box_->setContentY(cursor_.top().y);
-		}
-
-		tnode->transformText(true);
-		auto it = tnode->begin();
-		while(it != tnode->end()) {
-			auto saved_it = it;
-			LinePtr line = tnode->reflowText(it, width);
-			if(line != nullptr && !line->line.empty()) {
-				// is the line larger than available space and are there floats present?
-				if(line->line.back().advance.back().x > width && hasFloatsAtCursor()) {
-					cursor_.top().y += lh;
-					cursor_.top().x = 0;
-					open_.top().open_box_->setContentX(getXAtCursor());
-					open_.top().open_box_->setContentY(cursor_.top().y);
-					it = saved_it;
-					width = getWidthAtCursor(parent->getDimensions().content_.width) - cursor_.top().x;
+				if(display == CssDisplay::NONE) {
+					// Do not create a box for this or it's children
+					// early return
 					continue;
 				}
 
-				auto txt = std::make_shared<TextBox>(open, line);
-				open->addChild(txt);
-				if(pre_layout_fn) {
-					pre_layout_fn(txt, it == tnode->end());
+				if(position == CssPosition::ABSOLUTE) {
+					// absolute positioned elements are taken out of the normal document flow
+					parent->addAbsoluteElement(std::make_shared<AbsoluteBox>(parent, child));
+				} else if(position == CssPosition::FIXED) {
+					// fixed positioned elements are taken out of the normal document flow
+					root_->addFixed(std::make_shared<BlockBox>(parent, child));
+				} else {
+					if(cfloat != CssFloat::NONE) {
+						// XXX need to add an offset to position for the float box based on body margin.
+						// N.B. if the current display is one of the CssDisplay::TABLE* styles then this should be
+						// a table box rather than a block box.
+						root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, child), cfloat, parent->getTop() + cursor_.y);
+						continue;
+					}
+					switch(display) {
+						case CssDisplay::NONE:
+							// Do not create a box for this or it's children
+							break;
+						case CssDisplay::INLINE: {
+							if(child->isReplaced()) {
+								// replaced elements should generate a box.
+								res.emplace_back(std::make_shared<InlineElementBox>(parent, child));
+							} else {
+								// non-replaced elements we just generate children and add them.
+								std::vector<BoxPtr> new_children = layoutChildren(child->getChildren(), parent, open_box);
+								res.insert(res.end(), new_children.begin(), new_children.end());
+							}
+							break;
+						}
+						case CssDisplay::BLOCK: {
+							if(open_box) {
+								res.emplace_back(open_box);
+								open_box.reset();
+								cursor_.x = 0;
+								cursor_.y += getLineHeight();
+							}
+							res.emplace_back(std::make_shared<BlockBox>(parent, child));
+							break;
+						}
+						case CssDisplay::INLINE_BLOCK: {							
+							res.emplace_back(std::make_shared<InlineBlockBox>(parent, child));
+							break;
+						}
+						case CssDisplay::LIST_ITEM: {
+							res.emplace_back(std::make_shared<ListItemBox>(parent, child, list_item_counter_.top()));
+							break;
+						}
+						case CssDisplay::TABLE:
+						case CssDisplay::INLINE_TABLE:
+						case CssDisplay::TABLE_ROW_GROUP:
+						case CssDisplay::TABLE_HEADER_GROUP:
+						case CssDisplay::TABLE_FOOTER_GROUP:
+						case CssDisplay::TABLE_ROW:
+						case CssDisplay::TABLE_COLUMN_GROUP:
+						case CssDisplay::TABLE_COLUMN:
+						case CssDisplay::TABLE_CELL:
+						case CssDisplay::TABLE_CAPTION:
+							ASSERT_LOG(false, "FIXME: LayoutEngine::formatNode(): " << display_string(display));
+							break;
+						default:
+							ASSERT_LOG(false, "illegal display value: " << static_cast<int>(display));
+							break;
+					}
 				}
-				txt->layout(*this, open->getDimensions());
-				FixedPoint x_inc = txt->getDimensions().content_.width + txt->getMBPWidth();
-				cursor_.top().x += x_inc;
-				width -= x_inc;
-			}
+			} else if(child->id() == NodeId::TEXT) {
+				TextPtr tnode = std::dynamic_pointer_cast<Text>(child);
+				ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
+
+				const FixedPoint lh = getLineHeight();
+				if(open_box == nullptr) {
+					open_box = std::make_shared<LineBox>(parent, nullptr);
+				}
+				FixedPoint width = getWidthAtCursor(parent->getWidth()) - cursor_.x;
+
+				open_box->setStartingX(cursor_.x);
+
+				tnode->transformText(true);
+				auto it = tnode->begin();
+				while(it != tnode->end()) {
+					auto saved_it = it;
+					LinePtr line = tnode->reflowText(it, width);
+					if(line != nullptr && !line->line.empty()) {
+						// is the line larger than available space and are there floats present?
+						if(line->line.back().advance.back().x > width && hasFloatsAtCursor()) {
+							cursor_.y += lh;
+							cursor_.x = 0;
+							it = saved_it;
+							width = getWidthAtCursor(parent->getWidth()) - cursor_.x;
+							continue;
+						}
+
+						auto txt = std::make_shared<TextBox>(open_box, line);
+						txt->layout(*this, parent->getDimensions());
+						open_box->addChild(txt);
+						FixedPoint x_inc = txt->getWidth() + txt->getMBPWidth();
+						cursor_.x += x_inc;
+						width -= x_inc;
+					}
 			
-			if((line != nullptr && line->is_end_line) || width < 0) {
-				BoxPtr box = open_.top().open_box_;
-				closeOpenBox();
-				cursor_.top().y += box->getDimensions().content_.height;
-				cursor_.top().x = 0;				
-				open = getOpenBox(parent);
-				width = getWidthAtCursor(parent->getDimensions().content_.width);
-			}
-		}
-	}
-		
-	void LayoutEngine::pushOpenBox() 
-	{
-		open_.push(OpenBox());
-	}
-	void LayoutEngine::popOpenBox() 
-	{
-		open_.pop();
-	}
-
-	BoxPtr LayoutEngine::getOpenBox(BoxPtr parent) 
-	{
-		if(open_.empty()) {
-			pushOpenBox();				
-		}
-		if(open_.top().open_box_ == nullptr) {
-			auto anon_box = anon_block_box_.top();
-			if(anon_box == nullptr) {
-				open_.top().parent_ = parent;
-				open_.top().open_box_ = parent->addChild(std::make_shared<LineBox>(parent, nullptr));
-			} else {
-				if(!anon_box->isInit()) {
-					parent->addChild(anon_box);
-					cursor_.top().y = 0;
-					cursor_.top().x = 0;
+					if((line != nullptr && line->is_end_line) || width < 0) {
+						res.emplace_back(open_box);
+						open_box = std::make_shared<LineBox>(parent, nullptr);
+						cursor_.y += lh;
+						cursor_.x = getXAtCursor();
+						open_box->setStartingX(cursor_.x);
+						width = getWidthAtCursor(parent->getWidth());
+					}
 				}
-				open_.top().parent_ = anon_box;
-				open_.top().open_box_ = anon_box->addChild(std::make_shared<LineBox>(anon_box, nullptr));
+			} else {
+				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(child->id()));
 			}
-			open_.top().open_box_->setContentX(getXAtCursor());
-			open_.top().open_box_->setContentY(cursor_.top().y);
-			open_.top().open_box_->setContentWidth(getWidthAtCursor(parent->getDimensions().content_.width));
 		}
-		return open_.top().open_box_;
-	}
-
-	void LayoutEngine::closeOpenBox() 
-	{
-		if(open_.empty()) {
-			return;
-		}
-		if(open_.top().open_box_ == nullptr) {
-			return;
-		}
-		open_.top().open_box_->layout(*this, open_.top().parent_->getDimensions());
-		open_.top().open_box_ = nullptr;
+		return res;
 	}
 
 	FixedPoint LayoutEngine::getLineHeight() const 
@@ -465,27 +261,13 @@ namespace xhtml
 		return ctx_.getFontHandle()->getDescender();
 	}
 
-	const point& LayoutEngine::getCursor() const 
-	{
-		if(open_.empty()) {
-			static point default_point;
-			return default_point;
-		}
-		return cursor_.top(); 
-	}
-
-	void LayoutEngine::incrCursor(FixedPoint x) 
-	{ 
-		cursor_.top().x += x; 
-	}
-
 	FixedPoint LayoutEngine::getWidthAtCursor(FixedPoint width) const 
 	{
-		return getWidthAtPosition(getCursor().y + offset_.top().y, width);
+		return getWidthAtPosition(cursor_.y + offset_.top().y, width);
 	}
 
 	FixedPoint LayoutEngine::getXAtCursor() const {
-		return getXAtPosition(getCursor().y + offset_.top().y);
+		return getXAtPosition(cursor_.y + offset_.top().y);
 	}
 
 	FixedPoint LayoutEngine::getXAtPosition(FixedPoint y) const 
@@ -543,7 +325,7 @@ namespace xhtml
 
 	void LayoutEngine::moveCursorToClearFloats(CssClear float_clear)
 	{
-		FixedPoint new_y = cursor_.top().y;
+		FixedPoint new_y = cursor_.y;
 		if(float_clear == CssClear::LEFT || float_clear == CssClear::BOTH) {
 			for(auto& lf : root_->getLeftFloats()) {
 				new_y = std::max(new_y, lf->getMBPHeight() + lf->getDimensions().content_.y + lf->getDimensions().content_.height);
@@ -554,14 +336,14 @@ namespace xhtml
 				new_y = std::max(new_y, rf->getMBPHeight() + rf->getDimensions().content_.y + rf->getDimensions().content_.height);
 			}
 		}
-		if(new_y != cursor_.top().y) {
-			cursor_.top() = point(getXAtPosition(new_y + offset_.top().y), new_y);
+		if(new_y != cursor_.y) {
+			cursor_ = point(getXAtPosition(new_y + offset_.top().y), new_y);
 		}
 	}
 
 	bool LayoutEngine::hasFloatsAtCursor() const
 	{
-		return hasFloatsAtPosition(cursor_.top().y + offset_.top().y);
+		return hasFloatsAtPosition(cursor_.y + offset_.top().y);
 	}
 
 	bool LayoutEngine::hasFloatsAtPosition(FixedPoint y) const

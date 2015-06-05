@@ -31,12 +31,6 @@ namespace xhtml
 	AbsoluteBox::AbsoluteBox(BoxPtr parent, NodePtr node)
 		: Box(BoxId::ABSOLUTE, parent, node)
 	{
-		RenderContext& ctx = RenderContext::get();
-		
-		css_rect_[0] = ctx.getComputedValue(Property::LEFT).getValue<Width>();
-		css_rect_[1] = ctx.getComputedValue(Property::TOP).getValue<Width>();
-		css_rect_[2] = ctx.getComputedValue(Property::RIGHT).getValue<Width>();
-		css_rect_[3] = ctx.getComputedValue(Property::BOTTOM).getValue<Width>();
 	}
 
 	std::string AbsoluteBox::toString() const
@@ -69,20 +63,20 @@ namespace xhtml
 		const FixedPoint containing_height = container.height;
 		
 		FixedPoint left = container.x;
-		if(!css_rect_[0].isAuto()) {
-			left = css_rect_[0].getLength().compute(containing_width);
+		if(!getCssLeft().isAuto()) {
+			left = getCssLeft().getLength().compute(containing_width);
 		}
 		FixedPoint top = container.y;
-		if(!css_rect_[1].isAuto()) {
-			top = css_rect_[1].getLength().compute(containing_height);
+		if(!getCssTop().isAuto()) {
+			top = getCssTop().getLength().compute(containing_height);
 		}
 		FixedPoint width = container.width;
-		if(!css_rect_[2].isAuto()) {
-			width = css_rect_[2].getLength().compute(containing_width) - left + container.width;
+		if(!getCssRight().isAuto()) {
+			width = getCssRight().getLength().compute(containing_width) - left + container.width;
 		}
 		FixedPoint height = container.height;
-		if(!css_rect_[3].isAuto()) {
-			height = css_rect_[3].getLength().compute(containing_height) - top + container.height;
+		if(!getCssBottom().isAuto()) {
+			height = getCssBottom().getLength().compute(containing_height) - top + container.height;
 		}
 
 		// if width/height properties are set they override right/bottom.
@@ -101,16 +95,6 @@ namespace xhtml
 		setContentY(top + getMBPTop());
 		setContentWidth(width - getMBPWidth());
 		setContentHeight(height - getMBPHeight());
-
-		NodePtr node = getNode();
-		if(node != nullptr) {
-			eng.pushOpenBox();
-			for(auto& child : node->getChildren()) {
-				eng.formatNode(child, shared_from_this(), getDimensions());
-			}
-			eng.closeOpenBox();
-			eng.popOpenBox();
-		}
 	}
 
 	void AbsoluteBox::handleRender(DisplayListPtr display_list, const point& offset) const

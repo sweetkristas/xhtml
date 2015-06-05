@@ -29,7 +29,8 @@ namespace xhtml
 	using namespace css;
 
 	BlockBox::BlockBox(BoxPtr parent, NodePtr node)
-		: Box(BoxId::BLOCK, parent, node)
+		: Box(BoxId::BLOCK, parent, node),
+		  child_height_(0)
 	{
 	}
 
@@ -37,24 +38,31 @@ namespace xhtml
 	{
 		std::ostringstream ss;
 		ss << "BlockBox: " << getDimensions().content_;
-		auto node = getNode();
-		if(node != nullptr) {
-			ss << " has child block boxes: " << (node->hasChildBlockBox() ? "yes" : "no");
-		}
 		return ss.str();
 	}
 
 	void BlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		std::unique_ptr<RenderContext::Manager> ctx_manager;
 		NodePtr node = getNode();
 		bool is_replaced = false;
 		if(node != nullptr && node->id() == NodeId::ELEMENT) {
-			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
 			is_replaced = node->isReplaced();
 		}
 
 		if(is_replaced) {
+			calculateVertMPB(containing.content_.height);
+			layoutChildren(eng);
+		} else {
+			calculateVertMPB(containing.content_.height);
+			layoutChildren(eng);
+			layoutHeight(containing);
+		}
+	}
+
+	void BlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
+		NodePtr node = getNode();
+		if(node != nullptr && node->id() == NodeId::ELEMENT && node->isReplaced()) {
 			calculateHorzMPB(containing.content_.width);
 			setContentRect(Rect(0, 0, node->getDimensions().w() * LayoutEngine::getFixedPointScale(), node->getDimensions().h() * LayoutEngine::getFixedPointScale()));
 			auto css_width = getCssWidth();
@@ -68,13 +76,8 @@ namespace xhtml
 			if(!css_width.isAuto() || !css_height.isAuto()) {
 				node->setDimensions(rect(0, 0, getDimensions().content_.width/LayoutEngine::getFixedPointScale(), getDimensions().content_.height/LayoutEngine::getFixedPointScale()));
 			}
-			layoutPosition(eng, containing);
-			layoutChildren(eng);
 		} else {
 			layoutWidth(containing);
-			layoutPosition(eng, containing);
-			layoutChildren(eng);
-			layoutHeight(containing);
 		}
 	}
 
@@ -83,7 +86,7 @@ namespace xhtml
 		RenderContext& ctx = RenderContext::get();
 		const FixedPoint containing_width = containing.content_.width;
 
-		auto css_width = getCssWidth();
+		const auto& css_width = getCssWidth();
 		FixedPoint width = 0;
 		if(!css_width.isAuto()) {
 			width = css_width.getLength().compute(containing_width);
@@ -91,8 +94,8 @@ namespace xhtml
 		}
 
 		calculateHorzMPB(containing_width);
-		auto css_margin_left = getCssMargin(Side::LEFT);
-		auto css_margin_right = getCssMargin(Side::RIGHT);
+		const auto& css_margin_left = getCssMargin(Side::LEFT);
+		const auto& css_margin_right = getCssMargin(Side::RIGHT);
 
 		FixedPoint total = getMBPWidth() + width;
 			
@@ -135,108 +138,33 @@ namespace xhtml
 		} 
 	}
 
-	void BlockBox::layoutPosition(LayoutEngine& eng, const Dimensions& containing)
-	{
-		const FixedPoint containing_height = containing.content_.height;
-
-		calculateVertMPB(containing_height);
-
-		setContentX(getMBPLeft());
-		setContentY(containing.content_.height + getMBPTop());
-
-		if(getPosition() == CssPosition::FIXED) {
-			if(!getCssLeft().isAuto()) {
-				setContentX(getCssLeft().getLength().compute(containing.content_.width) + getMBPLeft());
-			}
-			if(!getCssTop().isAuto()) {
-				setContentY(getCssTop().getLength().compute(containing.content_.height) + getMBPTop());
-			}
-		} 
-	}
-
 	void BlockBox::layoutChildren(LayoutEngine& eng)
 	{
-		NodePtr node = getNode();
-		if(node != nullptr) {
-			for(auto& child : node->getChildren()) {
-				if(getPosition() == CssPosition::FIXED) {
-					eng.pushOpenBox();
-				}
- 				BoxPtr box_child = eng.formatNode(child, shared_from_this(), getDimensions());
-				if(box_child != nullptr) {
-					if(box_child->id() == BoxId::ANON_BLOCK_BOX) {
-						box_child->layout(eng, getDimensions());
-					}
-					setContentHeight(box_child->getDimensions().content_.y + box_child->getDimensions().content_.height + box_child->getMBPBottom());
-				}
-				if(getPosition() == CssPosition::FIXED) {
-					eng.closeOpenBox();
-					eng.popOpenBox();
-				}
-			}
-		}
-
-		// close any open boxes.
-		eng.closeOpenBox();
-
-		FixedPoint width = 0;
-		//bool has_block_box = false;
+		// XXX we should add collapsible margins to children here.
+		child_height_ = 0;
 		for(auto& child : getChildren()) {
-			width = std::max(width, child->getDimensions().content_.width + child->getMBPWidth());
-			setContentHeight(child->getDimensions().content_.y + child->getDimensions().content_.height + child->getMBPHeight());
-
-			/*if(child->isBlockBox()) {
-				has_block_box = true;
-			}*/
+			child->setContentX(child->getMBPLeft());
+			child->setContentY(child_height_ + child->getMBPTop());
+			child_height_ += child->getHeight() + child->getMBPHeight();
 		}
-
-		/*if(has_block_box) {
-			//  if a block container box has a block-level box inside it, then we force it to have only block-level boxes inside it.
-			// e.g. <div>Some Text<p>More Text</p></div> then the "Some Text" shall be wrapped in a block box.
-			std::vector<BoxPtr> children = getChildren();
-			getChildren().clear();
-			std::shared_ptr<BlockBox> open = nullptr;
-			for(auto child : children) {
-				if(child->isBlockBox()) {
-					if(open != nullptr) {
-						getChildren().emplace_back(open);
-						open.reset();
-					}
-					getChildren().emplace_back(child);
-				} else {
-					if(open == nullptr) {
-						open = std::make_shared<BlockBox>(shared_from_this(), nullptr);
-						open->init();
-					}
-					open->getChildren().emplace_back(child);
-				}
-			}
-			if(open != nullptr) {
-				getChildren().emplace_back(open);
-			}
-
-			for(auto& child : getChildren()) {
-				child->reLayout(eng, getDimensions());
-			}
-		}*/
+		setContentHeight(child_height_);
 	}
 	
 	void BlockBox::layoutHeight(const Dimensions& containing)
 	{
-		RenderContext& ctx = RenderContext::get();
 		// a set height value overrides the calculated value.
 		if(!getCssHeight().isAuto()) {
 			setContentHeight(getCssHeight().getLength().compute(containing.content_.height));
 		}
 		// XXX deal with min-height and max-height
-		//auto min_h = ctx.getComputedValue(Property::MIN_HEIGHT).getValue<Length>().compute(containing.content_.height);
-		//if(getDimensions().content_.height() < min_h) {
+		//auto& min_h = getCssMinHeight().compute(containing.content_.height);
+		//if(getHeight() < min_h) {
 		//	setContentHeight(min_h);
 		//}
-		//auto css_max_h = ctx.getComputedValue(Property::MAX_HEIGHT).getValue<Height>();
+		//auto& css_max_h = getCssMaxHeight();
 		//if(!css_max_h.isNone()) {
 		//	FixedPoint max_h = css_max_h.getValue<Length>().compute(containing.content_.height);
-		//	if(getDimensions().content_.height() > max_h) {
+		//	if(getHeight() > max_h) {
 		//		setContentHeight(max_h);
 		//	}
 		//}

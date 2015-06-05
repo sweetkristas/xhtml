@@ -34,7 +34,7 @@ namespace xhtml
 		std::string toString() const override;
 
 		void addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y);
-		BoxPtr addFixedElement(NodePtr node);
+		void addFixed(BoxPtr fixed);
 		
 		void layoutFixed(LayoutEngine& eng, const Dimensions& containing);
 

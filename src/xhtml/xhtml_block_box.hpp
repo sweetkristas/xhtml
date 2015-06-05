@@ -36,9 +36,12 @@ namespace xhtml
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const override;
 	private:
+		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void layoutWidth(const Dimensions& containing);
-		void layoutPosition(LayoutEngine& eng, const Dimensions& containing);
 		void layoutChildren(LayoutEngine& eng);
 		void layoutHeight(const Dimensions& containing);
+
+		// actual computed height of children.
+		FixedPoint child_height_;
 	};
 }

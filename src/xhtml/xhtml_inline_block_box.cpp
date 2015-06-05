@@ -159,44 +159,6 @@ namespace xhtml
 
 	void InlineBlockBox::layoutChildren(LayoutEngine& eng)
 	{
-		NodePtr node = getNode();
-		if(node != nullptr) {
-			eng.pushNewCursor();
-			for(auto& child : node->getChildren()) {
-				eng.pushOpenBox();
- 				
-				BoxPtr box_child = eng.formatNode(child, shared_from_this(), getDimensions());
-				if(box_child != nullptr) {
-					if(box_child->id() == BoxId::ANON_BLOCK_BOX) {
-						box_child->layout(eng, getDimensions());
-					}
-					setContentHeight(box_child->getDimensions().content_.y + box_child->getDimensions().content_.height + box_child->getMBPBottom());
-				}
-
-				eng.closeOpenBox();
-				eng.popOpenBox();
-			}
-			eng.popCursor();
-		}
-
-		FixedPoint width = getDimensions().content_.width;
-		for(auto& child : getChildren()) {
-			width = std::max(width, child->getDimensions().content_.width + child->getMBPWidth());
-			setContentHeight(child->getDimensions().content_.y + child->getDimensions().content_.height + child->getMBPHeight());
-		}
-
-		if(getCssWidth().isAuto()) {
-			setContentWidth(width);
-			eng.incrCursor(getDimensions().content_.width + getMBPWidth());
-
-			if(is_replacable_) {
-				FixedPoint w = getDimensions().content_.width + getDimensions().padding_.left + getDimensions().padding_.right;
-				FixedPoint h = getDimensions().content_.height + getDimensions().padding_.top + getDimensions().padding_.bottom;
-				node->setDimensions(rect(0, 0, w/LayoutEngine::getFixedPointScale(), h/LayoutEngine::getFixedPointScale()));
-
-				// XXX we should center the child lineboxes.
-			}
-		}
 	}
 
 	void InlineBlockBox::layoutHeight(const Dimensions& containing)

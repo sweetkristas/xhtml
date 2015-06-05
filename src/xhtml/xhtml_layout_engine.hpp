@@ -35,35 +35,16 @@ namespace xhtml
 	public:
 		explicit LayoutEngine();
 
-		void formatNode(NodePtr node, BoxPtr parent, const point& container);
-		BoxPtr formatNode(NodePtr node, BoxPtr parent, const Dimensions& container, std::function<void(BoxPtr, bool)> pre_layout_fn=nullptr);
-
-		void layoutInlineElement(NodePtr node, BoxPtr parent, std::function<void(BoxPtr, bool)> pre_layout_fn);
-
-		std::vector<css::CssBorderStyle> generateBorderStyle();
-		std::vector<KRE::Color> generateBorderColor();
-		std::vector<FixedPoint> generateBorderWidth();
-		std::vector<FixedPoint> generatePadding();
-
-		void layoutInlineText(NodePtr node, BoxPtr parent, std::function<void(BoxPtr, bool)> pre_layout_fn);
-		void pushOpenBox();
-		void popOpenBox();
-
-		BoxPtr getOpenBox(BoxPtr parent);
-		void closeOpenBox();
+		void layoutRoot(NodePtr node, BoxPtr parent, const point& container);
+		
+		std::vector<BoxPtr> layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box);
 
 		FixedPoint getLineHeight() const;
 
 		FixedPoint getDescent() const;
 
-		bool isOpenBox() const { return !open_.empty() && open_.top().open_box_ != nullptr; }
 		RootBoxPtr getRoot() const { return root_; }
 		
-		const point& getCursor() const;
-		void incrCursor(FixedPoint x);
-		void pushNewCursor();
-		void popCursor();
-
 		FixedPoint getWidthAtCursor(FixedPoint width) const;
 		FixedPoint getXAtCursor() const;
 		FixedPoint getXAtPosition(FixedPoint y) const;
@@ -82,25 +63,15 @@ namespace xhtml
 		static float getFixedPointScaleFloat() { return 65536.0f; }
 
 		const point& getOffset();
-
-		BoxPtr getAnonBox() const { return !anon_block_box_.empty() ? anon_block_box_.top() : nullptr; }
 	private:
 		RootBoxPtr root_;
 		Dimensions dims_;
 		RenderContext& ctx_;
-		struct OpenBox {
-			OpenBox() : open_box_(), parent_(nullptr) {}
-			OpenBox(BoxPtr bp, point cursor) : open_box_(bp), parent_(nullptr) {}
-			BoxPtr open_box_;
-			BoxPtr parent_;
-		};
-		std::stack<point> cursor_;
-		std::stack<OpenBox> open_;
+		
+		point cursor_;
 
 		std::stack<int> list_item_counter_;
 		std::stack<point> offset_;
-		// Additional anonymous block box that may be needed during layout.
-		std::stack<BoxPtr> anon_block_box_;
 	};
 
 }

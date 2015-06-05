@@ -45,17 +45,15 @@ namespace xhtml
 
 	void TextBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		// TextBox's have no children to deal with, by definition.
 		FixedPoint width = 0;
 		for(auto& word : line_->line) {
 			width += word.advance.back().x;
 		}
-		width += space_advance_ * (line_->line.size()-1);
+		width += space_advance_ * line_->line.size();
+		
 		setContentWidth(width);
-
-		const FixedPoint lh = eng.getLineHeight();
-		setContentX(eng.getCursor().x + getMBPLeft());
-		setContentY(lh);
-		setContentHeight(lh);
+		setContentHeight(eng.getLineHeight());
 	}
 
 	void TextBox::handleRenderBackground(DisplayListPtr display_list, const point& offset) const

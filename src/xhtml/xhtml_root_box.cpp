@@ -56,6 +56,10 @@ namespace xhtml
 	void RootBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
 	{
 		BlockBox::handleLayout(eng, containing);
+
+		setContentX(getMBPLeft());
+		setContentY(containing.content_.height + getMBPTop());
+
 		layoutFixed(eng, containing);
 	}
 
@@ -75,7 +79,6 @@ namespace xhtml
 
 	void RootBox::addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y)
 	{
-		box->init();
 		box->layout(eng, getDimensions());
 
 		const FixedPoint lh = eng.getLineHeight();
@@ -104,11 +107,9 @@ namespace xhtml
 	}
 
 
-	BoxPtr RootBox::addFixedElement(NodePtr node)
+	void RootBox::addFixed(BoxPtr fixed)
 	{
-		fixed_boxes_.emplace_back(std::make_shared<BlockBox>(shared_from_this(), node));
-		fixed_boxes_.back()->init();
-		return fixed_boxes_.back();
+		fixed_boxes_.emplace_back(fixed);
 	}
 
 	void RootBox::layoutFixed(LayoutEngine& eng, const Dimensions& containing)

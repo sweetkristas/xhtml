@@ -55,7 +55,6 @@ namespace xhtml
 		  count_(count),
 		  marker_(utils::codepoint_to_utf8(marker_disc))
 	{
-		content_->init();
 	}
 
 	std::string ListItemBox::toString() const 

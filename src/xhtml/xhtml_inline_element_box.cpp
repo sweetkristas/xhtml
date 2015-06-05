@@ -26,6 +26,9 @@
 
 namespace xhtml
 {
+	// This encapsulates a replaced inline element, non-replaced inline elements are
+	// dealt with elsewhere
+
 	InlineElementBox::InlineElementBox(BoxPtr parent, NodePtr node)
 		: Box(BoxId::INLINE_ELEMENT, parent, node)
 	{
@@ -33,22 +36,30 @@ namespace xhtml
 
 	void InlineElementBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		setContentY(eng.getCursor().y);
-		setContentX(0);
-		setContentWidth(containing.content_.width);
-		NodePtr node = getNode();
-		if(node != nullptr) {
-			for(auto& child : node->getChildren()) {
-				eng.formatNode(child, shared_from_this(), getDimensions());
-			}
+		auto node = getNode();
+		ASSERT_LOG(node != nullptr && node->isReplaced(), "InlineElementBox was generated for an empty node, or node which isn't replacable.");
+
+		// set dimensions from the replaced element information.
+		setContentWidth(node->getDimensions().w() * LayoutEngine::getFixedPointScale());
+		setContentHeight(node->getDimensions().h() * LayoutEngine::getFixedPointScale());
+
+		// override element dimensions from css if nescessary.
+		auto css_width = getCssWidth();
+		auto css_height = getCssHeight();
+		if(!css_width.isAuto()) {
+			setContentWidth(css_width.getLength().compute(containing.content_.width));
 		}
-		// XXX We should assign margin/padding/border as appropriate here.
-		FixedPoint max_w = 0;
-		for(auto& child : getChildren()) {
-			setContentHeight(child->getDimensions().content_.height + child->getMBPHeight());
-			max_w = std::max(max_w, child->getMBPWidth() + child->getDimensions().content_.width);
+		if(!css_height.isAuto()) {
+			setContentHeight(css_height.getLength().compute(containing.content_.height));
 		}
-		setContentWidth(max_w);
+		if(!css_width.isAuto() || !css_height.isAuto()) {
+			node->setDimensions(rect(0, 0, 
+				getDimensions().content_.width/LayoutEngine::getFixedPointScale(), 
+				getDimensions().content_.height/LayoutEngine::getFixedPointScale()));
+		}
+
+		// XXX we should have a default 300px width here if everything else fails.
+		// or width of the largest rectangle that has a 2:1 ratio.
 	}
 
 	std::string InlineElementBox::toString() const

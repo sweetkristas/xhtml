@@ -35,10 +35,5 @@ namespace xhtml
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
-
-		// need to store these, since by the time layout happens we no longer have the right
-		// render context available.
-		css::Width css_rect_[4]; // l,t,r,b
 	};
-
 }

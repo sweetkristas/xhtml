@@ -63,9 +63,11 @@ namespace xhtml
 	class LayoutEngine;
 	class Box;
 	class RootBox;
+	class LineBox;
 	typedef std::shared_ptr<Box> BoxPtr;
 	typedef std::shared_ptr<const Box> ConstBoxPtr;
 	typedef std::shared_ptr<RootBox> RootBoxPtr;
+	typedef std::shared_ptr<LineBox> LineBoxPtr;
 
 	class DisplayList;
 	typedef std::shared_ptr<DisplayList> DisplayListPtr;

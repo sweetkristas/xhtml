@@ -31,11 +31,12 @@ namespace xhtml
 	{
 	public:
 		LineBox(BoxPtr parent, NodePtr node);
-		void init() override {}
 		std::string toString() const override;
+		void setStartingX(FixedPoint x) { starting_x_ = x; }
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
+		FixedPoint starting_x_;
 	};
 }

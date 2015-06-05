@@ -28,7 +28,8 @@
 namespace xhtml
 {
 	LineBox::LineBox(BoxPtr parent, NodePtr node)
-		: Box(BoxId::LINE, parent, node)
+		: Box(BoxId::LINE, parent, node),
+		  starting_x_(0)
 	{
 	}
 
@@ -41,15 +42,59 @@ namespace xhtml
 
 	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		FixedPoint max_height = 0;
-		FixedPoint width = !getChildren().empty() 
-			? getChildren().back()->getDimensions().content_.width +  getChildren().back()->getDimensions().content_.x + getChildren().back()->getMBPRight()
-			: containing.content_.width;
+		// Our children should already be set at this point.
+		// we want to compute our own width/height based on our children and set the 
+		// children's x/y
+		FixedPoint height = 0;
+		FixedPoint width = 0;
+
+		// compute our width/height
 		for(auto& child : getChildren()) {
-			max_height = std::max(max_height, child->getDimensions().content_.height);			
+			child->setContentX(width + starting_x_);
+
+			height = std::max(height, child->getHeight() + child->getMBPHeight());
+			width += child->getWidth() + getMBPWidth();
 		}
-		setContentHeight(max_height);
 		setContentWidth(width);
+		setContentHeight(height);
+
+		// computer&set children X/Y offsets
+		for(auto& child : getChildren()) {
+			FixedPoint child_y = 0;
+			// XXX we should implement this fully.
+			switch(child->getVerticalAlign()) {
+				case css::CssVerticalAlign::BASELINE:
+					// Align the baseline of the box with the baseline of the parent box. 
+					// If the box does not have a baseline, align the bottom margin edge 
+					// with the parent's baseline.
+					child_y = child->getBaselineOffset();
+					break;
+				case css::CssVerticalAlign::MIDDLE:
+					// Align the vertical midpoint of the box with the baseline of the 
+					// parent box plus half the x-height of the parent.
+					child_y = height / 2;
+					break;
+				case css::CssVerticalAlign::BOTTOM:
+					// Align the bottom of the aligned subtree with the bottom of the line box.
+					child_y = child->getBottomOffset();
+					break;
+				case css::CssVerticalAlign::SUB:
+					// Lower the baseline of the box to the proper position for subscripts of the 
+					// parent's box. (This value has no effect on the font size of the element's text.)
+				case css::CssVerticalAlign::SUPER:
+					// Raise the baseline of the box to the proper position for superscripts of the 
+					// parent's box. (This value has no effect on the font size of the element's text.)
+				case css::CssVerticalAlign::TOP:
+					// Align the top of the aligned subtree with the top of the line box.
+				case css::CssVerticalAlign::TEXT_TOP:
+					// Align the top of the box with the top of the parent's content area
+				case css::CssVerticalAlign::TEXT_BOTTOM:
+					// Align the bottom of the box with the bottom of the parent's content area
+				case css::CssVerticalAlign::LENGTH:
+				default:  break;
+			}
+			child->setContentY(child_y);
+		}
 	}
 
 	void LineBox::handleRender(DisplayListPtr display_list, const point& offset) const
