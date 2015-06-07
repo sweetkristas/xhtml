@@ -24,6 +24,7 @@
 #include "solid_renderable.hpp"
 
 #include "xhtml_absolute_box.hpp"
+#include "xhtml_anon_block_box.hpp"
 #include "xhtml_block_box.hpp"
 #include "xhtml_box.hpp"
 #include "xhtml_inline_element_box.hpp"
@@ -78,6 +79,11 @@ namespace xhtml
 
 	void Box::init()
 	{
+		// skip for line/text
+		if(id_ == BoxId::LINE || id_ == BoxId::ANON_BLOCK_BOX) {
+			return;
+		}
+
 		RenderContext& ctx = RenderContext::get();
 		color_ = ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute();
 
@@ -163,20 +169,62 @@ namespace xhtml
 		}
 	}
 
+	bool Box::hasChildBlockBox() const
+	{
+		for(auto& child : boxes_) {
+			if(child->isBlockBox()) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void Box::addAnonymousBoxes()
+	{
+		// insert anonymous boxes
+		if(isBlockBox() && hasChildBlockBox()) {
+			auto children = boxes_;	// copy vector
+			boxes_.clear();
+			std::shared_ptr<AnonBlockBox> anon_box = nullptr;
+			for(auto& child : children) {
+				if(child->isBlockBox()) {
+					if(anon_box != nullptr) {
+						addChild(anon_box);
+						anon_box.reset();
+					}
+					addChild(child);
+				} else {
+					if(anon_box == nullptr) {
+						anon_box = std::make_shared<AnonBlockBox>(shared_from_this());
+					}
+					anon_box->addChild(child);
+				}
+			}
+			if(anon_box != nullptr) {
+				addChild(anon_box);
+			}
+		}
+	}
+
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		point cursor;
 		// If we have a clear flag set, then move the cursor in the layout engine to clear appropriate floats.
-		eng.moveCursorToClearFloats(float_clear_);
+		eng.moveCursorToClearFloats(float_clear_, cursor);
 
+		handlePreChildLayout(eng, containing);
 		if(getNode() != nullptr) {
-			handlePreChildLayout(eng, containing);
 			LineBoxPtr open = nullptr;
-			boxes_ = eng.layoutChildren(getNode()->getChildren(), shared_from_this(), open);
+			boxes_ = eng.layoutChildren(getNode()->getChildren(), shared_from_this(), open, cursor);
 			if(open != nullptr && !open->boxes_.empty()) {
 				boxes_.emplace_back(open);
 			}
+
+			addAnonymousBoxes();
+
 			for(auto& child : boxes_) {
 				child->layout(eng, getDimensions());
+				handlePostChildLayout(eng, child);
 			}
 		}
 		

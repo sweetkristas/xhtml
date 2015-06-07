@@ -90,10 +90,10 @@ xhtml::DocumentPtr load_xhtml(const std::string& ua_ss, const std::string& test_
 	// whitespace can only be processed after applying styles.
 	doc->processWhitespace();
 
-	{
-		profile::manager pman_load("pre-process anon blocks");
-		doc->processAnonBoxes();
-	}
+	//{
+	//	profile::manager pman_load("pre-process anon blocks");
+	//	doc->processAnonBoxes();
+	//}
 
 	/*doc->preOrderTraversal([](xhtml::NodePtr n) {
 		LOG_DEBUG(n->toString());
@@ -116,8 +116,8 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
-	int width = 800;
-	int height = 600;
+	int width = 1024;
+	int height = 768;
 
 	using namespace KRE;
 	SDL::SDL_ptr manager(new SDL::SDL());

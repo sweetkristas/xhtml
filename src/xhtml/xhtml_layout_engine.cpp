@@ -80,7 +80,6 @@ namespace xhtml
 		: root_(nullptr), 
 		  dims_(), 
 		  ctx_(RenderContext::get()), 
-		  cursor_(),
 		  list_item_counter_(),
 		  offset_()
 	{
@@ -100,13 +99,14 @@ namespace xhtml
 		}
 	}
 	
-	std::vector<BoxPtr> LayoutEngine::layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box)
+	std::vector<BoxPtr> LayoutEngine::layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box, point& cursor)
 	{
-		StackManager<point> offset_manager(offset_, point(parent->getLeft(), parent->getTop()));
+		StackManager<point> offset_manager(offset_, point(parent->getLeft(), parent->getTop()) + offset_.top());
 
 		std::vector<BoxPtr> res;
 		BoxPtr open_anon_box = nullptr;
-		for(auto& child : children) {
+		for(auto it = children.begin(); it != children.end(); ++it) {
+			auto child = *it;
 			if(child->id() == NodeId::ELEMENT) {
 				RenderContext::Manager ctx_manager(child->getProperties());
 
@@ -141,7 +141,7 @@ namespace xhtml
 						// XXX need to add an offset to position for the float box based on body margin.
 						// N.B. if the current display is one of the CssDisplay::TABLE* styles then this should be
 						// a table box rather than a block box.
-						root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, child), cfloat, parent->getTop() + cursor_.y);
+						root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, child), cfloat, offset_.top().y + cursor.y);
 						continue;
 					}
 					switch(display) {
@@ -151,10 +151,11 @@ namespace xhtml
 						case CssDisplay::INLINE: {
 							if(child->isReplaced()) {
 								// replaced elements should generate a box.
+								// XXX should these go into open_box?
 								res.emplace_back(std::make_shared<InlineElementBox>(parent, child));
 							} else {
 								// non-replaced elements we just generate children and add them.
-								std::vector<BoxPtr> new_children = layoutChildren(child->getChildren(), parent, open_box);
+								std::vector<BoxPtr> new_children = layoutChildren(child->getChildren(), parent, open_box, cursor);
 								res.insert(res.end(), new_children.begin(), new_children.end());
 							}
 							break;
@@ -163,8 +164,6 @@ namespace xhtml
 							if(open_box) {
 								res.emplace_back(open_box);
 								open_box.reset();
-								cursor_.x = 0;
-								cursor_.y += getLineHeight();
 							}
 							res.emplace_back(std::make_shared<BlockBox>(parent, child));
 							break;
@@ -174,6 +173,10 @@ namespace xhtml
 							break;
 						}
 						case CssDisplay::LIST_ITEM: {
+							if(open_box) {
+								res.emplace_back(open_box);
+								open_box.reset();
+							}
 							res.emplace_back(std::make_shared<ListItemBox>(parent, child, list_item_counter_.top()));
 							break;
 						}
@@ -195,16 +198,24 @@ namespace xhtml
 					}
 				}
 			} else if(child->id() == NodeId::TEXT) {
+				const static PropertyList empty;
+				RenderContext::Manager ctx_manager(empty);
 				TextPtr tnode = std::dynamic_pointer_cast<Text>(child);
 				ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 
 				const FixedPoint lh = getLineHeight();
 				if(open_box == nullptr) {
-					open_box = std::make_shared<LineBox>(parent, nullptr);
+					open_box = std::make_shared<LineBox>(parent, it);
 				}
-				FixedPoint width = getWidthAtCursor(parent->getWidth()) - cursor_.x;
+				FixedPoint width = getWidthAtPosition(cursor.y + offset_.top().y, parent->getWidth()) - cursor.x;
 
-				open_box->setStartingX(cursor_.x);
+				/// XXX if starting X changes on an open_box, such that it's width changes we need to re-layout its
+				// contents.
+				const FixedPoint new_x = getXAtPosition(cursor.y + offset_.top().y);
+				if(open_box->getStartingX() != new_x) {
+					// XXX fixme
+					open_box->setStartingX(getXAtPosition(cursor.y + offset_.top().y));
+				}
 
 				tnode->transformText(true);
 				auto it = tnode->begin();
@@ -213,11 +224,11 @@ namespace xhtml
 					LinePtr line = tnode->reflowText(it, width);
 					if(line != nullptr && !line->line.empty()) {
 						// is the line larger than available space and are there floats present?
-						if(line->line.back().advance.back().x > width && hasFloatsAtCursor()) {
-							cursor_.y += lh;
-							cursor_.x = 0;
+						if(line->line.back().advance.back().x > width && hasFloatsAtPosition(cursor.y + offset_.top().y)) {
+							cursor.y += lh;
+							cursor.x = 0;
 							it = saved_it;
-							width = getWidthAtCursor(parent->getWidth()) - cursor_.x;
+							width = getWidthAtPosition(cursor.y + offset_.top().y, parent->getWidth()) - cursor.x;
 							continue;
 						}
 
@@ -225,17 +236,19 @@ namespace xhtml
 						txt->layout(*this, parent->getDimensions());
 						open_box->addChild(txt);
 						FixedPoint x_inc = txt->getWidth() + txt->getMBPWidth();
-						cursor_.x += x_inc;
+						cursor.x += x_inc;
 						width -= x_inc;
 					}
 			
 					if((line != nullptr && line->is_end_line) || width < 0) {
 						res.emplace_back(open_box);
-						open_box = std::make_shared<LineBox>(parent, nullptr);
-						cursor_.y += lh;
-						cursor_.x = getXAtCursor();
-						open_box->setStartingX(cursor_.x);
-						width = getWidthAtCursor(parent->getWidth());
+						open_box = std::make_shared<LineBox>(parent, it);
+						cursor.y += lh;
+						cursor.x = 0;
+						open_box->setContentX(0);
+						open_box->setContentY(cursor.y);
+						open_box->setStartingX(getXAtPosition(cursor.y + offset_.top().y));
+						width = getWidthAtPosition(cursor.y + offset_.top().y, parent->getWidth());
 					}
 				}
 			} else {
@@ -259,15 +272,6 @@ namespace xhtml
 	FixedPoint LayoutEngine::getDescent() const 
 	{
 		return ctx_.getFontHandle()->getDescender();
-	}
-
-	FixedPoint LayoutEngine::getWidthAtCursor(FixedPoint width) const 
-	{
-		return getWidthAtPosition(cursor_.y + offset_.top().y, width);
-	}
-
-	FixedPoint LayoutEngine::getXAtCursor() const {
-		return getXAtPosition(cursor_.y + offset_.top().y);
 	}
 
 	FixedPoint LayoutEngine::getXAtPosition(FixedPoint y) const 
@@ -323,9 +327,9 @@ namespace xhtml
 		return offset_.top();
 	}
 
-	void LayoutEngine::moveCursorToClearFloats(CssClear float_clear)
+	void LayoutEngine::moveCursorToClearFloats(CssClear float_clear, point& cursor)
 	{
-		FixedPoint new_y = cursor_.y;
+		FixedPoint new_y = cursor.y;
 		if(float_clear == CssClear::LEFT || float_clear == CssClear::BOTH) {
 			for(auto& lf : root_->getLeftFloats()) {
 				new_y = std::max(new_y, lf->getMBPHeight() + lf->getDimensions().content_.y + lf->getDimensions().content_.height);
@@ -336,14 +340,9 @@ namespace xhtml
 				new_y = std::max(new_y, rf->getMBPHeight() + rf->getDimensions().content_.y + rf->getDimensions().content_.height);
 			}
 		}
-		if(new_y != cursor_.y) {
-			cursor_ = point(getXAtPosition(new_y + offset_.top().y), new_y);
+		if(new_y != cursor.y) {
+			cursor = point(getXAtPosition(new_y + offset_.top().y), new_y);
 		}
-	}
-
-	bool LayoutEngine::hasFloatsAtCursor() const
-	{
-		return hasFloatsAtPosition(cursor_.y + offset_.top().y);
 	}
 
 	bool LayoutEngine::hasFloatsAtPosition(FixedPoint y) const

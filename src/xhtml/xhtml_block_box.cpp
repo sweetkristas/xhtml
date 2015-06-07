@@ -50,10 +50,8 @@ namespace xhtml
 		}
 
 		if(is_replaced) {
-			calculateVertMPB(containing.content_.height);
 			layoutChildren(eng);
 		} else {
-			calculateVertMPB(containing.content_.height);
 			layoutChildren(eng);
 			layoutHeight(containing);
 		}
@@ -79,6 +77,17 @@ namespace xhtml
 		} else {
 			layoutWidth(containing);
 		}
+		
+		calculateVertMPB(containing.content_.height);
+		
+		setContentX(getMBPLeft());
+		setContentY(getMBPTop() + containing.content_.height);
+	}
+
+	void BlockBox::handlePostChildLayout(LayoutEngine& eng, BoxPtr child)
+	{
+		// Called after every child is laid out.
+		setContentHeight(child->getTop() + child->getHeight() + child->getMBPBottom());
 	}
 
 	void BlockBox::layoutWidth(const Dimensions& containing)
@@ -143,18 +152,23 @@ namespace xhtml
 		// XXX we should add collapsible margins to children here.
 		child_height_ = 0;
 		for(auto& child : getChildren()) {
-			child->setContentX(child->getMBPLeft());
-			child->setContentY(child_height_ + child->getMBPTop());
 			child_height_ += child->getHeight() + child->getMBPHeight();
 		}
-		setContentHeight(child_height_);
+		auto css_height = getCssHeight();
+		if(css_height.isAuto() && !(getNode() != nullptr && getNode()->id() == NodeId::ELEMENT && getNode()->isReplaced())) {
+			setContentHeight(child_height_);
+		}
 	}
 	
 	void BlockBox::layoutHeight(const Dimensions& containing)
 	{
 		// a set height value overrides the calculated value.
 		if(!getCssHeight().isAuto()) {
-			setContentHeight(getCssHeight().getLength().compute(containing.content_.height));
+			FixedPoint h = getCssHeight().getLength().compute(containing.content_.height);
+			if(h > child_height_) {
+				/* apply overflow properties */
+			}
+			setContentHeight(h);
 		}
 		// XXX deal with min-height and max-height
 		//auto& min_h = getCssMinHeight().compute(containing.content_.height);

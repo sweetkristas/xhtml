@@ -71,7 +71,7 @@ namespace xhtml
 	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
 	{
 		RenderContext& ctx = RenderContext::get();
-		CssListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE).getValue<CssListStyleType>();
+		CssListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE).getValue<ListStyleType>().list_style_type_;
 			switch(lst) {
 			case CssListStyleType::DISC: /* is the default */ break;
 			case CssListStyleType::CIRCLE:

@@ -37,7 +37,7 @@ namespace xhtml
 
 		void layoutRoot(NodePtr node, BoxPtr parent, const point& container);
 		
-		std::vector<BoxPtr> layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box);
+		std::vector<BoxPtr> layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box, point& cursor);
 
 		FixedPoint getLineHeight() const;
 
@@ -45,17 +45,14 @@ namespace xhtml
 
 		RootBoxPtr getRoot() const { return root_; }
 		
-		FixedPoint getWidthAtCursor(FixedPoint width) const;
-		FixedPoint getXAtCursor() const;
 		FixedPoint getXAtPosition(FixedPoint y) const;
 		FixedPoint getX2AtPosition(FixedPoint y) const;
 
 		FixedPoint getWidthAtPosition(FixedPoint y, FixedPoint width) const;
 
-		bool hasFloatsAtCursor() const;
 		bool hasFloatsAtPosition(FixedPoint y) const;
 
-		void moveCursorToClearFloats(css::CssClear float_clear);
+		void moveCursorToClearFloats(css::CssClear float_clear, point& cursor);
 
 		const Dimensions& getDimensions() const { return dims_; }
 
@@ -68,8 +65,6 @@ namespace xhtml
 		Dimensions dims_;
 		RenderContext& ctx_;
 		
-		point cursor_;
-
 		std::stack<int> list_item_counter_;
 		std::stack<point> offset_;
 	};

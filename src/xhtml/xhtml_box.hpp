@@ -58,6 +58,7 @@ namespace xhtml
 	enum class BoxId {
 		BLOCK,
 		ANON_BLOCK_BOX,
+		ANON_TEXT_BOX,
 		LINE,
 		TEXT,
 		INLINE_BLOCK,
@@ -79,10 +80,13 @@ namespace xhtml
 		const std::vector<BoxPtr>& getChildrenConst() const { return boxes_; }
 		bool isBlockBox() const { return id_ == BoxId::BLOCK || id_ == BoxId::LIST_ITEM || id_ == BoxId::TABLE || id_ == BoxId::ANON_BLOCK_BOX; }
 
+		bool hasChildBlockBox() const;
+
 		NodePtr getNode() const { return node_.lock(); }
 		BoxPtr getParent() const { return parent_.lock(); }
 
 		void addChild(BoxPtr box) { boxes_.emplace_back(box); }
+		void addAnonymousBoxes();
 
 		void setContentRect(const Rect& r) { dimensions_.content_ = r; }
 		void setContentX(FixedPoint x) { dimensions_.content_.x = x; }
@@ -197,6 +201,7 @@ namespace xhtml
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) {}
+		virtual void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) {}
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 		virtual void handleEndRender(DisplayListPtr display_list, const point& offset) const {}
 

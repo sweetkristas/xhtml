@@ -27,9 +27,10 @@
 
 namespace xhtml
 {
-	LineBox::LineBox(BoxPtr parent, NodePtr node)
-		: Box(BoxId::LINE, parent, node),
-		  starting_x_(0)
+	LineBox::LineBox(BoxPtr parent, std::vector<NodePtr>::iterator it)
+		: Box(BoxId::LINE, parent, nullptr),
+		  starting_x_(0),
+		  it_(it)
 	{
 	}
 
@@ -38,6 +39,10 @@ namespace xhtml
 		std::ostringstream ss;
 		ss << "LineBox: " << getDimensions().content_;
 		return ss.str();
+	}
+
+	void LineBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
 	}
 
 	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
@@ -55,6 +60,7 @@ namespace xhtml
 			height = std::max(height, child->getHeight() + child->getMBPHeight());
 			width += child->getWidth() + getMBPWidth();
 		}
+		
 		setContentWidth(width);
 		setContentHeight(height);
 
