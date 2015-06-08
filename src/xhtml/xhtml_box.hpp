@@ -77,7 +77,6 @@ namespace xhtml
 		BoxId id() const { return id_; }
 		const Dimensions& getDimensions() const { return dimensions_; }
 		const std::vector<BoxPtr>& getChildren() const { return boxes_; }
-		const std::vector<BoxPtr>& getChildrenConst() const { return boxes_; }
 		bool isBlockBox() const { return id_ == BoxId::BLOCK || id_ == BoxId::LIST_ITEM || id_ == BoxId::TABLE || id_ == BoxId::ANON_BLOCK_BOX; }
 
 		bool hasChildBlockBox() const;
@@ -196,7 +195,6 @@ namespace xhtml
 		virtual FixedPoint getBaselineOffset() const { return dimensions_.content_.height; }
 		virtual FixedPoint getBottomOffset() const { return dimensions_.content_.height; }
 	protected:
-		std::vector<BoxPtr>& getChildren() { return boxes_; }
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;

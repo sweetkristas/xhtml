@@ -23,7 +23,6 @@
 
 #include "xhtml_layout_engine.hpp"
 #include "xhtml_absolute_box.hpp"
-#include "xhtml_anon_block_box.hpp"
 #include "xhtml_block_box.hpp"
 #include "xhtml_inline_block_box.hpp"
 #include "xhtml_inline_element_box.hpp"
@@ -104,7 +103,6 @@ namespace xhtml
 		StackManager<point> offset_manager(offset_, point(parent->getLeft(), parent->getTop()) + offset_.top());
 
 		std::vector<BoxPtr> res;
-		BoxPtr open_anon_box = nullptr;
 		for(auto it = children.begin(); it != children.end(); ++it) {
 			auto child = *it;
 			if(child->id() == NodeId::ELEMENT) {
@@ -162,7 +160,9 @@ namespace xhtml
 						}
 						case CssDisplay::BLOCK: {
 							if(open_box) {
-								res.emplace_back(open_box);
+								if(!open_box->getChildren().empty()) {
+									res.emplace_back(open_box);
+								}
 								open_box.reset();
 							}
 							res.emplace_back(std::make_shared<BlockBox>(parent, child));

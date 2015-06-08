@@ -100,7 +100,6 @@
     <ClCompile Include="..\src\xhtml\solid_renderable.cpp" />
     <ClCompile Include="..\src\xhtml\to_roman.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_absolute_box.cpp" />
-    <ClCompile Include="..\src\xhtml\xhtml_anon_block_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_background_info.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_block_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_border_info.cpp" />
@@ -233,7 +232,6 @@
     <ClInclude Include="..\src\xhtml\variant_object.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_absolute_box.hpp" />
-    <ClInclude Include="..\src\xhtml\xhtml_anon_block_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_background_info.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_block_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_border_info.hpp" />

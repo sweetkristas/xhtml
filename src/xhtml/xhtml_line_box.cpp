@@ -56,6 +56,8 @@ namespace xhtml
 				TextPtr tnode = txt->getText();
 				auto it = tnode->begin();
 
+				std::shared_ptr<TextBox> last_txt = txt;
+
 				while(it != tnode->end()) {
 					it = txt->reflow(eng, cursor_, it);
 
@@ -68,6 +70,7 @@ namespace xhtml
 						cursor_.x += x_inc;
 						width -= x_inc;
 						addChild(txt);
+						last_txt = txt;
 						txt.reset();
 					}
 			
@@ -78,7 +81,8 @@ namespace xhtml
 					}
 
 					if(it != tnode->end()) {
-						txt = std::make_shared<TextBox>(shared_from_this(), tnode);
+						//txt = std::make_shared<TextBox>(shared_from_this(), tnode);
+						txt = std::make_shared<TextBox>(*last_txt);
 					}
 				}
 			} else {
@@ -90,12 +94,12 @@ namespace xhtml
 
 	void LineBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		setContentWidth(containing.content_.width);
+		reflowChildren(eng, containing);
 	}
 
 	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		reflowChildren(eng, containing);
-
 		// Our children should already be set at this point.
 		// we want to compute our own width/height based on our children and set the 
 		// children's x/y
@@ -104,10 +108,8 @@ namespace xhtml
 
 		// compute our width/height
 		for(auto& child : getChildren()) {
-			//child->setContentX(width + starting_x_);
-
-			height = std::max(height, child->getHeight() + child->getMBPHeight());
-			width += child->getWidth() + getMBPWidth();
+			height += child->getHeight() + child->getMBPHeight();
+			width = std::max(width, child->getWidth() + getMBPWidth());
 		}
 		
 		setContentWidth(width);
@@ -115,23 +117,23 @@ namespace xhtml
 
 		// computer&set children X/Y offsets
 		for(auto& child : getChildren()) {
-			FixedPoint child_y = 0;
+			FixedPoint child_y = child->getDimensions().content_.y;
 			// XXX we should implement this fully.
 			switch(child->getVerticalAlign()) {
 				case css::CssVerticalAlign::BASELINE:
 					// Align the baseline of the box with the baseline of the parent box. 
 					// If the box does not have a baseline, align the bottom margin edge 
 					// with the parent's baseline.
-					child_y = child->getBaselineOffset();
+					child_y += child->getBaselineOffset();
 					break;
 				case css::CssVerticalAlign::MIDDLE:
 					// Align the vertical midpoint of the box with the baseline of the 
 					// parent box plus half the x-height of the parent.
-					child_y = height / 2;
+					child_y += height / 2;
 					break;
 				case css::CssVerticalAlign::BOTTOM:
 					// Align the bottom of the aligned subtree with the bottom of the line box.
-					child_y = child->getBottomOffset();
+					child_y += child->getBottomOffset();
 					break;
 				case css::CssVerticalAlign::SUB:
 					// Lower the baseline of the box to the proper position for subscripts of the 
@@ -148,7 +150,8 @@ namespace xhtml
 				case css::CssVerticalAlign::LENGTH:
 				default:  break;
 			}
-			//child->setContentY(child_y);
+
+			child->setContentY(child_y);
 		}
 	}
 

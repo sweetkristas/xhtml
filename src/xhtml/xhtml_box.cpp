@@ -24,7 +24,6 @@
 #include "solid_renderable.hpp"
 
 #include "xhtml_absolute_box.hpp"
-#include "xhtml_anon_block_box.hpp"
 #include "xhtml_block_box.hpp"
 #include "xhtml_box.hpp"
 #include "xhtml_inline_element_box.hpp"
@@ -179,33 +178,6 @@ namespace xhtml
 		return false;
 	}
 
-	void Box::addAnonymousBoxes()
-	{
-		// insert anonymous boxes
-		if(isBlockBox() && hasChildBlockBox()) {
-			auto children = boxes_;	// copy vector
-			boxes_.clear();
-			std::shared_ptr<AnonBlockBox> anon_box = nullptr;
-			for(auto& child : children) {
-				if(child->isBlockBox()) {
-					if(anon_box != nullptr) {
-						addChild(anon_box);
-						anon_box.reset();
-					}
-					addChild(child);
-				} else {
-					if(anon_box == nullptr) {
-						anon_box = std::make_shared<AnonBlockBox>(shared_from_this());
-					}
-					anon_box->addChild(child);
-				}
-			}
-			if(anon_box != nullptr) {
-				addChild(anon_box);
-			}
-		}
-	}
-
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		point cursor;
@@ -213,19 +185,17 @@ namespace xhtml
 		eng.moveCursorToClearFloats(float_clear_, cursor);
 
 		handlePreChildLayout(eng, containing);
+		LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
 		if(getNode() != nullptr) {
-			LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
 			boxes_ = eng.layoutChildren(getNode()->getChildren(), shared_from_this(), open);
-			if(open != nullptr && !open->boxes_.empty()) {
-				boxes_.emplace_back(open);
-			}
+		}
+		if(open != nullptr && !open->boxes_.empty()) {
+			boxes_.emplace_back(open);
+		}
 
-			addAnonymousBoxes();
-
-			for(auto& child : boxes_) {
-				child->layout(eng, getDimensions());
-				handlePostChildLayout(eng, child);
-			}
+		for(auto& child : boxes_) {
+			child->layout(eng, getDimensions());
+			handlePostChildLayout(eng, child);
 		}
 		
 		handleLayout(eng, containing);

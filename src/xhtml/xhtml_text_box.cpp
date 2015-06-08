@@ -30,7 +30,6 @@ namespace xhtml
 	TextBox::TextBox(BoxPtr parent, TextPtr txt)
 		: Box(BoxId::TEXT, parent, nullptr),
 		  line_(),
-		  space_advance_(0),
 		  txt_(txt),
 		  it_()
 	{
@@ -73,6 +72,10 @@ namespace xhtml
 			done = true;
 		}
 
+		if(line_ != nullptr) {
+			setContentWidth(calculateWidth());
+		}
+
 		return it;
 	}
 
@@ -81,16 +84,21 @@ namespace xhtml
 		return txt_->end();
 	}
 
-	void TextBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
+	FixedPoint TextBox::calculateWidth() const
 	{
-		// TextBox's have no children to deal with, by definition.
+		ASSERT_LOG(line_ != nullptr, "Calculating width of TextBox with no line_ (=nullptr).");
 		FixedPoint width = 0;
 		for(auto& word : line_->line) {
 			width += word.advance.back().x;
 		}
-		width += space_advance_ * line_->line.size();
-		
-		setContentWidth(width);
+		width += line_->space_advance * line_->line.size();
+		return width;
+	}
+
+	void TextBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
+		// TextBox's have no children to deal with, by definition.	
+		//setContentWidth(calculateWidth());
 		setContentHeight(eng.getLineHeight());
 	}
 
@@ -117,7 +125,7 @@ namespace xhtml
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);
 			}
-			dim_x += word.advance.back().x + space_advance_;
+			dim_x += word.advance.back().x + line_->space_advance;
 			text += word.word;
 		}
 		
