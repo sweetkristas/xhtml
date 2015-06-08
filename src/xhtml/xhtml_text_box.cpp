@@ -23,13 +23,16 @@
 
 #include "xhtml_layout_engine.hpp"
 #include "xhtml_text_box.hpp"
+#include "xhtml_text_node.hpp"
 
 namespace xhtml
 {
-	TextBox::TextBox(BoxPtr parent, LinePtr line)
+	TextBox::TextBox(BoxPtr parent, TextPtr txt)
 		: Box(BoxId::TEXT, parent, nullptr),
-		  line_(line),
-		  space_advance_(line->space_advance)
+		  line_(),
+		  space_advance_(0),
+		  txt_(txt),
+		  it_()
 	{
 	}
 
@@ -41,6 +44,41 @@ namespace xhtml
 			ss << " " << word.word;
 		}
 		return ss.str();
+	}
+
+	Text::iterator TextBox::reflow(LayoutEngine& eng, point& cursor, Text::iterator it)
+	{
+		it_ = it;
+		auto parent = getParent();
+		FixedPoint lh = eng.getLineHeight();
+		FixedPoint width = eng.getWidthAtPosition(cursor.y + eng.getOffset().y, parent->getWidth()) - cursor.x;
+
+		ASSERT_LOG(it != txt_->end(), "Given an iterator at end of text.");
+
+		bool done = false;
+		while(!done) {
+			LinePtr line = txt_->reflowText(it, width);
+			if(line != nullptr && !line->line.empty()) {
+				// is the line larger than available space and are there floats present?
+				if(line->line.back().advance.back().x > width && eng.hasFloatsAtPosition(cursor.y + eng.getOffset().y)) {
+					cursor.y += lh;
+					cursor.x = 0;
+					it = it_;
+					width = eng.getWidthAtPosition(cursor.y + eng.getOffset().y, parent->getWidth()) - cursor.x;
+					continue;
+				}
+				line_ = line;
+			}
+			
+			done = true;
+		}
+
+		return it;
+	}
+
+	Text::iterator TextBox::end()
+	{
+		return txt_->end();
 	}
 
 	void TextBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
@@ -70,6 +108,7 @@ namespace xhtml
 
 	void TextBox::handleRender(DisplayListPtr display_list, const point& offset) const
 	{
+		ASSERT_LOG(line_ != nullptr, "TextBox has not had layout done. line_ is nullptr");
 		std::vector<point> path;
 		std::string text;
 		int dim_x = offset.x;

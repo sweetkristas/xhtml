@@ -86,6 +86,7 @@ namespace xhtml
 		BoxPtr getParent() const { return parent_.lock(); }
 
 		void addChild(BoxPtr box) { boxes_.emplace_back(box); }
+		void addChildren(const std::vector<BoxPtr>& children) { boxes_.insert(boxes_.end(), children.begin(), children.end()); }
 		void addAnonymousBoxes();
 
 		void setContentRect(const Rect& r) { dimensions_.content_ = r; }
@@ -196,6 +197,7 @@ namespace xhtml
 		virtual FixedPoint getBottomOffset() const { return dimensions_.content_.height; }
 	protected:
 		std::vector<BoxPtr>& getChildren() { return boxes_; }
+		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
 	private:

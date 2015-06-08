@@ -24,14 +24,20 @@
 #pragma once
 
 #include "xhtml_box.hpp"
+#include "xhtml_text_node.hpp"
 
 namespace xhtml
 {
 	class TextBox : public Box
 	{
 	public:
-		TextBox(BoxPtr parent, LinePtr line);
+		TextBox(BoxPtr parent, TextPtr txt);
 		std::string toString() const override;
+		Text::iterator reflow(LayoutEngine& eng, point& cursor, Text::iterator it);
+		Text::iterator begin() { return it_; }
+		Text::iterator end();
+		LinePtr getLine() const { return line_; }
+		TextPtr getText() const { return txt_; }
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
@@ -39,5 +45,7 @@ namespace xhtml
 		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
 		LinePtr line_;
 		FixedPoint space_advance_;
+		TextPtr txt_;
+		Text::iterator it_;
 	};
 }

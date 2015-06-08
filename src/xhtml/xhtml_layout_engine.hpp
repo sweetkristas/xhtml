@@ -37,7 +37,7 @@ namespace xhtml
 
 		void layoutRoot(NodePtr node, BoxPtr parent, const point& container);
 		
-		std::vector<BoxPtr> layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box, point& cursor);
+		std::vector<BoxPtr> layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box);
 
 		FixedPoint getLineHeight() const;
 

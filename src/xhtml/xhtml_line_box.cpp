@@ -21,16 +21,17 @@
 	   distribution.
 */
 
+#include "solid_renderable.hpp"
 #include "xhtml_line_box.hpp"
 #include "xhtml_layout_engine.hpp"
-#include "solid_renderable.hpp"
+#include "xhtml_text_box.hpp"
 
 namespace xhtml
 {
-	LineBox::LineBox(BoxPtr parent, std::vector<NodePtr>::iterator it)
+	LineBox::LineBox(BoxPtr parent, const point& cursor)
 		: Box(BoxId::LINE, parent, nullptr),
 		  starting_x_(0),
-		  it_(it)
+		  cursor_(cursor)
 	{
 	}
 
@@ -41,12 +42,60 @@ namespace xhtml
 		return ss.str();
 	}
 
+	void LineBox::reflowChildren(LayoutEngine& eng, const Dimensions& containing)
+	{
+		FixedPoint lh = eng.getLineHeight();
+		FixedPoint width = eng.getWidthAtPosition(cursor_.y + eng.getOffset().y, containing.content_.width) - cursor_.x;
+
+		auto children = getChildren();
+		clearChildren();
+		for(auto& child : children) {
+			if(child->id() == BoxId::TEXT) {
+				auto txt = std::dynamic_pointer_cast<TextBox>(child);
+				ASSERT_LOG(txt != nullptr, "Something went wrong child box with id TEXT couldn't be cast to Text box");
+				TextPtr tnode = txt->getText();
+				auto it = tnode->begin();
+
+				while(it != tnode->end()) {
+					it = txt->reflow(eng, cursor_, it);
+
+					LinePtr line = txt->getLine();
+					if(line != nullptr && !line->line.empty()) {
+						txt->setContentX(cursor_.x);
+						txt->setContentY(cursor_.y);
+
+						FixedPoint x_inc = txt->getWidth() + txt->getMBPWidth();
+						cursor_.x += x_inc;
+						width -= x_inc;
+						addChild(txt);
+						txt.reset();
+					}
+			
+					if((line != nullptr && line->is_end_line) || width < 0) {
+						cursor_.y += lh;
+						cursor_.x = 0;
+						width = eng.getWidthAtPosition(cursor_.y + eng.getOffset().y, containing.content_.width);
+					}
+
+					if(it != tnode->end()) {
+						txt = std::make_shared<TextBox>(shared_from_this(), tnode);
+					}
+				}
+			} else {
+				// XXX fixme
+				addChild(child);
+			}
+		}
+	}
+
 	void LineBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 	}
 
 	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		reflowChildren(eng, containing);
+
 		// Our children should already be set at this point.
 		// we want to compute our own width/height based on our children and set the 
 		// children's x/y

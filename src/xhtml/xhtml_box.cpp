@@ -214,8 +214,8 @@ namespace xhtml
 
 		handlePreChildLayout(eng, containing);
 		if(getNode() != nullptr) {
-			LineBoxPtr open = nullptr;
-			boxes_ = eng.layoutChildren(getNode()->getChildren(), shared_from_this(), open, cursor);
+			LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
+			boxes_ = eng.layoutChildren(getNode()->getChildren(), shared_from_this(), open);
 			if(open != nullptr && !open->boxes_.empty()) {
 				boxes_.emplace_back(open);
 			}

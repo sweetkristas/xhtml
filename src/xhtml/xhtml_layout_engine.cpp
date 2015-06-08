@@ -99,7 +99,7 @@ namespace xhtml
 		}
 	}
 	
-	std::vector<BoxPtr> LayoutEngine::layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box, point& cursor)
+	std::vector<BoxPtr> LayoutEngine::layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box)
 	{
 		StackManager<point> offset_manager(offset_, point(parent->getLeft(), parent->getTop()) + offset_.top());
 
@@ -141,7 +141,7 @@ namespace xhtml
 						// XXX need to add an offset to position for the float box based on body margin.
 						// N.B. if the current display is one of the CssDisplay::TABLE* styles then this should be
 						// a table box rather than a block box.
-						root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, child), cfloat, offset_.top().y + cursor.y);
+						root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, child), cfloat, offset_.top().y + (open_box != nullptr ? open_box->getCursor().y : 0));
 						continue;
 					}
 					switch(display) {
@@ -155,7 +155,7 @@ namespace xhtml
 								res.emplace_back(std::make_shared<InlineElementBox>(parent, child));
 							} else {
 								// non-replaced elements we just generate children and add them.
-								std::vector<BoxPtr> new_children = layoutChildren(child->getChildren(), parent, open_box, cursor);
+								std::vector<BoxPtr> new_children = layoutChildren(child->getChildren(), parent, open_box);
 								res.insert(res.end(), new_children.begin(), new_children.end());
 							}
 							break;
@@ -203,54 +203,12 @@ namespace xhtml
 				TextPtr tnode = std::dynamic_pointer_cast<Text>(child);
 				ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 
-				const FixedPoint lh = getLineHeight();
-				if(open_box == nullptr) {
-					open_box = std::make_shared<LineBox>(parent, it);
-				}
-				FixedPoint width = getWidthAtPosition(cursor.y + offset_.top().y, parent->getWidth()) - cursor.x;
-
-				/// XXX if starting X changes on an open_box, such that it's width changes we need to re-layout its
-				// contents.
-				const FixedPoint new_x = getXAtPosition(cursor.y + offset_.top().y);
-				if(open_box->getStartingX() != new_x) {
-					// XXX fixme
-					open_box->setStartingX(getXAtPosition(cursor.y + offset_.top().y));
-				}
-
 				tnode->transformText(true);
-				auto it = tnode->begin();
-				while(it != tnode->end()) {
-					auto saved_it = it;
-					LinePtr line = tnode->reflowText(it, width);
-					if(line != nullptr && !line->line.empty()) {
-						// is the line larger than available space and are there floats present?
-						if(line->line.back().advance.back().x > width && hasFloatsAtPosition(cursor.y + offset_.top().y)) {
-							cursor.y += lh;
-							cursor.x = 0;
-							it = saved_it;
-							width = getWidthAtPosition(cursor.y + offset_.top().y, parent->getWidth()) - cursor.x;
-							continue;
-						}
-
-						auto txt = std::make_shared<TextBox>(open_box, line);
-						txt->layout(*this, parent->getDimensions());
-						open_box->addChild(txt);
-						FixedPoint x_inc = txt->getWidth() + txt->getMBPWidth();
-						cursor.x += x_inc;
-						width -= x_inc;
-					}
-			
-					if((line != nullptr && line->is_end_line) || width < 0) {
-						res.emplace_back(open_box);
-						open_box = std::make_shared<LineBox>(parent, it);
-						cursor.y += lh;
-						cursor.x = 0;
-						open_box->setContentX(0);
-						open_box->setContentY(cursor.y);
-						open_box->setStartingX(getXAtPosition(cursor.y + offset_.top().y));
-						width = getWidthAtPosition(cursor.y + offset_.top().y, parent->getWidth());
-					}
+				if(open_box == nullptr) {
+					open_box = std::make_shared<LineBox>(parent);
 				}
+				auto txt = std::make_shared<TextBox>(open_box, tnode);
+				open_box->addChild(txt);
 			} else {
 				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(child->id()));
 			}
