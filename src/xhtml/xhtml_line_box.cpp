@@ -104,7 +104,7 @@ namespace xhtml
 
 		// compute our width/height
 		for(auto& child : getChildren()) {
-			child->setContentX(width + starting_x_);
+			//child->setContentX(width + starting_x_);
 
 			height = std::max(height, child->getHeight() + child->getMBPHeight());
 			width += child->getWidth() + getMBPWidth();
@@ -148,7 +148,7 @@ namespace xhtml
 				case css::CssVerticalAlign::LENGTH:
 				default:  break;
 			}
-			child->setContentY(child_y);
+			//child->setContentY(child_y);
 		}
 	}
 
