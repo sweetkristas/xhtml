@@ -32,6 +32,7 @@ namespace xhtml
 	public:
 		explicit InlineBlockBox(BoxPtr parent, NodePtr node);
 		std::string toString() const override;
+		FixedPoint getBaselineOffset() const override { return 0; }
 	private:
 		void layoutWidth(const Dimensions& containing);
 		void layoutPosition(LayoutEngine& eng, const Dimensions& containing);

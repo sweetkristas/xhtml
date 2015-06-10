@@ -154,14 +154,14 @@ namespace xhtml
 		transformed_ = true;
 	}
 
-	LinePtr Text::reflowText(iterator& start, FixedPoint remaining_line_width)
+	LinePtr Text::reflowText(iterator& start, FixedPoint remaining_line_width, KRE::FontHandlePtr font_handle)
 	{
 		auto parent = getParent();
 		ASSERT_LOG(parent != nullptr, "Text::reflowText() parent was null.");
 		ASSERT_LOG(transformed_ == true, "Text must be transformed before reflowing.");
 		auto ctx = RenderContext::get();
 
-		line_.space_advance = ctx.getFontHandle()->calculateCharAdvance(' ');
+		line_.space_advance = font_handle->calculateCharAdvance(' ');
 		FixedPoint word_spacing = ctx.getComputedValue(css::Property::WORD_SPACING).getValue<css::Length>().compute();
 		line_.space_advance += word_spacing;
 		FixedPoint letter_spacing = ctx.getComputedValue(css::Property::LETTER_SPACING).getValue<css::Length>().compute();
@@ -199,7 +199,7 @@ namespace xhtml
 				continue;
 			}
 			word.advance.clear();
-			word.advance = RenderContext::get().getFontHandle()->getGlyphPath(word.word);
+			word.advance = font_handle->getGlyphPath(word.word);
 			if(letter_spacing != 0) {
 				long ls_acc = 0;
 				for(auto& pt : word.advance) {

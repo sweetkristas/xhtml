@@ -45,7 +45,8 @@ namespace xhtml
 	void LineBox::reflowChildren(LayoutEngine& eng, const Dimensions& containing)
 	{
 		FixedPoint lh = eng.getLineHeight();
-		FixedPoint width = eng.getWidthAtPosition(cursor_.y + eng.getOffset().y, containing.content_.width) - cursor_.x;
+		cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
+		FixedPoint width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width) - cursor_.x;
 
 		auto children = getChildren();
 		clearChildren();
@@ -76,8 +77,8 @@ namespace xhtml
 			
 					if((line != nullptr && line->is_end_line) || width < 0) {
 						cursor_.y += lh;
-						cursor_.x = 0;
-						width = eng.getWidthAtPosition(cursor_.y + eng.getOffset().y, containing.content_.width);
+						cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
+						width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
 					}
 
 					if(it != tnode->end()) {
@@ -87,13 +88,27 @@ namespace xhtml
 				}
 			} else {
 				// XXX fixme
+				const FixedPoint x_inc = child->getWidth() + child->getMBPWidth();
+
+				if(width <= x_inc) {
+					cursor_.y += std::max(lh, child->getHeight());
+					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
+				}			
+				child->setContentX(cursor_.x);
+				child->setContentY(cursor_.y);
 				addChild(child);
+				width -= x_inc;
+				cursor_.x += x_inc;
+			
 			}
 		}
 	}
 
-	void LineBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
+	void LineBox::handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing)
 	{
+		setContentX(getMBPLeft());
+		setContentY(getMBPTop() + containing.content_.height);
+
 		setContentWidth(containing.content_.width);
 		reflowChildren(eng, containing);
 	}

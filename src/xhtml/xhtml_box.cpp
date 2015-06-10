@@ -58,7 +58,7 @@ namespace xhtml
 		  boxes_(),
 		  absolute_boxes_(),
 		  cfloat_(CssFloat::NONE),
-		  font_handle_(xhtml::RenderContext::get().getFontHandle()),
+		  font_handle_(nullptr),
 		  background_info_(),
 		  border_info_(),
 		  css_position_(CssPosition::STATIC),
@@ -71,7 +71,8 @@ namespace xhtml
 		  css_height_(),
 		  float_clear_(CssClear::NONE),
 		  vertical_align_(CssVerticalAlign::BASELINE),
-		  text_align_(CssTextAlign::NORMAL)
+		  text_align_(CssTextAlign::NORMAL),
+		  offset_()
 	{
 		init();
 	}
@@ -85,6 +86,8 @@ namespace xhtml
 
 		RenderContext& ctx = RenderContext::get();
 		color_ = ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute();
+
+		font_handle_ = ctx.getFontHandle();
 
 		background_info_.setColor(ctx.getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute());
 		// We set repeat before the filename so we can correctly set the background texture wrap mode.
@@ -184,14 +187,26 @@ namespace xhtml
 		// If we have a clear flag set, then move the cursor in the layout engine to clear appropriate floats.
 		eng.moveCursorToClearFloats(float_clear_, cursor);
 
+		NodePtr node = getNode();
+
+		std::unique_ptr<RenderContext::Manager> ctx_manager;
+		if(node != nullptr) {
+			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
+		}
+
 		handlePreChildLayout(eng, containing);
+
 		LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
-		if(getNode() != nullptr) {
-			boxes_ = eng.layoutChildren(getNode()->getChildren(), shared_from_this(), open);
+
+		if(node != nullptr) {
+			boxes_ = eng.layoutChildren(node->getChildren(), shared_from_this(), open);
 		}
 		if(open != nullptr && !open->boxes_.empty()) {
 			boxes_.emplace_back(open);
 		}
+
+		offset_ = (getParent() != nullptr ? getParent()->getOffset() : point()) + point(dimensions_.content_.x, dimensions_.content_.y);
+		handlePreChildLayout2(eng, containing);
 
 		for(auto& child : boxes_) {
 			child->layout(eng, getDimensions());
@@ -203,16 +218,6 @@ namespace xhtml
 
 		// need to call this after doing layout, since we need to now what the computed padding/border values are.
 		border_info_.init(dimensions_);
-	}
-
-	point Box::getOffset() const
-	{
-		point offset;
-		ancestralTraverse([&offset](const ConstBoxPtr& box) {
-			offset += point(box->getDimensions().content_.x, box->getDimensions().content_.y);
-			return true;
-		});
-		return offset;
 	}
 
 	void Box::calculateVertMPB(FixedPoint containing_height)

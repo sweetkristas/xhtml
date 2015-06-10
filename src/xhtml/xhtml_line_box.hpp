@@ -38,7 +38,7 @@ namespace xhtml
 		const point& getCursor() const { return cursor_; }
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
-		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
 		FixedPoint starting_x_;

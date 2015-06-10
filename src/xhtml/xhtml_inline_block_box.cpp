@@ -53,7 +53,8 @@ namespace xhtml
 
 		if(is_replacable_) {
 			calculateHorzMPB(containing.content_.width);
-			setContentRect(Rect(0, 0, node->getDimensions().w() * LayoutEngine::getFixedPointScale(), node->getDimensions().h() * LayoutEngine::getFixedPointScale()));
+			setContentWidth(node->getDimensions().w() * LayoutEngine::getFixedPointScale());
+			setContentHeight(node->getDimensions().h() * LayoutEngine::getFixedPointScale());
 			auto css_width = getCssWidth();
 			auto css_height = getCssHeight();
 			if(!css_width.isAuto()) {
@@ -144,14 +145,14 @@ namespace xhtml
 		calculateVertMPB(containing_height);
 
 		//eng.moveCursorToFitWidth(getDimensions().content_.width + getMBPWidth(), containing.content_.width);
-		if(getDimensions().content_.width >= containing.content_.width) {
+		/*if(getDimensions().content_.width >= containing.content_.width) {
 			setContentX(0);
 			setContentY(eng.getLineHeight());
 		} else {
 			//setContentX(eng.getCursor().x);
 			setContentY(0);
 			setContentX(0);
-		}
+		}*/
 		// 0 aligns the top of the box with the baseline,
 		// setting to negative height aligns the bottom of the box with the baseline.
 		//eng.incrCursor(getDimensions().content_.width + getMBPWidth());

@@ -168,13 +168,17 @@ namespace xhtml
 							res.emplace_back(std::make_shared<BlockBox>(parent, child));
 							break;
 						}
-						case CssDisplay::INLINE_BLOCK: {							
-							res.emplace_back(std::make_shared<InlineBlockBox>(parent, child));
+						case CssDisplay::INLINE_BLOCK: {
+							auto ibb = std::make_shared<InlineBlockBox>(parent, child);
+							ibb->layout(*this, parent->getDimensions());
+							open_box->addChild(ibb);
 							break;
 						}
 						case CssDisplay::LIST_ITEM: {
 							if(open_box) {
-								res.emplace_back(open_box);
+								if(!open_box->getChildren().empty()) {
+									res.emplace_back(open_box);
+								}
 								open_box.reset();
 							}
 							res.emplace_back(std::make_shared<ListItemBox>(parent, child, list_item_counter_.top()));
@@ -198,8 +202,8 @@ namespace xhtml
 					}
 				}
 			} else if(child->id() == NodeId::TEXT) {
-				const static PropertyList empty;
-				RenderContext::Manager ctx_manager(empty);
+				//const static PropertyList empty;
+				//RenderContext::Manager ctx_manager(empty);
 				TextPtr tnode = std::dynamic_pointer_cast<Text>(child);
 				ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 

@@ -50,20 +50,20 @@ namespace xhtml
 		it_ = it;
 		auto parent = getParent();
 		FixedPoint lh = eng.getLineHeight();
-		FixedPoint width = eng.getWidthAtPosition(cursor.y + eng.getOffset().y, parent->getWidth()) - cursor.x;
+		FixedPoint width = eng.getWidthAtPosition(cursor.y + getParent()->getOffset().y, parent->getWidth());
 
 		ASSERT_LOG(it != txt_->end(), "Given an iterator at end of text.");
 
 		bool done = false;
 		while(!done) {
-			LinePtr line = txt_->reflowText(it, width);
+			LinePtr line = txt_->reflowText(it, width, getFont());
 			if(line != nullptr && !line->line.empty()) {
 				// is the line larger than available space and are there floats present?
-				if(line->line.back().advance.back().x > width && eng.hasFloatsAtPosition(cursor.y + eng.getOffset().y)) {
+				if(line->line.back().advance.back().x > width && eng.hasFloatsAtPosition(cursor.y + getParent()->getOffset().y)) {
 					cursor.y += lh;
-					cursor.x = 0;
+					cursor.x = eng.getXAtPosition(cursor.y + getParent()->getOffset().y);
 					it = it_;
-					width = eng.getWidthAtPosition(cursor.y + eng.getOffset().y, parent->getWidth()) - cursor.x;
+					width = eng.getWidthAtPosition(cursor.y + getParent()->getOffset().y, parent->getWidth()) - cursor.x;
 					continue;
 				}
 				line_ = line;

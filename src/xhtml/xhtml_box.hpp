@@ -170,7 +170,7 @@ namespace xhtml
 		bool ancestralTraverse(std::function<bool(const ConstBoxPtr&)> fn) const;
 
 		css::CssPosition getPosition() const { return css_position_; }
-		point getOffset() const;
+		const point& getOffset() const { return offset_; }
 
 		void render(DisplayListPtr display_list, const point& offset) const;
 		KRE::FontHandlePtr getFont() const { return font_handle_; }
@@ -200,6 +200,7 @@ namespace xhtml
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
+		virtual void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) {}
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
@@ -233,6 +234,8 @@ namespace xhtml
 		css::CssClear float_clear_;
 		css::CssVerticalAlign vertical_align_;
 		css::CssTextAlign text_align_;
+
+		point offset_;
 	};
 
 	std::ostream& operator<<(std::ostream& os, const Rect& r);
