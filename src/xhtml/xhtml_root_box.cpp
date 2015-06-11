@@ -81,7 +81,7 @@ namespace xhtml
 	{
 		box->layout(eng, getDimensions());
 
-		const FixedPoint lh = eng.getLineHeight();
+		const FixedPoint lh = getLineHeight();
 		const FixedPoint box_w = box->getDimensions().content_.width;
 
 		FixedPoint x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) : eng.getX2AtPosition(y + eng.getOffset().y);

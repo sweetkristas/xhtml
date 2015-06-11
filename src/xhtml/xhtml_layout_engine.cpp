@@ -202,8 +202,12 @@ namespace xhtml
 					}
 				}
 			} else if(child->id() == NodeId::TEXT) {
-				//const static PropertyList empty;
-				//RenderContext::Manager ctx_manager(empty);
+				std::unique_ptr<RenderContext::Manager> ctx_manager;
+				if(!parent->isBlockBox()) {
+					// If ther parent isn't a block box, then the current styles will apply to this text box.
+					const static PropertyList empty;
+					ctx_manager.reset(new RenderContext::Manager(empty));
+				}
 				TextPtr tnode = std::dynamic_pointer_cast<Text>(child);
 				ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 
@@ -218,17 +222,6 @@ namespace xhtml
 			}
 		}
 		return res;
-	}
-
-	FixedPoint LayoutEngine::getLineHeight() const 
-	{
-		const auto lh = ctx_.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
-		FixedPoint line_height = lh.compute();
-		if(lh.isPercent() || lh.isNumber()) {
-			line_height = static_cast<FixedPoint>(line_height / getFixedPointScaleFloat()
-				* ctx_.getComputedValue(Property::FONT_SIZE).getValue<Length>().compute());
-		}
-		return line_height;
 	}
 
 	FixedPoint LayoutEngine::getDescent() const 

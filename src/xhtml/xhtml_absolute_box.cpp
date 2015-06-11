@@ -29,7 +29,8 @@ namespace xhtml
 	using namespace css;
 
 	AbsoluteBox::AbsoluteBox(BoxPtr parent, NodePtr node)
-		: Box(BoxId::ABSOLUTE, parent, node)
+		: Box(BoxId::ABSOLUTE, parent, node),
+		  container_()
 	{
 	}
 
@@ -56,6 +57,8 @@ namespace xhtml
 			// couldn't find anything use the layout engine dimensions
 			container = eng.getDimensions().content_;
 		}
+		container_ = container;
+
 		// we expect top/left and either bottom/right or width/height
 		// if the appropriate thing isn't set then we use the parent container dimensions.
 		RenderContext& ctx = RenderContext::get();
@@ -74,18 +77,10 @@ namespace xhtml
 		if(!getCssRight().isAuto()) {
 			width = getCssRight().getLength().compute(containing_width) - left + container.width;
 		}
-		FixedPoint height = container.height;
-		if(!getCssBottom().isAuto()) {
-			height = getCssBottom().getLength().compute(containing_height) - top + container.height;
-		}
 
 		// if width/height properties are set they override right/bottom.
 		if(!getCssWidth().isAuto()) {
 			width = getCssWidth().getLength().compute(containing_width);
-		}
-
-		if(!getCssHeight().isAuto()) {
-			height = getCssHeight().getLength().compute(containing_height);
 		}
 
 		calculateHorzMPB(containing_width);
@@ -94,15 +89,32 @@ namespace xhtml
 		setContentX(left + getMBPLeft());
 		setContentY(top + getMBPTop());
 		setContentWidth(width - getMBPWidth());
-		setContentHeight(height - getMBPHeight());
 	}
 
 	void AbsoluteBox::handlePostChildLayout(LayoutEngine& eng, BoxPtr child)
 	{
+		setContentHeight(child->getTop() + child->getHeight() + child->getMBPBottom());
 	}
 
 	void AbsoluteBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		const FixedPoint containing_height = container_.height;
+
+		FixedPoint top = container_.y;
+		if(!getCssTop().isAuto()) {
+			top = getCssTop().getLength().compute(containing_height);
+		}
+
+		FixedPoint height = container_.height;
+		if(!getCssBottom().isAuto()) {
+			height = getCssBottom().getLength().compute(containing_height) - top + container_.height;
+		}
+
+		if(!getCssHeight().isAuto()) {
+			height = getCssHeight().getLength().compute(containing_height);
+		}
+
+		setContentHeight(height - getMBPHeight());
 	}
 
 	void AbsoluteBox::handleRender(DisplayListPtr display_list, const point& offset) const

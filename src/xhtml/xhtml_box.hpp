@@ -57,8 +57,6 @@ namespace xhtml
 
 	enum class BoxId {
 		BLOCK,
-		ANON_BLOCK_BOX,
-		ANON_TEXT_BOX,
 		LINE,
 		TEXT,
 		INLINE_BLOCK,
@@ -77,7 +75,7 @@ namespace xhtml
 		BoxId id() const { return id_; }
 		const Dimensions& getDimensions() const { return dimensions_; }
 		const std::vector<BoxPtr>& getChildren() const { return boxes_; }
-		bool isBlockBox() const { return id_ == BoxId::BLOCK || id_ == BoxId::LIST_ITEM || id_ == BoxId::TABLE || id_ == BoxId::ANON_BLOCK_BOX; }
+		bool isBlockBox() const { return id_ == BoxId::BLOCK || id_ == BoxId::LIST_ITEM || id_ == BoxId::TABLE; }
 
 		bool hasChildBlockBox() const;
 
@@ -194,6 +192,8 @@ namespace xhtml
 
 		virtual FixedPoint getBaselineOffset() const { return dimensions_.content_.height; }
 		virtual FixedPoint getBottomOffset() const { return dimensions_.content_.height; }
+
+		FixedPoint getLineHeight() const { return line_height_; }
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
@@ -237,6 +237,8 @@ namespace xhtml
 		css::CssDirection css_direction_;
 
 		point offset_;
+
+		FixedPoint line_height_;
 	};
 
 	std::ostream& operator<<(std::ostream& os, const Rect& r);

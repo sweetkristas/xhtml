@@ -44,7 +44,7 @@ namespace xhtml
 
 	void LineBox::reflowChildren(LayoutEngine& eng, const Dimensions& containing)
 	{
-		FixedPoint lh = eng.getLineHeight();
+		FixedPoint lh = 0;
 		cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
 		FixedPoint width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width) - cursor_.x;
 
@@ -52,6 +52,7 @@ namespace xhtml
 		clearChildren();
 		for(auto& child : children) {
 			if(child->id() == BoxId::TEXT) {
+				lh = std::max(lh, child->getLineHeight());
 				auto txt = std::dynamic_pointer_cast<TextBox>(child);
 				ASSERT_LOG(txt != nullptr, "Something went wrong child box with id TEXT couldn't be cast to Text box");
 				TextPtr tnode = txt->getText();
@@ -79,11 +80,13 @@ namespace xhtml
 						cursor_.y += lh;
 						cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
 						width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
+						lh = 0;
 					}
 
 					if(it != tnode->end()) {
 						//txt = std::make_shared<TextBox>(shared_from_this(), tnode);
 						txt = std::make_shared<TextBox>(*last_txt);
+						lh = std::max(lh, txt->getLineHeight());
 					}
 				}
 			} else {
@@ -91,7 +94,7 @@ namespace xhtml
 				const FixedPoint x_inc = child->getWidth() + child->getMBPWidth();
 
 				if(width <= x_inc) {
-					cursor_.y += std::max(lh, child->getHeight());
+					cursor_.y += std::max(lh, child->getHeight() + child->getMBPHeight());
 					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
 				}			
 				child->setContentX(cursor_.x);

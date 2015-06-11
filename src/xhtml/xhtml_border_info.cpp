@@ -327,10 +327,9 @@ namespace xhtml
 	{
 		std::array<FixedPoint, 4> border = { dims.border_.top, dims.border_.left, dims.border_.bottom, dims.border_.right };
 
-		if(uri_.isNone()) {
-			return;
+		if(!uri_.isNone()) {
+			setFile(uri_.getUri());
 		}
-		setFile(uri_.getUri());
 
 		auto& outset = border_outset_.getWidths();
 		for(auto side = 0; side != 4; ++side) {

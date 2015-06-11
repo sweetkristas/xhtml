@@ -39,8 +39,6 @@ namespace xhtml
 		
 		std::vector<BoxPtr> layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box);
 
-		FixedPoint getLineHeight() const;
-
 		FixedPoint getDescent() const;
 
 		RootBoxPtr getRoot() const { return root_; }

@@ -73,7 +73,8 @@ namespace xhtml
 		  vertical_align_(CssVerticalAlign::BASELINE),
 		  text_align_(CssTextAlign::NORMAL),
 		  css_direction_(CssDirection::LTR),
-		  offset_()
+		  offset_(),
+		  line_height_(0)
 	{
 		init();
 	}
@@ -81,7 +82,7 @@ namespace xhtml
 	void Box::init()
 	{
 		// skip for line/text
-		if(id_ == BoxId::LINE || id_ == BoxId::ANON_BLOCK_BOX) {
+		if(id_ == BoxId::LINE) {
 			return;
 		}
 
@@ -121,6 +122,13 @@ namespace xhtml
 		float_clear_ = ctx.getComputedValue(Property::CLEAR).getValue<css::Clear>().clr_;
 
 		css_direction_ = ctx.getComputedValue(Property::DIRECTION).getValue<CssDirection>();
+
+		
+		const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
+		line_height_ = lh.compute();
+		if(lh.isPercent() || lh.isNumber()) {
+			line_height_ = static_cast<FixedPoint>(line_height_ * font_handle_->getFontSize() * 96.0/72.0);
+		}
 	}
 
 	RootBoxPtr Box::createLayout(NodePtr node, int containing_width, int containing_height)
@@ -339,10 +347,6 @@ namespace xhtml
 	void Box::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
 	{
 		border_info_.render(display_list, offset, getDimensions());
-		// we try and render border image first, if we can't then we default to the any given
-		// style.
-		if(!border_info_.render(display_list, offset, getDimensions())) {
-		}
 	}
 
 }

@@ -49,7 +49,6 @@ namespace xhtml
 	{
 		it_ = it;
 		auto parent = getParent();
-		FixedPoint lh = eng.getLineHeight();
 		FixedPoint width = eng.getWidthAtPosition(cursor.y + getParent()->getOffset().y, parent->getWidth());
 
 		ASSERT_LOG(it != txt_->end(), "Given an iterator at end of text.");
@@ -60,7 +59,7 @@ namespace xhtml
 			if(line != nullptr && !line->line.empty()) {
 				// is the line larger than available space and are there floats present?
 				if(line->line.back().advance.back().x > width && eng.hasFloatsAtPosition(cursor.y + getParent()->getOffset().y)) {
-					cursor.y += lh;
+					cursor.y += getLineHeight();
 					cursor.x = eng.getXAtPosition(cursor.y + getParent()->getOffset().y);
 					it = it_;
 					width = eng.getWidthAtPosition(cursor.y + getParent()->getOffset().y, parent->getWidth()) - cursor.x;
@@ -99,7 +98,10 @@ namespace xhtml
 	{
 		// TextBox's have no children to deal with, by definition.	
 		//setContentWidth(calculateWidth());
-		setContentHeight(eng.getLineHeight());
+		setContentHeight(getLineHeight());
+
+		calculateHorzMPB(containing.content_.width);
+		calculateVertMPB(containing.content_.height);
 	}
 
 	void TextBox::handleRenderBackground(DisplayListPtr display_list, const point& offset) const

@@ -37,5 +37,6 @@ namespace xhtml
 		void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) override;
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
+		Rect container_;
 	};
 }

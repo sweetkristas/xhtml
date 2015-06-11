@@ -113,18 +113,6 @@ namespace xhtml
 
 	void InlineBlockBox::layoutPosition(LayoutEngine& eng, const Dimensions& containing)
 	{
-		//eng.moveCursorToFitWidth(getDimensions().content_.width + getMBPWidth(), containing.content_.width);
-		/*if(getDimensions().content_.width >= containing.content_.width) {
-			setContentX(0);
-			setContentY(eng.getLineHeight());
-		} else {
-			//setContentX(eng.getCursor().x);
-			setContentY(0);
-			setContentX(0);
-		}*/
-		// 0 aligns the top of the box with the baseline,
-		// setting to negative height aligns the bottom of the box with the baseline.
-		//eng.incrCursor(getDimensions().content_.width + getMBPWidth());
 	}
 
 	void InlineBlockBox::layoutChildren(LayoutEngine& eng)
