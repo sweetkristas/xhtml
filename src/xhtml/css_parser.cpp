@@ -124,8 +124,8 @@ namespace css
 
 			}
 			static PropertyList parseTokens(const std::vector<TokenPtr>& tokens) {
-				std::vector<TokenPtr> toks = preProcess(tokens.begin(), tokens.end());
-				DeclarationParser p(toks.begin(), toks.end());
+				//std::vector<TokenPtr> toks = preProcess(tokens.begin(), tokens.end());
+				DeclarationParser p(tokens.begin(), tokens.end());
 				return p.getProperties();
 			}
 			PropertyList getProperties() { return pp_.getPropertyList(); }
@@ -268,22 +268,17 @@ namespace css
 
 	Parser::Parser(StyleSheetPtr ss, const std::vector<TokenPtr>& tokens)
 		: style_sheet_(ss),
-		  token_(tokens.begin()),
-		  end_(tokens.end())
+		  tokens_(tokens),
+		  token_(tokens_.begin()),
+		  end_(tokens_.end())
 	{
-		for(auto& token : pasrseRuleList(0)) {
-			try {
-				parseRule(token);
-			} catch(ParserError& e) {
-				LOG_DEBUG("Dropping rule: " << e.what() << " " << (token != nullptr ? token->toString() : ""));
-			}
-		}
 	}
 
 	void Parser::parse(StyleSheetPtr ss, const std::string& str)
 	{
 		css::Tokenizer tokens(str);
 		Parser p(ss, tokens.getTokens());
+		p.init();
 	}
 
 	TokenId Parser::currentTokenType()
@@ -296,7 +291,9 @@ namespace css
 
 	void Parser::advance(int n)
 	{
-		std::advance(token_, n);
+		if(token_ != end_) {
+			std::advance(token_, n);
+		}
 	}
 
 	std::vector<TokenPtr> Parser::pasrseRuleList(int level)
@@ -366,7 +363,8 @@ namespace css
 	PropertyList Parser::parseDeclarationList(const std::string& str)
 	{
 		css::Tokenizer tokens(str);
-		return DeclarationParser::parseTokens(tokens.getTokens());		
+		Parser p(nullptr, tokens.getTokens());		
+		return DeclarationParser::parseTokens(p.parseBraceBlock());
 	}
 
 	TokenPtr Parser::parseComponentValue()
@@ -386,7 +384,6 @@ namespace css
 	std::vector<TokenPtr> Parser::parseBraceBlock()
 	{
 		std::vector<TokenPtr> res;
-		res.emplace_back(*token_);
 		while(true) {
 			if(currentTokenType() == TokenId::EOF_TOKEN || currentTokenType() == TokenId::RBRACE) {
 				advance();
@@ -443,18 +440,22 @@ namespace css
 		return fn_token;
 	}
 
+	void Parser::init()
+	{
+		for(auto& token : pasrseRuleList(0)) {
+			try {
+				parseRule(token);
+			} catch(ParserError& e) {
+				LOG_DEBUG("Dropping rule: " << e.what() << " " << (token != nullptr ? token->toString() : ""));
+			}
+		}
+	}
+
 	void Parser::parseRule(TokenPtr rule)
 	{
 		if(rule == nullptr) {
 			throw ParserError("Trying to parse empty rule.");
 		}
-		/*std::ostringstream ss;
-		ss << "RULE. prelude:";
-		for(auto& r : rule->getParameters()) {
-			ss << " " << r->toString();
-		}
-		ss << "; values: " << rule->getValue()->toString();
-		LOG_DEBUG(ss.str());*/
 
 		auto prelude = rule->getParameters().begin();
 		while((*prelude)->id() == TokenId::WHITESPACE) {
@@ -479,24 +480,16 @@ namespace css
 
 UNIT_TEST(css_declarations)
 {
-	css::Tokenizer tokens("color: rgb(100%,0,0);");
-	//css::Tokenizer tokens("{ color: #ff0 !important; font-family: 'Arial'; color: hsl(360,0,0) }");
-	for(auto& tok : tokens.getTokens()) {
-		LOG_DEBUG("  TOKEN: " << tok->toString());
-	}
-	auto pp = css::DeclarationParser::parseTokens(tokens.getTokens());
+	css::PropertyList pl = css::Parser::parseDeclarationList("color: rgb(100%,0,0);");
+	CHECK_EQ(pl.hasProperty(css::Property::COLOR), true);
 
-	//css::Tokenizer tokens("margin-left: 1.15em;");
-	//for(auto& tok : tokens.getTokens()) {
-	//	LOG_DEBUG("  TOKEN: " << tok->toString());
-	//}
-	//css::DeclarationParser::parseTokens(tokens.getTokens());
+	pl = css::Parser::parseDeclarationList("background: rgb(128,64,64) url(radial_gradient.png) repeat; color: rgb(128,255,128);");
+	CHECK_EQ(pl.hasProperty(css::Property::COLOR), true);
+	CHECK_EQ(pl.hasProperty(css::Property::BACKGROUND_IMAGE), true);
+	CHECK_EQ(pl.hasProperty(css::Property::BACKGROUND_COLOR), true);
+	CHECK_EQ(pl.hasProperty(css::Property::BACKGROUND_REPEAT), true);
 
-	{
-	css::Tokenizer tokens("background: rgb(128,64,64) url(radial_gradient.png) repeat;");
-	for(auto& tok : tokens.getTokens()) {
-		LOG_DEBUG("  TOKEN: " << tok->toString());
-	}
-	css::DeclarationParser::parseTokens(tokens.getTokens());
-	}
+	pl = css::Parser::parseDeclarationList("color: #ff0 !important; font-family: 'Arial'; color: hsl(360,0,0)");
+	CHECK_EQ(pl.hasProperty(css::Property::COLOR), true);
+	CHECK_EQ(pl.hasProperty(css::Property::FONT_FAMILY), true);
 }

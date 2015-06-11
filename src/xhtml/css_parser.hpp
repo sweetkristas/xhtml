@@ -36,11 +36,14 @@ namespace css
 	class Parser
 	{
 	public:
-		const StyleSheetPtr& getStyleSheet() const { return style_sheet_; }
 		static void parse(StyleSheetPtr ss, const std::string& str);
 		static PropertyList parseDeclarationList(const std::string& str);
+
+		const StyleSheetPtr& getStyleSheet() const { return style_sheet_; }
+		const std::vector<TokenPtr>& getTokens() const { return tokens_; }
 	private:
 		Parser(StyleSheetPtr ss, const std::vector<TokenPtr>& tokens);
+		void init();
 		std::vector<TokenPtr> pasrseRuleList(int level);
 		TokenPtr parseAtRule();
 		TokenPtr parseQualifiedRule();
@@ -55,6 +58,7 @@ namespace css
 		void advance(int n=1);
 
 		StyleSheetPtr style_sheet_;
+		std::vector<TokenPtr> tokens_;
 		std::vector<TokenPtr>::const_iterator token_;
 		std::vector<TokenPtr>::const_iterator end_;
 	};
