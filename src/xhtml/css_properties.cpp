@@ -494,7 +494,7 @@ namespace css
 			const std::string& ref = (*it_)->getStringValue();
 			if(ref == "rgb") {
 				int values[3] = { 255, 255, 255 };
-				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().end(), 
+				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().cend(), 
 					[&values](int n, float value, bool is_percent) {
 					if(n < 3) {
 						if(is_percent) {
@@ -507,7 +507,7 @@ namespace css
 				color->setColor(KRE::Color(values[0], values[1], values[2]));
 			} else if(ref == "rgba") {
 				int values[4] = { 255, 255, 255, 255 };
-				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().end(), 
+				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().cend(), 
 					[&values](int n, float value, bool is_percent) {
 					if(n < 4) {
 						if(is_percent) {
@@ -521,7 +521,7 @@ namespace css
 			} else if(ref == "hsl") {
 				float values[3];
 				const float multipliers[3] = { 360.0f, 1.0f, 1.0f };
-				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().end(), 
+				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().cend(), 
 					[&values, &multipliers](int n, float value, bool is_percent) {
 					if(n < 3) {
 						if(is_percent) {
@@ -535,7 +535,7 @@ namespace css
 			} else if(ref == "hsla") {
 				float values[4];
 				const float multipliers[4] = { 360.0f, 1.0f, 1.0f, 1.0f };
-				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().end(), 
+				parseCSVNumberListFromIt((*it_)->getParameters().cbegin(), (*it_)->getParameters().cend(), 
 					[&values, &multipliers](int n, float value, bool is_percent) {
 					if(n < 4) {
 						if(is_percent) {
@@ -2030,6 +2030,10 @@ namespace css
 				xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 				advance();
 				holder.emplace_back(d, true);
+			} else if(isToken(TokenId::URL)) {
+				const std::string uri = (*it_)->getStringValue();
+				advance();
+				bi->setURI(uri);
 			} else {
 				parseColor2(bc);
 			}

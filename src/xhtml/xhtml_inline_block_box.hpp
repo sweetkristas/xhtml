@@ -40,6 +40,9 @@ namespace xhtml
 		void layoutHeight(const Dimensions& containing);
 
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) override;
+		void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		
 		// set if the element is replaceable.

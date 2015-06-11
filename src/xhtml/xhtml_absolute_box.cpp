@@ -40,7 +40,7 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void AbsoluteBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
+	void AbsoluteBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		Rect container = containing.content_;
 
@@ -95,6 +95,14 @@ namespace xhtml
 		setContentY(top + getMBPTop());
 		setContentWidth(width - getMBPWidth());
 		setContentHeight(height - getMBPHeight());
+	}
+
+	void AbsoluteBox::handlePostChildLayout(LayoutEngine& eng, BoxPtr child)
+	{
+	}
+
+	void AbsoluteBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
 	}
 
 	void AbsoluteBox::handleRender(DisplayListPtr display_list, const point& offset) const

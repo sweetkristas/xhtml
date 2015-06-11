@@ -114,6 +114,9 @@ namespace css
 	class Tokenizer
 	{
 	public:
+		typedef std::vector<TokenPtr>::const_iterator const_iterator;
+		typedef std::vector<TokenPtr>::iterator iterator;
+
 		explicit Tokenizer(const std::string& inp);
 		const std::vector<TokenPtr>& getTokens() const { return tokens_; }
 	private:

@@ -99,7 +99,11 @@ namespace xhtml
 				addChild(child);
 				width -= x_inc;
 				cursor_.x += x_inc;
-			
+				
+				if(width <= 0) {
+					cursor_.y += std::max(lh, child->getHeight());
+					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
+				}
 			}
 		}
 	}
@@ -118,12 +122,13 @@ namespace xhtml
 		// Our children should already be set at this point.
 		// we want to compute our own width/height based on our children and set the 
 		// children's x/y
-		FixedPoint height = 0;
-		FixedPoint width = 0;
+		FixedPoint height = !getChildren().empty() 
+			? getChildren().back()->getHeight() + getChildren().back()->getMBPHeight() + getChildren().back()->getTop() 
+			: 0;
+		FixedPoint width = 0;			
 
 		// compute our width/height
 		for(auto& child : getChildren()) {
-			height += child->getHeight() + child->getMBPHeight();
 			width = std::max(width, child->getWidth() + getMBPWidth());
 		}
 		

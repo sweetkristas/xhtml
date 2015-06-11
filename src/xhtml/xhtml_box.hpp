@@ -234,6 +234,7 @@ namespace xhtml
 		css::CssClear float_clear_;
 		css::CssVerticalAlign vertical_align_;
 		css::CssTextAlign text_align_;
+		css::CssDirection css_direction_;
 
 		point offset_;
 	};

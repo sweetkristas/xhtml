@@ -77,11 +77,26 @@ namespace xhtml
 		} else {
 			layoutWidth(containing);
 		}
-		
+
 		calculateVertMPB(containing.content_.height);
-		
-		setContentX(getMBPLeft());
-		setContentY(getMBPTop() + containing.content_.height);
+
+		FixedPoint left = 0;
+		FixedPoint top = 0;
+		if(getPosition() == CssPosition::FIXED) {
+			const FixedPoint containing_width = containing.content_.width;
+			const FixedPoint containing_height = containing.content_.height;
+			left = containing.content_.x;
+			if(!getCssLeft().isAuto()) {
+				left = getCssLeft().getLength().compute(containing_width);
+			}
+			top = containing.content_.y;
+			if(!getCssTop().isAuto()) {
+				top = getCssTop().getLength().compute(containing_height);
+			}
+		}
+	
+		setContentX(left + getMBPLeft());
+		setContentY(top + getMBPTop() + containing.content_.height);
 	}
 
 	void BlockBox::handlePostChildLayout(LayoutEngine& eng, BoxPtr child)

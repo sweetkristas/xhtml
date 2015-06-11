@@ -72,6 +72,7 @@ namespace xhtml
 		  float_clear_(CssClear::NONE),
 		  vertical_align_(CssVerticalAlign::BASELINE),
 		  text_align_(CssTextAlign::NORMAL),
+		  css_direction_(CssDirection::LTR),
 		  offset_()
 	{
 		init();
@@ -118,6 +119,8 @@ namespace xhtml
 		css_height_ = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
 
 		float_clear_ = ctx.getComputedValue(Property::CLEAR).getValue<css::Clear>().clr_;
+
+		css_direction_ = ctx.getComputedValue(Property::DIRECTION).getValue<CssDirection>();
 	}
 
 	RootBoxPtr Box::createLayout(NodePtr node, int containing_width, int containing_height)
@@ -266,14 +269,42 @@ namespace xhtml
 		}
 
 		point offs = offset;
-		//if(id() != BoxId::TEXT) {
-			offs += point(dimensions_.content_.x, dimensions_.content_.y);
-		//}
+		offs += point(dimensions_.content_.x, dimensions_.content_.y);
+
+		if(css_position_ == CssPosition::RELATIVE) {
+			if(getCssLeft().isAuto()) {
+				if(!getCssRight().isAuto()) {
+					offs.x -= getCssRight().getLength().compute(getParent()->getWidth());
+				}
+				// the other case here evaluates as no-change.
+			} else {
+				if(getCssRight().isAuto()) {
+					offs.x += getCssLeft().getLength().compute(getParent()->getWidth());
+				} else {
+					// over-constrained.
+					if(css_direction_ == CssDirection::LTR) {
+						// left wins
+						offs.x += getCssLeft().getLength().compute(getParent()->getWidth());
+					} else {
+						// right wins
+						offs.x -= getCssRight().getLength().compute(getParent()->getWidth());
+					}
+				}
+			}
+
+			if(getCssTop().isAuto()) {
+				if(!getCssBottom().isAuto()) {
+					offs.y -= getCssBottom().getLength().compute(getParent()->getHeight());
+				}
+				// the other case here evaluates as no-change.
+			} else {
+				// Either bottom is auto in which case top wins or over-constrained in which case top wins.
+				offs.y += getCssTop().getLength().compute(getParent()->getHeight());
+			}
+		}
+
 		handleRenderBackground(display_list, offs);
 		handleRenderBorder(display_list, offs);
-		//if(id() == BoxId::TEXT) {
-		//	offs += point(dimensions_.content_.x, dimensions_.content_.y);
-		//}
 		handleRender(display_list, offs);
 		for(auto& child : getChildren()) {
 			child->render(display_list, offs);

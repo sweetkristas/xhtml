@@ -51,27 +51,23 @@ namespace xhtml
 
 	ListItemBox::ListItemBox(BoxPtr parent, NodePtr node, int count)
 		: Box(BoxId::LIST_ITEM, parent, node),
-		  content_(std::make_shared<BlockBox>(parent, node)),
 		  count_(count),
 		  marker_(utils::codepoint_to_utf8(marker_disc))
 	{
+		addChild(std::make_shared<BlockBox>(parent, node));
 	}
 
 	std::string ListItemBox::toString() const 
 	{
 		std::ostringstream ss;
-		ss << "ListItemBox: " << getDimensions().content_ << "\n";
-		content_->preOrderTraversal([&ss](BoxPtr box, int n) {
-			std::string indent(n*2, ' ');
-			ss << indent << box->toString() << "\n";
-		}, 2);
+		ss << "ListItemBox: " << getDimensions().content_;
 		return ss.str();
 	}
 
 	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
 	{
 		RenderContext& ctx = RenderContext::get();
-		CssListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE).getValue<ListStyleType>().list_style_type_;
+		CssListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE).getValue<CssListStyleType>(); // .list_style_type_
 			switch(lst) {
 			case CssListStyleType::DISC: /* is the default */ break;
 			case CssListStyleType::CIRCLE:
@@ -134,12 +130,19 @@ namespace xhtml
 				marker_.clear();
 				break;
 		}
-		content_->layout(eng, containing);
-		
-		setContentX(content_->getDimensions().content_.x);
-		setContentY(content_->getDimensions().content_.y);
-		setContentWidth(content_->getDimensions().content_.width);
-		setContentHeight(content_->getDimensions().content_.height);
+		setContentX(getMBPLeft());
+		setContentY(getMBPTop() + containing.content_.height);
+	}
+
+	void ListItemBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
+		setContentWidth(containing.content_.width);
+		setContentHeight(0);
+	}
+
+	void ListItemBox::handlePostChildLayout(LayoutEngine& eng, BoxPtr child) 
+	{
+		setContentHeight(getHeight() + child->getHeight() + child->getMBPBottom());
 	}
 
 	void ListItemBox::handleRender(DisplayListPtr display_list, const point& offset) const 
@@ -151,20 +154,18 @@ namespace xhtml
 		FixedPoint path_width = path.back().x - path.front().x + getFont()->calculateCharAdvance(' ');
 		// XXX should figure out if there is a cleaner way of doing this, basically we want the list marker to be offset by the 
 		// content's first child's position.
-		auto y = 0;
-		//if(content_->getChildren().size() > 0) {
-		//	y = content_->getChildren().front()->getDimensions().content_.y;
-		//}
+		auto y = getBaselineOffset();
+		if(getChildren().size() > 0) {
+			if(getChildren().front()->getChildren().size() > 0) {
+				y = getChildren().front()->getChildren().front()->getBaselineOffset();
+			}
+		}
 		for(auto& p : path) {
 			new_path.emplace_back(p.x + offset.x - 5 - path_width, p.y + offset.y + y);
 		}
 		auto fontr = getFont()->createRenderableFromPath(nullptr, marker_, new_path);
 		fontr->setColor(getColor());
-		//fontr->setPosition(static_cast<float>(offset.x - path_width - 5) / fixed_point_scale_float, static_cast<float>(offset.y) / fixed_point_scale_float);
 		display_list->addRenderable(fontr);
-
-		// XXX
-		content_->render(display_list, offset);
 	}
 
 }

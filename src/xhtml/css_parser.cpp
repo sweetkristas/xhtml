@@ -96,7 +96,7 @@ namespace css
 		class DeclarationParser
 		{
 		public:
-			DeclarationParser(std::vector<TokenPtr>::const_iterator begin, std::vector<TokenPtr>::const_iterator end) 
+			DeclarationParser(Tokenizer::const_iterator begin, Tokenizer::const_iterator end) 
 				: it_(begin),
 				  end_(end),
 				  pp_()
@@ -124,10 +124,39 @@ namespace css
 
 			}
 			static PropertyList parseTokens(const std::vector<TokenPtr>& tokens) {
-				DeclarationParser p(tokens.begin(), tokens.end());
+				std::vector<TokenPtr> toks = preProcess(tokens.begin(), tokens.end());
+				DeclarationParser p(toks.begin(), toks.end());
 				return p.getProperties();
 			}
 			PropertyList getProperties() { return pp_.getPropertyList(); }
+
+			static std::vector<TokenPtr> preProcess(Tokenizer::const_iterator it, Tokenizer::const_iterator end) {
+				std::vector<TokenPtr> res;
+				while(it != end) {
+					auto tok = *it;
+					if(tok->id() == TokenId::FUNCTION) {
+						auto fn_token = tok;
+						++it;
+						bool done = false;
+						while(!done && it != end) {
+							tok = *it;
+							if(tok->id() == TokenId::EOF_TOKEN || tok->id() == TokenId::RPAREN || tok->id() == TokenId::SEMICOLON) {
+								++it;
+								done = true;
+							} else {
+								// this is a cut-down
+								fn_token->addParameter(tok);
+								++it;
+							}
+						}
+						res.emplace_back(fn_token);
+					} else {
+						res.emplace_back(tok);
+						++it;
+					}
+				}
+				return res;
+			}
 		private:
 			PropertyParser pp_;
 			void advance(int n = 1) {
@@ -163,7 +192,7 @@ namespace css
 					}
 					if(isToken(TokenId::EOF_TOKEN) || it_ == end_) {
 						return;
-					}
+					}					
 					try {
 						parseDeclaration(pp);
 					} catch (ParserError& e) {
@@ -450,16 +479,24 @@ namespace css
 
 UNIT_TEST(css_declarations)
 {
-	//css::Tokenizer tokens("color: rgb(100%,0,0);");
+	css::Tokenizer tokens("color: rgb(100%,0,0);");
 	//css::Tokenizer tokens("{ color: #ff0 !important; font-family: 'Arial'; color: hsl(360,0,0) }");
-	//for(auto& tok : tokens.getTokens()) {
-	//	LOG_DEBUG("  TOKEN: " << tok->toString());
-	//}
-	//css::DeclarationParser::parseTokens(tokens.getTokens());
+	for(auto& tok : tokens.getTokens()) {
+		LOG_DEBUG("  TOKEN: " << tok->toString());
+	}
+	auto pp = css::DeclarationParser::parseTokens(tokens.getTokens());
 
 	//css::Tokenizer tokens("margin-left: 1.15em;");
 	//for(auto& tok : tokens.getTokens()) {
 	//	LOG_DEBUG("  TOKEN: " << tok->toString());
 	//}
 	//css::DeclarationParser::parseTokens(tokens.getTokens());
+
+	{
+	css::Tokenizer tokens("background: rgb(128,64,64) url(radial_gradient.png) repeat;");
+	for(auto& tok : tokens.getTokens()) {
+		LOG_DEBUG("  TOKEN: " << tok->toString());
+	}
+	css::DeclarationParser::parseTokens(tokens.getTokens());
+	}
 }
