@@ -44,6 +44,11 @@
 #include "xhtml_node.hpp"
 #include "xhtml_render_ctx.hpp"
 
+namespace
+{
+	static int display_tree_parse = false;
+}
+
 void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayListPtr display_list, KRE::SceneGraphPtr graph)
 {
 	xhtml::RenderContextManager rcm;
@@ -70,10 +75,12 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 		layout->render(display_list, point());
 		}
 
-		layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
-			std::string indent(nesting*2, ' ');
-			LOG_DEBUG(indent + box->toString());
-		}, 0);
+		if(display_tree_parse) {
+			layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
+				std::string indent(nesting*2, ' ');
+				LOG_DEBUG(indent + box->toString());
+			}, 0);
+		}
 	}
 }
 
@@ -109,7 +116,11 @@ int main(int argc, char* argv[])
 {
 	std::vector<std::string> args;
 	for(int i = 1; i < argc; ++i) {
-		args.emplace_back(argv[i]);
+		if(argv[i] == std::string("--display-tree")) {
+			display_tree_parse = true;
+		} else {
+			args.emplace_back(argv[i]);
+		}
 	}
 	if(args.empty()) {
 		std::cout << "Usage: xhtml <filename>\n";

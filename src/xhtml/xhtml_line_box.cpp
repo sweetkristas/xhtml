@@ -95,7 +95,9 @@ namespace xhtml
 				const FixedPoint x_inc = child->getWidth() + child->getMBPWidth();
 
 				if(width <= x_inc) {
-					getChildren().back()->setEOL(true);
+					if(!getChildren().empty()) {
+						getChildren().back()->setEOL(true);
+					}
 					cursor_.y += std::max(lh, child->getHeight() + child->getMBPHeight());
 					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
 					width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);

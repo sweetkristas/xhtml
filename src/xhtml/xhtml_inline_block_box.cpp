@@ -41,17 +41,16 @@ namespace xhtml
 	{
 		std::ostringstream ss;
 		ss << "InlineBlockBox: " << getDimensions().content_;
+		if(isEOL()) {
+			ss << " ; end-of-line";
+		}
 		return ss.str();
 	}
 
 	void InlineBlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		if(is_replacable_) {
-			layoutChildren(eng);
-		} else {
-			layoutChildren(eng);
-			layoutHeight(containing);
-		}	 
+		layoutChildren(eng);
+		layoutHeight(containing);
 	}
 
 	void InlineBlockBox::layoutWidth(const Dimensions& containing)
@@ -85,6 +84,10 @@ namespace xhtml
 		FixedPoint underflow = containing.content_.width - total;
 
 		if(css_width.isAuto()) {
+			setContentWidth(underflow);
+		}
+
+		/*if(css_width.isAuto()) {
 			if(css_margin_left.isAuto()) {
 				setMarginLeft(0);
 			}
@@ -108,7 +111,7 @@ namespace xhtml
 		} else if(css_margin_left.isAuto() && css_margin_right.isAuto()) {
 			setMarginLeft(underflow / 2);
 			setMarginRight(underflow / 2);
-		} 
+		}*/
 	}
 
 	void InlineBlockBox::layoutPosition(LayoutEngine& eng, const Dimensions& containing)
@@ -146,6 +149,11 @@ namespace xhtml
 
 	void InlineBlockBox::layoutHeight(const Dimensions& containing)
 	{
+		if(is_replacable_) {
+			NodePtr node = getNode();
+			setContentHeight(node->getDimensions().h() * LayoutEngine::getFixedPointScale());
+		}
+
 		RenderContext& ctx = RenderContext::get();
 		// a set height value overrides the calculated value.
 		if(!getCssHeight().isAuto()) {
