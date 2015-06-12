@@ -30,9 +30,7 @@ namespace xhtml
 
 	RootBox::RootBox(BoxPtr parent, NodePtr node)
 		: BlockBox(parent, node),
-			fixed_boxes_(),
-			left_floats_(),
-			right_floats_()
+			fixed_boxes_()
 	{
 	}
 
@@ -41,12 +39,6 @@ namespace xhtml
 		std::ostringstream ss;
 		ss << "RootBox: " << getDimensions().content_;
 
-		for(auto& lf : getLeftFloats()) {
-			ss << " LeftFloatBox: " << lf->toString();
-		}
-		for(auto& rf : getRightFloats()) {
-			ss << " RightFloatBox: " << rf->toString();
-		}
 		for(auto& f : fixed_boxes_) {
 			ss << " FixedBox: " << f->toString();
 		}
@@ -55,57 +47,27 @@ namespace xhtml
 
 	void RootBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
 	{
-		BlockBox::handleLayout(eng, containing);
+		//BlockBox::handleLayout(eng, containing);
+
+		calculateHorzMPB(containing.content_.width);
+		calculateVertMPB(containing.content_.height);
 
 		setContentX(getMBPLeft());
-		setContentY(containing.content_.height + getMBPTop());
+		setContentY(getMBPTop());
+
+		setContentWidth(containing.content_.width - getMBPWidth());
+		setContentHeight(containing.content_.height - getMBPHeight());
 
 		layoutFixed(eng, containing);
 	}
 
 	void RootBox::handleEndRender(DisplayListPtr display_list, const point& offset) const
 	{
-		for(auto& lf : left_floats_) {
-			lf->render(display_list, offset);
-		}
-		for(auto& rf : right_floats_) {
-			rf->render(display_list, offset);
-		}
 		// render fixed boxes.
 		for(auto& fix : fixed_boxes_) {
 			fix->render(display_list, point(0, 0));
 		}
 	}
-
-	void RootBox::addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y)
-	{
-		box->layout(eng, getDimensions());
-
-		const FixedPoint lh = getLineHeight();
-		const FixedPoint box_w = box->getDimensions().content_.width;
-
-		FixedPoint x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) : eng.getX2AtPosition(y + eng.getOffset().y);
-		FixedPoint w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
-		bool placed = false;
-		while(!placed) {
-			if(w > box_w) {
-				box->setContentX(x - (cfloat == CssFloat::LEFT ? 0 : box_w));
-				box->setContentY(y);
-				placed = true;
-			} else {
-				y += lh;
-				x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) : eng.getX2AtPosition(y + eng.getOffset().y);
-				w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
-			}
-		}
-
-		if(cfloat == CssFloat::LEFT) {
-			left_floats_.emplace_back(box);
-		} else {
-			right_floats_.emplace_back(box);
-		}
-	}
-
 
 	void RootBox::addFixed(BoxPtr fixed)
 	{

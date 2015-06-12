@@ -92,7 +92,7 @@ namespace xhtml
 			RenderContext::Manager ctx_manager(node->getProperties());
 
 			root_ = std::make_shared<RootBox>(nullptr, node);
-			dims_.content_ = Rect(0, 0, container.x, 0);
+			dims_.content_ = Rect(0, 0, container.x, container.y);
 			root_->layout(*this, dims_);
 			return;
 		}
@@ -106,6 +106,9 @@ namespace xhtml
 		for(auto it = children.begin(); it != children.end(); ++it) {
 			auto child = *it;
 			if(child->id() == NodeId::ELEMENT) {
+				if(child->ignoreForLayout()) {
+					continue;
+				}
 				RenderContext::Manager ctx_manager(child->getProperties());
 
 				// Adjust counters for list items as needed
@@ -139,7 +142,7 @@ namespace xhtml
 						// XXX need to add an offset to position for the float box based on body margin.
 						// N.B. if the current display is one of the CssDisplay::TABLE* styles then this should be
 						// a table box rather than a block box.
-						root_->addFloatBox(*this, std::make_shared<BlockBox>(root_, child), cfloat, offset_.top().y + (open_box != nullptr ? open_box->getCursor().y : 0));
+						parent->addFloatBox(*this, std::make_shared<BlockBox>(parent, child), cfloat, offset_.top().y + (open_box != nullptr ? open_box->getCursor().y : 0));
 						continue;
 					}
 					switch(display) {

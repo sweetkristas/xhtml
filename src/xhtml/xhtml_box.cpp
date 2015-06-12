@@ -57,6 +57,8 @@ namespace xhtml
 		  dimensions_(),
 		  boxes_(),
 		  absolute_boxes_(),
+		  left_floats_(),
+		  right_floats_(),
 		  cfloat_(CssFloat::NONE),
 		  font_handle_(nullptr),
 		  background_info_(),
@@ -138,7 +140,7 @@ namespace xhtml
 		LayoutEngine e;
 		// search for the body element then render that content.
 		node->preOrderTraversal([&e, containing_width, containing_height](NodePtr node){
-			if(node->id() == NodeId::ELEMENT && node->hasTag(ElementId::BODY)) {
+			if(node->id() == NodeId::ELEMENT && node->hasTag(ElementId::HTML)) {
 				e.layoutRoot(node, nullptr, point(containing_width * LayoutEngine::getFixedPointScale(), containing_height * LayoutEngine::getFixedPointScale()));
 				return false;
 			}
@@ -169,6 +171,35 @@ namespace xhtml
 		}
 		for(auto& abs : absolute_boxes_) {
 			abs->preOrderTraversal(fn, nesting+1);
+		}
+	}
+
+	void Box::addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y)
+	{
+		box->layout(eng, getDimensions());
+
+		const FixedPoint lh = getLineHeight();
+		const FixedPoint box_w = box->getDimensions().content_.width;
+
+		FixedPoint x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) : eng.getX2AtPosition(y + eng.getOffset().y);
+		FixedPoint w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
+		bool placed = false;
+		while(!placed) {
+			if(w > box_w) {
+				box->setContentX(x - (cfloat == CssFloat::LEFT ? 0 : box_w));
+				box->setContentY(y);
+				placed = true;
+			} else {
+				y += lh;
+				x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) : eng.getX2AtPosition(y + eng.getOffset().y);
+				w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
+			}
+		}
+
+		if(cfloat == CssFloat::LEFT) {
+			left_floats_.emplace_back(box);
+		} else {
+			right_floats_.emplace_back(box);
 		}
 	}
 
@@ -323,6 +354,12 @@ namespace xhtml
 			ab->render(display_list, point(0, 0));
 		}
 
+		for(auto& lf : left_floats_) {
+			lf->render(display_list, offset);
+		}
+		for(auto& rf : right_floats_) {
+			rf->render(display_list, offset);
+		}
 		handleEndRender(display_list, offs);
 
 		// set the active rect on any parent node.

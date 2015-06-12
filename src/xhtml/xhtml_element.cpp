@@ -213,6 +213,7 @@ namespace xhtml
 		struct StyleElement : public Element
 		{
 			explicit StyleElement(ElementId id, const std::string& name, WeakDocumentPtr owner) : Element(id, name, owner) {}
+			bool ignoreForLayout() const override { return true; }
 		};
 		ElementRegistrar<StyleElement> style_element(ElementId::STYLE, "style");
 

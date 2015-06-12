@@ -134,6 +134,7 @@ namespace xhtml
 		virtual KRE::SceneObjectPtr getRenderable() { return nullptr; }
 		// is this element replaced, replaced elements generate a seperate box during layout.
 		virtual bool isReplaced() const { return false; }
+		virtual bool ignoreForLayout() const { return false; }
 	protected:
 		std::string nodeToString() const;
 	private:

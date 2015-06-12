@@ -10,8 +10,8 @@
 	
 	div#content1 {
 		position: absolute;
-		width: 400px;
-		height: 400px;
+		width: 40%;
+		height: 45%;
 		border-style: solid;
 		border-width: 5px;
 		border-image: url(../images/border1.png) 5 stretch;
@@ -25,19 +25,21 @@
 	}
 	
 	div.status {
-		display: inline-block;
 		float: left;
+		display: inline-block;
 	}
 	div#status1 {
-		width: 100px;
+		width: 24%;
+		border: solid 1px red;
 	}
 	div#status2 {
-		width: 300px;
+		width: 74%;
+		border: solid 1px purple;
 	}
 	
 	input[type=checkbox]:before {
 		content: "";
-		background-image: url(../images/checkbox.png);
+		background-image: url(../images/checkbox.png);		
 		background-repeat: no-repeat;
 		width: 20px;
 		height: 18px;
@@ -70,8 +72,9 @@
 	}
 	
 	ul.checkbox-grid > li {
-		display: inline-block;
-		width: 200px;
+		display: block;
+		float: left;
+		width: 50%;
 	}
 	
 	label {
@@ -84,7 +87,6 @@
 		overflow: hidden;
 		outline: none;
 	}
-
 	ul.inststatus {
 		list-style: none;
 		margin: 0;
