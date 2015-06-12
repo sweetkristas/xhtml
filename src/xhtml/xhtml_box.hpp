@@ -197,6 +197,7 @@ namespace xhtml
 		bool isEOL() const { return end_of_line_; }
 		void setEOL(bool eol=true) { end_of_line_ = eol; }
 		virtual bool isMultiline() const { return false; }
+		bool isFloat() const { return cfloat_ != css::CssFloat::NONE; }
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;

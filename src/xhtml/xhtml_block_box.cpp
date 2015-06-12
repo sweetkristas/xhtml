@@ -160,6 +160,11 @@ namespace xhtml
 			setMarginLeft(underflow / 2);
 			setMarginRight(underflow / 2);
 		} 
+
+		if(isFloat()) {
+			setMarginLeft(0);
+			setMarginRight(0);
+		}
 	}
 
 	void BlockBox::layoutChildren(LayoutEngine& eng)

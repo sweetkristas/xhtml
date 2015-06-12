@@ -124,6 +124,7 @@ namespace xhtml
 
 		css_direction_ = ctx.getComputedValue(Property::DIRECTION).getValue<CssDirection>();
 
+		cfloat_ = ctx.getComputedValue(Property::FLOAT).getValue<CssFloat>();
 		
 		const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
 		line_height_ = lh.compute();
