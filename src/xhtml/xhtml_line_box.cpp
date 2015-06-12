@@ -107,8 +107,12 @@ namespace xhtml
 				addChild(child);
 				width -= x_inc;
 				cursor_.x += x_inc;
-				
-				if(width <= 0) {
+				if(child->isMultiline()) {
+					cursor_.y += child->getHeight() + child->getMBPHeight();
+					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
+					width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
+					child->setEOL(true);
+				} else if(width <= 0) {
 					cursor_.y += std::max(lh, child->getHeight());
 					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
 					width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);

@@ -30,7 +30,8 @@ namespace xhtml
 
 	InlineBlockBox::InlineBlockBox(BoxPtr parent, NodePtr node)
 		: Box(BoxId::INLINE_BLOCK, parent, node),
-		  is_replacable_(false)
+		  is_replacable_(false),
+		  multiline_(false)
 	{
 		if(node != nullptr && node->id() == NodeId::ELEMENT) {
 			is_replacable_ = node->isReplaced();
@@ -51,6 +52,14 @@ namespace xhtml
 	{
 		layoutChildren(eng);
 		layoutHeight(containing);
+
+		if(!is_replacable_) {
+			if(getChildren().size() > 1) {
+				multiline_ = true;
+			} else if(!getChildren().empty() && getChildren().front()->id() == BoxId::LINE && getChildren().front()->getChildren().size() > 1) {
+				multiline_ = true;
+			}
+		}
 	}
 
 	void InlineBlockBox::layoutWidth(const Dimensions& containing)

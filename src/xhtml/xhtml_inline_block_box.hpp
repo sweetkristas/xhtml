@@ -33,6 +33,7 @@ namespace xhtml
 		explicit InlineBlockBox(BoxPtr parent, NodePtr node);
 		std::string toString() const override;
 		FixedPoint getBaselineOffset() const override { return 0; }
+		bool isMultiline() const override { return multiline_; }
 	private:
 		void layoutWidth(const Dimensions& containing);
 		void layoutPosition(LayoutEngine& eng, const Dimensions& containing);
@@ -47,5 +48,7 @@ namespace xhtml
 		
 		// set if the element is replaceable.
 		bool is_replacable_;
+		// If it's one line or more than one, if it's non-replaceable
+		bool multiline_;
 	};
 }

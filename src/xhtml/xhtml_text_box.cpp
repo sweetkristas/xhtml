@@ -65,7 +65,7 @@ namespace xhtml
 					cursor.y += getLineHeight();
 					cursor.x = eng.getXAtPosition(cursor.y + getParent()->getOffset().y);
 					it = it_;
-					width = eng.getWidthAtPosition(cursor.y + getParent()->getOffset().y, parent->getWidth()) - cursor.x;
+					width = eng.getWidthAtPosition(cursor.y + getParent()->getOffset().y, parent->getWidth());
 					continue;
 				}
 				line_ = line;

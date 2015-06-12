@@ -196,6 +196,7 @@ namespace xhtml
 		FixedPoint getLineHeight() const { return line_height_; }
 		bool isEOL() const { return end_of_line_; }
 		void setEOL(bool eol=true) { end_of_line_ = eol; }
+		virtual bool isMultiline() const { return false; }
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
