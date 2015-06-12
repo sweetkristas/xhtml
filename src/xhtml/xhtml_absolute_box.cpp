@@ -50,9 +50,9 @@ namespace xhtml
 		if(parent != nullptr && !parent->ancestralTraverse([&container](const ConstBoxPtr& box) {
 			if(box->getPosition() != CssPosition::STATIC) {
 				container = box->getDimensions().content_;
-				return false;
+				return true;
 			}
-			return true;
+			return false;
 		})) {
 			// couldn't find anything use the layout engine dimensions
 			container = eng.getDimensions().content_;
