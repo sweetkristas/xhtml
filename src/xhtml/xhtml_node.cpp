@@ -216,6 +216,13 @@ namespace xhtml
 		return null_str;
 	}
 
+	void Node::inheritProperties()
+	{
+		NodePtr parent = getParent();
+		ASSERT_LOG(parent != nullptr, "Node::inheritProperties: parent was null.");
+		properties_ = parent->getProperties();
+	}
+
 	void Node::normalize()
 	{
 		std::vector<NodePtr> new_child_list;

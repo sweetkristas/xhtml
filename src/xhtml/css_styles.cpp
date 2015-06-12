@@ -147,7 +147,7 @@ namespace css
 				res = static_cast<int>((static_cast<float>(value_)/fixed_point_scale_float) * dpi * 3.0f / (72.0f * 4.0f) * fixed_point_scale_float);
 				break;
 			case LengthUnits::EM: {				
-				float fs = ctx.getFontHandle()->getFontSize() / (72.0f * fixed_point_scale_float);
+				float fs = ctx.getFontHandle()->getFontSize() / 72.0f;
 				res = static_cast<xhtml::FixedPoint>(fs * static_cast<float>(value_ * dpi));
 				break;
 			}

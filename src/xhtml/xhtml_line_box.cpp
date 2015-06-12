@@ -81,11 +81,12 @@ namespace xhtml
 						cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
 						width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
 						lh = 0;
+						last_txt->setEOL(true);
 					}
 
 					if(it != tnode->end()) {
-						//txt = std::make_shared<TextBox>(shared_from_this(), tnode);
 						txt = std::make_shared<TextBox>(*last_txt);
+						txt->setEOL(false); // ugh -- inheriting the copied value of the end of line flag is not a good idea.
 						lh = std::max(lh, txt->getLineHeight());
 					}
 				}
@@ -94,8 +95,10 @@ namespace xhtml
 				const FixedPoint x_inc = child->getWidth() + child->getMBPWidth();
 
 				if(width <= x_inc) {
+					getChildren().back()->setEOL(true);
 					cursor_.y += std::max(lh, child->getHeight() + child->getMBPHeight());
 					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
+					width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
 				}			
 				child->setContentX(cursor_.x);
 				child->setContentY(cursor_.y);
@@ -106,8 +109,14 @@ namespace xhtml
 				if(width <= 0) {
 					cursor_.y += std::max(lh, child->getHeight());
 					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
+					width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
+					getChildren().back()->setEOL(true);
 				}
 			}
+		}
+
+		if(!getChildren().empty()) {
+			getChildren().back()->setEOL(true);
 		}
 	}
 
@@ -122,6 +131,30 @@ namespace xhtml
 
 	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		// adjust heights of lines for tallest item
+		bool start_of_line = true;
+		FixedPoint line_height = 0;
+		std::vector<BoxPtr> current_line;
+		for(auto& child : getChildren()) {
+			if(start_of_line) {
+				start_of_line = false;
+				current_line.clear();
+				line_height = 0;
+			}
+			if(child->id() == BoxId::TEXT) {
+				line_height = std::max(line_height, child->getLineHeight());
+			} else {
+				line_height = std::max(line_height, child->getHeight() + child->getMBPHeight());
+			}
+			current_line.emplace_back(child);
+			if(child->isEOL()) {
+				for(auto& line_child : current_line) {
+					line_child->setContentHeight(line_height);
+				}
+				start_of_line = true;
+			}
+		}
+
 		// Our children should already be set at this point.
 		// we want to compute our own width/height based on our children and set the 
 		// children's x/y

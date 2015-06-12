@@ -194,6 +194,8 @@ namespace xhtml
 		virtual FixedPoint getBottomOffset() const { return dimensions_.content_.height; }
 
 		FixedPoint getLineHeight() const { return line_height_; }
+		bool isEOL() const { return end_of_line_; }
+		void setEOL(bool eol=true) { end_of_line_ = eol; }
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
@@ -239,6 +241,9 @@ namespace xhtml
 		point offset_;
 
 		FixedPoint line_height_;
+
+		// Helper marker when doing LineBox layout
+		bool end_of_line_;
 	};
 
 	std::ostream& operator<<(std::ostream& os, const Rect& r);

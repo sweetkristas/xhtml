@@ -153,6 +153,11 @@ namespace xhtml
 								res.emplace_back(std::make_shared<InlineElementBox>(parent, child));
 							} else {
 								// non-replaced elements we just generate children and add them.
+								for(auto& inline_child : child->getChildren()) {
+									if(inline_child->id() == NodeId::TEXT) {
+										inline_child->inheritProperties();
+									}
+								}
 								std::vector<BoxPtr> new_children = layoutChildren(child->getChildren(), parent, open_box);
 								res.insert(res.end(), new_children.begin(), new_children.end());
 							}
@@ -202,12 +207,7 @@ namespace xhtml
 					}
 				}
 			} else if(child->id() == NodeId::TEXT) {
-				std::unique_ptr<RenderContext::Manager> ctx_manager;
-				if(!parent->isBlockBox()) {
-					// If ther parent isn't a block box, then the current styles will apply to this text box.
-					const static PropertyList empty;
-					ctx_manager.reset(new RenderContext::Manager(empty));
-				}
+				RenderContext::Manager ctx_manager(child->getProperties());
 				TextPtr tnode = std::dynamic_pointer_cast<Text>(child);
 				ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 

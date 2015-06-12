@@ -126,6 +126,7 @@ namespace xhtml
 		bool handleMouseButtonDown(bool* trigger, const point& p);
 
 		void clearProperties() { properties_.clear(); }
+		void inheritProperties();
 		
 		// for elements
 		const rect& getDimensions() { return dimensions_; }

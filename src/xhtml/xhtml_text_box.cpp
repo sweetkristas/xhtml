@@ -42,6 +42,9 @@ namespace xhtml
 		for(auto& word : line_->line) {
 			ss << " " << word.word;
 		}
+		if(isEOL()) {
+			ss << " ; end-of-line";
+		}
 		return ss.str();
 	}
 

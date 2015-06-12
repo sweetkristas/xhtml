@@ -74,7 +74,8 @@ namespace xhtml
 		  text_align_(CssTextAlign::NORMAL),
 		  css_direction_(CssDirection::LTR),
 		  offset_(),
-		  line_height_(0)
+		  line_height_(0),
+		  end_of_line_(false)
 	{
 		init();
 	}
