@@ -73,9 +73,10 @@ namespace xhtml
 		if(!getCssTop().isAuto()) {
 			top = getCssTop().getLength().compute(containing_height);
 		}
+
 		FixedPoint width = container.width;
 		if(!getCssRight().isAuto()) {
-			width = getCssRight().getLength().compute(containing_width) - left + container.width;
+			width = container.width - (getCssRight().getLength().compute(containing_width) + left);
 		}
 
 		// if width/height properties are set they override right/bottom.
@@ -107,7 +108,7 @@ namespace xhtml
 
 		FixedPoint height = container_.height;
 		if(!getCssBottom().isAuto()) {
-			height = getCssBottom().getLength().compute(containing_height) - top + container_.height;
+			height = container_.height - (getCssBottom().getLength().compute(containing_height) + top);
 		}
 
 		if(!getCssHeight().isAuto()) {
