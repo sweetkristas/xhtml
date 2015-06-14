@@ -161,13 +161,9 @@ namespace xhtml
 		void layout(LayoutEngine& eng, const Dimensions& containing);
 		virtual std::string toString() const = 0;
 
-		void addAbsoluteElement(BoxPtr abs);
+		void addAbsoluteElement(LayoutEngine& eng, const Dimensions& containing, BoxPtr abs);
 		void layoutAbsolute(LayoutEngine& eng, const Dimensions& containing);
 
-		void addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y);
-		const std::vector<BoxPtr>& getLeftFloats() const { return left_floats_; }
-		const std::vector<BoxPtr>& getRightFloats() const { return right_floats_; }
-		
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
 		bool ancestralTraverse(std::function<bool(const ConstBoxPtr&)> fn) const;
 
@@ -202,6 +198,8 @@ namespace xhtml
 		void setEOL(bool eol=true) { end_of_line_ = eol; }
 		virtual bool isMultiline() const { return false; }
 		bool isFloat() const { return cfloat_ != css::CssFloat::NONE; }
+
+		virtual std::vector<NodePtr> getChildNodes() const;
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
@@ -223,8 +221,6 @@ namespace xhtml
 		Dimensions dimensions_;
 		std::vector<BoxPtr> boxes_;
 		std::vector<BoxPtr> absolute_boxes_;
-		std::vector<BoxPtr> left_floats_;
-		std::vector<BoxPtr> right_floats_;
 		css::CssFloat cfloat_;
 		KRE::FontHandlePtr font_handle_;
 

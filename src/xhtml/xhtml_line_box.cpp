@@ -46,7 +46,7 @@ namespace xhtml
 	{
 		FixedPoint lh = 0;
 		cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
-		FixedPoint width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width) - cursor_.x;
+		FixedPoint width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
 
 		auto children = getChildren();
 		clearChildren();

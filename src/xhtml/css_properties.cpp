@@ -222,7 +222,7 @@ namespace css
 		PropertyRegistrar property049("background-image", Property::BACKGROUND_IMAGE, false, Object(UriStyle(true)), std::bind(&PropertyParser::parseUri, _1, "background-image", ""));
 		PropertyRegistrar property050("background-repeat", Property::BACKGROUND_REPEAT, false, Object(CssBackgroundRepeat::REPEAT), std::bind(&PropertyParser::parseBackgroundRepeat, _1, "background-repeat", ""));
 		PropertyRegistrar property051("background-position", Property::BACKGROUND_POSITION, false, Object(BackgroundPosition()), std::bind(&PropertyParser::parseBackgroundPosition, _1, "background-position", ""));
-		PropertyRegistrar property052("list-style-type", Property::LIST_STYLE_TYPE, true, Object(ListStyleType()), std::bind(&PropertyParser::parseListStyleType, _1, "list-style-type", ""));
+		PropertyRegistrar property052("list-style-type", Property::LIST_STYLE_TYPE, true, Object(CssListStyleType::DISC), std::bind(&PropertyParser::parseListStyleType, _1, "list-style-type", ""));
 		PropertyRegistrar property053("border-style", std::bind(&PropertyParser::parseBorderStyleList, _1, "border", "style"));
 		PropertyRegistrar property054("border", std::bind(&PropertyParser::parseBorder, _1, "border", ""));
 		PropertyRegistrar property055("outline", std::bind(&PropertyParser::parseBorder, _1, "outline", ""));

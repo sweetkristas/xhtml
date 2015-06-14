@@ -79,12 +79,6 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 			layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
 				std::stringstream ss;
 				ss << std::string(nesting * 2, ' ') << box->toString();
-				for(auto& lf : box->getLeftFloats()) {
-					ss << std::string((nesting+1) * 2, ' ') << lf->toString();
-				}
-				for(auto& rf : box->getRightFloats()) {
-					ss << std::string((nesting+1) * 2, ' ') << rf->toString();
-				}
 				LOG_DEBUG(ss.str());
 			}, 0);
 		}

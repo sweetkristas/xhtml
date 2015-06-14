@@ -30,17 +30,27 @@ namespace xhtml
 
 	RootBox::RootBox(BoxPtr parent, NodePtr node)
 		: BlockBox(parent, node),
-			fixed_boxes_()
+		  fixed_boxes_(),
+		  left_floats_(),
+		  right_floats_()
 	{
 	}
 
 	std::string RootBox::toString() const 
 	{
 		std::ostringstream ss;
-		ss << "RootBox: " << getDimensions().content_;
+		ss << "RootBox: " << getDimensions().content_ << "\n";
+
+		int nesting = 10;
+		for(auto& lf : getLeftFloats()) {
+			ss << std::string((nesting+1) * 2, ' ') << "Floating " << lf->toString() << "\n";
+		}
+		for(auto& rf : getRightFloats()) {
+			ss << std::string((nesting+1) * 2, ' ') << "Floating " << rf->toString() << "\n";
+		}
 
 		for(auto& f : fixed_boxes_) {
-			ss << " FixedBox: " << f->toString();
+			ss << std::string((nesting+1) * 2, ' ') << " FixedBox: " << f->toString() << "\n";
 		}
 		return ss.str();
 	}
@@ -63,6 +73,13 @@ namespace xhtml
 
 	void RootBox::handleEndRender(DisplayListPtr display_list, const point& offset) const
 	{
+		// render float boxes.
+		/*for(auto& lf : left_floats_) {
+			lf->render(display_list, offset);
+		}
+		for(auto& rf : right_floats_) {
+			rf->render(display_list, offset);
+		}*/
 		// render fixed boxes.
 		for(auto& fix : fixed_boxes_) {
 			fix->render(display_list, point(0, 0));
@@ -81,5 +98,33 @@ namespace xhtml
 		}
 	}
 
+	void RootBox::addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat)
+	{
+		/*box->layout(eng, box->getParent()->getDimensions());
+
+		const FixedPoint lh = getLineHeight();
+		const FixedPoint box_w = box->getDimensions().content_.width;
+
+		FixedPoint new_x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) + x : eng.getX2AtPosition(y + eng.getOffset().y);
+		FixedPoint w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
+		bool placed = false;
+		while(!placed) {
+			if(w >= box_w) {
+				box->setContentX(new_x - (cfloat == CssFloat::LEFT ? x : box_w));
+				box->setContentY(y);
+				placed = true;
+			} else {
+				y += lh;
+				new_x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) + x : eng.getX2AtPosition(y + eng.getOffset().y);
+				w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
+			}
+		}*/
+
+		if(cfloat == CssFloat::LEFT) {
+			left_floats_.emplace_back(box);
+		} else {
+			right_floats_.emplace_back(box);
+		}
+	}
 
 }

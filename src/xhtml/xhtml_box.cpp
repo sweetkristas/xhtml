@@ -57,8 +57,6 @@ namespace xhtml
 		  dimensions_(),
 		  boxes_(),
 		  absolute_boxes_(),
-		  left_floats_(),
-		  right_floats_(),
 		  cfloat_(CssFloat::NONE),
 		  font_handle_(nullptr),
 		  background_info_(),
@@ -174,38 +172,10 @@ namespace xhtml
 		}
 	}
 
-	void Box::addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat, FixedPoint y)
-	{
-		box->layout(eng, getDimensions());
-
-		const FixedPoint lh = getLineHeight();
-		const FixedPoint box_w = box->getDimensions().content_.width;
-
-		FixedPoint x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) : eng.getX2AtPosition(y + eng.getOffset().y);
-		FixedPoint w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
-		bool placed = false;
-		while(!placed) {
-			if(w > box_w) {
-				box->setContentX(x - (cfloat == CssFloat::LEFT ? 0 : box_w));
-				box->setContentY(y);
-				placed = true;
-			} else {
-				y += lh;
-				x = cfloat == CssFloat::LEFT ? eng.getXAtPosition(y + eng.getOffset().y) : eng.getX2AtPosition(y + eng.getOffset().y);
-				w = eng.getWidthAtPosition(y + eng.getOffset().y, getDimensions().content_.width);
-			}
-		}
-
-		if(cfloat == CssFloat::LEFT) {
-			left_floats_.emplace_back(box);
-		} else {
-			right_floats_.emplace_back(box);
-		}
-	}
-
-	void Box::addAbsoluteElement(BoxPtr abs_box)
+	void Box::addAbsoluteElement(LayoutEngine& eng, const Dimensions& containing, BoxPtr abs_box)
 	{
 		absolute_boxes_.emplace_back(abs_box);
+		abs_box->layout(eng, containing);
 	}
 
 	void Box::layoutAbsolute(LayoutEngine& eng, const Dimensions& containing)
@@ -225,6 +195,15 @@ namespace xhtml
 		return false;
 	}
 
+	std::vector<NodePtr> Box::getChildNodes() const
+	{
+		NodePtr node = getNode();
+		if(node != nullptr) {
+			return node->getChildren();
+		}
+		return std::vector<NodePtr>();
+	}
+
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		point cursor;
@@ -242,8 +221,9 @@ namespace xhtml
 
 		LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
 
-		if(node != nullptr) {
-			boxes_ = eng.layoutChildren(node->getChildren(), shared_from_this(), open);
+		std::vector<NodePtr> node_children = getChildNodes();
+		if(!node_children.empty()) {
+			boxes_ = eng.layoutChildren(node_children, shared_from_this(), open);
 		}
 		if(open != nullptr && !open->boxes_.empty()) {
 			boxes_.emplace_back(open);
@@ -254,11 +234,13 @@ namespace xhtml
 
 		for(auto& child : boxes_) {
 			child->layout(eng, getDimensions());
-			handlePostChildLayout(eng, child);
+			if(!child->isFloat()) {
+				handlePostChildLayout(eng, child);
+			}
 		}
 		
 		handleLayout(eng, containing);
-		layoutAbsolute(eng, containing);
+		//layoutAbsolute(eng, containing);
 
 		// need to call this after doing layout, since we need to now what the computed padding/border values are.
 		border_info_.init(dimensions_);
@@ -352,13 +334,6 @@ namespace xhtml
 		}
 		for(auto& ab : absolute_boxes_) {
 			ab->render(display_list, point(0, 0));
-		}
-
-		for(auto& lf : left_floats_) {
-			lf->render(display_list, offset);
-		}
-		for(auto& rf : right_floats_) {
-			rf->render(display_list, offset);
 		}
 		handleEndRender(display_list, offs);
 

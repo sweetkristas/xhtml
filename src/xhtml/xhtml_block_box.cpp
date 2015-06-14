@@ -28,9 +28,10 @@ namespace xhtml
 {
 	using namespace css;
 
-	BlockBox::BlockBox(BoxPtr parent, NodePtr node)
+	BlockBox::BlockBox(BoxPtr parent, NodePtr node, NodePtr child)
 		: Box(BoxId::BLOCK, parent, node),
-		  child_height_(0)
+		  child_height_(0),
+		  child_(child)
 	{
 	}
 
@@ -55,6 +56,15 @@ namespace xhtml
 			layoutChildren(eng);
 			layoutHeight(containing);
 		}
+	}
+
+	std::vector<NodePtr> BlockBox::getChildNodes() const
+	{
+		NodePtr child = child_.lock();
+		if(child != nullptr) {
+			return std::vector<NodePtr>(1, child);
+		}
+		return Box::getChildNodes();
 	}
 
 	void BlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
@@ -172,7 +182,9 @@ namespace xhtml
 		// XXX we should add collapsible margins to children here.
 		child_height_ = 0;
 		for(auto& child : getChildren()) {
-			child_height_ += child->getHeight() + child->getMBPHeight();
+			if(!child->isFloat()) {
+				child_height_ += child->getHeight() + child->getMBPHeight();
+			}
 		}
 		auto css_height = getCssHeight();
 		if(css_height.isAuto() && !(getNode() != nullptr && getNode()->id() == NodeId::ELEMENT && getNode()->isReplaced())) {

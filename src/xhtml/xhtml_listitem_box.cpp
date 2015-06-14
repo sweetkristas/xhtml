@@ -132,11 +132,33 @@ namespace xhtml
 		}
 		setContentX(getMBPLeft());
 		setContentY(getMBPTop() + containing.content_.height);
+
+		if(!getCssHeight().isAuto()) {
+			FixedPoint h = getCssHeight().getLength().compute(containing.content_.height);
+			//if(h > child_height_) {
+			//	/* apply overflow properties */
+			//}
+			setContentHeight(h);
+		}
+
 	}
 
 	void ListItemBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		setContentWidth(containing.content_.width);
+		FixedPoint containing_width = containing.content_.width;
+
+		calculateHorzMPB(containing_width);
+		calculateVertMPB(containing.content_.height);
+
+		const auto& css_width = getCssWidth();
+		FixedPoint width = 0;
+		if(!css_width.isAuto()) {
+			width = css_width.getLength().compute(containing_width);
+		} else {
+			width = containing_width;
+		}
+
+		setContentWidth(width);
 		setContentHeight(0);
 	}
 
