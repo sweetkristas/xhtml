@@ -218,7 +218,7 @@ namespace xhtml
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		std::unique_ptr<LayoutEngine::FloatContextManager> fcm;
-		if(isFloat()) {
+		if(getParent() && getParent()->isFloat()) {
 			fcm.reset(new LayoutEngine::FloatContextManager(eng, FloatList()));
 		}
 		point cursor;
