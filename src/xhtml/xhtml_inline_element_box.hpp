@@ -33,7 +33,7 @@ namespace xhtml
 		InlineElementBox(BoxPtr parent, NodePtr node);
 		std::string toString() const override;
 	private:
-		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 	};
 

@@ -48,7 +48,7 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void InlineBlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
+	void InlineBlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
 		layoutChildren(eng);
 		layoutHeight(containing);
@@ -151,7 +151,7 @@ namespace xhtml
 		setContentHeight(getHeight() + child->getHeight() + child->getMBPBottom());
 	}
 
-	void InlineBlockBox::handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing)
+	void InlineBlockBox::handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
 		setContentHeight(0);
 	}
@@ -182,7 +182,7 @@ namespace xhtml
 		//}
 	}
 
-	void InlineBlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
+	void InlineBlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
 		if(is_replacable_) {
 			NodePtr node = getNode();

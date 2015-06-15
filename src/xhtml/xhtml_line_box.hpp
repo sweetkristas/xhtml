@@ -32,16 +32,13 @@ namespace xhtml
 	public:
 		LineBox(BoxPtr parent, const point& cursor=point());
 		std::string toString() const override;
-		FixedPoint getStartingX() const { return starting_x_; }
-		void setStartingX(FixedPoint x) { starting_x_ = x; }
-		void reflowChildren(LayoutEngine& eng, const Dimensions& containing);
+		void reflowChildren(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats);
 		const point& getCursor() const { return cursor_; }
 	private:
-		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
-		void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) override;
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
+		void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
-		FixedPoint starting_x_;
 		point cursor_;
 	};
 }

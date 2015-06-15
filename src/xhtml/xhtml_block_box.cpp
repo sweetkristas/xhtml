@@ -38,11 +38,11 @@ namespace xhtml
 	std::string BlockBox::toString() const
 	{
 		std::ostringstream ss;
-		ss << "BlockBox: " << getDimensions().content_;
+		ss << "BlockBox: " << getDimensions().content_ << (isFloat() ? " floating" : "");
 		return ss.str();
 	}
 
-	void BlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
+	void BlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
 		NodePtr node = getNode();
 		bool is_replaced = false;
@@ -67,7 +67,7 @@ namespace xhtml
 		return Box::getChildNodes();
 	}
 
-	void BlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
+	void BlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
 		NodePtr node = getNode();
 		if(node != nullptr && node->id() == NodeId::ELEMENT && node->isReplaced()) {
@@ -102,6 +102,29 @@ namespace xhtml
 			top = containing.content_.y;
 			if(!getCssTop().isAuto()) {
 				top = getCssTop().getLength().compute(containing_height);
+			}
+		} else if(isFloat()) {
+			const FixedPoint lh = getLineHeight();
+			const FixedPoint box_w = getDimensions().content_.width;
+
+			FixedPoint y = 0;
+			FixedPoint x = 0;
+
+			FixedPoint y1 = y + eng.getOffset().y;
+			left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh, floats) + x : eng.getX2AtPosition(y1, y1 + lh, floats);
+			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+			bool placed = false;
+			while(!placed) {
+				if(w >= box_w) {
+					left = left - (getFloatValue() == CssFloat::LEFT ? x : box_w);
+					top = y;
+					placed = true;
+				} else {
+					y += lh;
+					y1 = y + eng.getOffset().y;
+					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh, floats) + x : eng.getX2AtPosition(y1, y1 + lh, floats);
+					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+				}
 			}
 		}
 	

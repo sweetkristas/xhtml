@@ -33,8 +33,8 @@ namespace xhtml
 		explicit ListItemBox(BoxPtr parent, NodePtr node, int count);
 		std::string toString() const override;
 	private:
-		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
-		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
 		void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		int count_;

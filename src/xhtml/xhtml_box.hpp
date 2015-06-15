@@ -67,6 +67,13 @@ namespace xhtml
 		TABLE,
 	};
 
+	struct FloatList
+	{
+		FloatList() : left_(), right_() {}
+		std::vector<BoxPtr> left_;
+		std::vector<BoxPtr> right_;
+	};
+
 	class Box : public std::enable_shared_from_this<Box>
 	{
 	public:
@@ -156,9 +163,16 @@ namespace xhtml
 				+ dimensions_.border_.right;
 		}
 
+		Rect getAbsBoundingBox() {
+			return Rect(dimensions_.content_.x - getMBPLeft() + getOffset().x, 
+				dimensions_.content_.y - getMBPTop() + getOffset().y, 
+				getMBPWidth() + getWidth(),
+				getMBPHeight() + getHeight());
+		}
+
 		static RootBoxPtr createLayout(NodePtr node, int containing_width, int containing_height);
 
-		void layout(LayoutEngine& eng, const Dimensions& containing);
+		void layout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats);
 		virtual std::string toString() const = 0;
 
 		void addAbsoluteElement(LayoutEngine& eng, const Dimensions& containing, BoxPtr abs);
@@ -198,16 +212,21 @@ namespace xhtml
 		void setEOL(bool eol=true) { end_of_line_ = eol; }
 		virtual bool isMultiline() const { return false; }
 		bool isFloat() const { return cfloat_ != css::CssFloat::NONE; }
+		css::CssFloat getFloatValue() const { return cfloat_; }
+
+		void addFloat(BoxPtr box);
+		const FloatList& getFloatList() const { return floats_; }
 
 		virtual std::vector<NodePtr> getChildNodes() const;
+
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
 	private:
-		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
-		virtual void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) {}
-		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) {}
+		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) = 0;
+		virtual void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) {}
+		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) {}
 		virtual void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) {}
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 		virtual void handleEndRender(DisplayListPtr display_list, const point& offset) const {}
@@ -248,6 +267,8 @@ namespace xhtml
 
 		// Helper marker when doing LineBox layout
 		bool end_of_line_;
+
+		FloatList floats_;
 	};
 
 	std::ostream& operator<<(std::ostream& os, const Rect& r);

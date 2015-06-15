@@ -30,7 +30,6 @@ namespace xhtml
 {
 	LineBox::LineBox(BoxPtr parent, const point& cursor)
 		: Box(BoxId::LINE, parent, nullptr),
-		  starting_x_(0),
 		  cursor_(cursor)
 	{
 	}
@@ -42,11 +41,12 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void LineBox::reflowChildren(LayoutEngine& eng, const Dimensions& containing)
+	void LineBox::reflowChildren(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
-		FixedPoint lh = 0;
-		cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
-		FixedPoint width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
+		FixedPoint lh = !getChildren().empty() ? getChildren().front()->getLineHeight() : 0;
+		FixedPoint y1 = cursor_.y + getOffset().y;
+		cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
+		FixedPoint width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
 
 		auto children = getChildren();
 		clearChildren();
@@ -61,7 +61,7 @@ namespace xhtml
 				std::shared_ptr<TextBox> last_txt = txt;
 
 				while(it != tnode->end()) {
-					it = txt->reflow(eng, cursor_, it);
+					it = txt->reflow(eng, cursor_, it, floats);
 
 					LinePtr line = txt->getLine();
 					if(line != nullptr && !line->line.empty()) {
@@ -78,8 +78,9 @@ namespace xhtml
 			
 					if((line != nullptr && line->is_end_line) || width < 0) {
 						cursor_.y += lh;
-						cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
-						width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
+						y1 = cursor_.y + getOffset().y;
+						cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
+						width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
 						lh = 0;
 						last_txt->setEOL(true);
 					}
@@ -99,8 +100,9 @@ namespace xhtml
 						getChildren().back()->setEOL(true);
 					}
 					cursor_.y += std::max(lh, child->getHeight() + child->getMBPHeight());
-					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
-					width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
+					y1 = cursor_.y + getOffset().y;
+					cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
+					width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
 				}			
 				child->setContentX(cursor_.x);
 				child->setContentY(cursor_.y);
@@ -109,13 +111,15 @@ namespace xhtml
 				cursor_.x += x_inc;
 				if(child->isMultiline()) {
 					cursor_.y += child->getHeight() + child->getMBPHeight();
-					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
-					width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
+					y1 = cursor_.y + getOffset().y;
+					cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
+					width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
 					child->setEOL(true);
 				} else if(width <= 0) {
 					cursor_.y += std::max(lh, child->getHeight());
-					cursor_.x = eng.getXAtPosition(cursor_.y + getOffset().y);
-					width = eng.getWidthAtPosition(cursor_.y + getOffset().y, containing.content_.width);
+					y1 = cursor_.y + getOffset().y;
+					cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
+					width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
 					getChildren().back()->setEOL(true);
 				}
 			}
@@ -126,16 +130,16 @@ namespace xhtml
 		}
 	}
 
-	void LineBox::handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing)
+	void LineBox::handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
 		setContentX(getMBPLeft());
 		setContentY(getMBPTop() + containing.content_.height);
 
 		setContentWidth(containing.content_.width);
-		reflowChildren(eng, containing);
+		reflowChildren(eng, containing, floats);
 	}
 
-	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
+	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
 		// adjust heights of lines for tallest item
 		bool start_of_line = true;

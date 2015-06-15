@@ -43,14 +43,14 @@ namespace xhtml
 
 		RootBoxPtr getRoot() const { return root_; }
 		
-		FixedPoint getXAtPosition(FixedPoint y) const;
-		FixedPoint getX2AtPosition(FixedPoint y) const;
+		FixedPoint getXAtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const;
+		FixedPoint getX2AtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const;
 
-		FixedPoint getWidthAtPosition(FixedPoint y, FixedPoint width) const;
+		FixedPoint getWidthAtPosition(FixedPoint y1, FixedPoint y2, FixedPoint width, const FloatList& floats) const;
 
-		bool hasFloatsAtPosition(FixedPoint y) const;
+		bool hasFloatsAtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const;
 
-		void moveCursorToClearFloats(css::CssClear float_clear, point& cursor);
+		void moveCursorToClearFloats(css::CssClear float_clear, point& cursor, const FloatList& floats);
 
 		const Dimensions& getDimensions() const { return dims_; }
 

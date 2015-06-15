@@ -97,7 +97,7 @@ namespace xhtml
 			Dimensions root_dims;
 			root_dims.content_.width = container.x;
 
-			root_->layout(*this, root_dims);
+			root_->layout(*this, root_dims, FloatList());
 			return;
 		}
 	}
@@ -149,17 +149,14 @@ namespace xhtml
 						
 						if(display == CssDisplay::BLOCK) {
 							res.emplace_back(std::make_shared<BlockBox>(parent, child));
-							root_->addFloatBox(*this, res.back(), cfloat);
 						} else if(display == CssDisplay::LIST_ITEM) {
 							res.emplace_back(std::make_shared<ListItemBox>(parent, child, list_item_counter_.top()));
-							root_->addFloatBox(*this, res.back(), cfloat);
 						} else if(display == CssDisplay::TABLE) {
 							//root_->addFloatBox(*this, std::make_shared<TableBox>(parent, child), cfloat, offset_.top().x, offset_.top().y + (open_box != nullptr ? open_box->getCursor().y : 0));
 							ASSERT_LOG(false, "Implement Table display");
 						} else {
 							// default to using a block box to wrap content.
 							res.emplace_back(std::make_shared<BlockBox>(parent, child));
-							root_->addFloatBox(*this, res.back(), cfloat);
 						}
 						continue;
 					}
@@ -196,7 +193,7 @@ namespace xhtml
 						}
 						case CssDisplay::INLINE_BLOCK: {
 							auto ibb = std::make_shared<InlineBlockBox>(parent, child);
-							ibb->layout(*this, parent->getDimensions());
+							ibb->layout(*this, parent->getDimensions(), root_->getFloatList());
 							open_box->addChild(ibb);
 							break;
 						}
@@ -250,47 +247,50 @@ namespace xhtml
 		return ctx_.getFontHandle()->getDescender();
 	}
 
-	FixedPoint LayoutEngine::getXAtPosition(FixedPoint y) const 
+	FixedPoint LayoutEngine::getXAtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const 
 	{
 		FixedPoint x = 0;
 		// since we expect only a small number of floats per element
 		// a linear search through them seems fine at this point.
-		for(auto& lf : root_->getLeftFloats()) {
+		for(auto& lf : floats.left_) {
 			auto& dims = lf->getDimensions();
-			if(y >= (-lf->getMBPTop() + dims.content_.y + lf->getOffset().y) && y <= (-lf->getMBPTop() + lf->getMBPHeight() + lf->getOffset().y + dims.content_.height + dims.content_.y)) {
+			auto bb = lf->getAbsBoundingBox();
+			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
 				x = std::max(x, lf->getMBPWidth() + lf->getDimensions().content_.x + dims.content_.width);
 			}
 		}
 		return x;
 	}
 
-	FixedPoint LayoutEngine::getX2AtPosition(FixedPoint y) const 
+	FixedPoint LayoutEngine::getX2AtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const 
 	{
 		FixedPoint x2 = dims_.content_.width;
 		// since we expect only a small number of floats per element
 		// a linear search through them seems fine at this point.
-		for(auto& rf : root_->getRightFloats()) {
+		for(auto& rf : floats.right_) {
 			auto& dims = rf->getDimensions();
-			if(y >= (-rf->getMBPTop() + dims.content_.y + rf->getOffset().y) && y <= (-rf->getMBPTop() + rf->getMBPHeight() + rf->getOffset().y + dims.content_.height + dims.content_.y)) {
+			auto bb = rf->getAbsBoundingBox();
+			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
 				x2 = std::min(x2, rf->getMBPWidth() + dims.content_.width);
 			}
 		}
 		return x2;
 	}
 
-	FixedPoint LayoutEngine::getWidthAtPosition(FixedPoint y, FixedPoint width) const 
+	FixedPoint LayoutEngine::getWidthAtPosition(FixedPoint y1, FixedPoint y2, FixedPoint width, const FloatList& floats) const 
 	{
 		// since we expect only a small number of floats per element
 		// a linear search through them seems fine at this point.
-		for(auto& lf : root_->getLeftFloats()) {
-			auto& dims = lf->getDimensions();
-			if(y >= (-lf->getMBPTop() + lf->getOffset().y + dims.content_.y) && y <= (-lf->getMBPTop() + lf->getOffset().y + lf->getMBPHeight() + dims.content_.height + dims.content_.y)) {
-				width -= lf->getMBPWidth() + dims.content_.width;
+		for(auto& lf : floats.left_) {
+			auto bb = lf->getAbsBoundingBox();
+			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
+				width -= lf->getMBPWidth() + lf->getDimensions().content_.width;
 			}
 		}
-		for(auto& rf : root_->getRightFloats()) {
+		for(auto& rf : floats.right_) {
 			auto& dims = rf->getDimensions();
-			if(y >= (-rf->getMBPTop() + rf->getOffset().y + dims.content_.y) && y <= (-rf->getMBPTop() + rf->getMBPHeight() + rf->getOffset().y + dims.content_.height + dims.content_.y)) {
+			auto bb = rf->getAbsBoundingBox();
+			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
 				width -= rf->getMBPWidth() + dims.content_.width;
 			}
 		}
@@ -303,35 +303,38 @@ namespace xhtml
 		return offset_.top();
 	}
 
-	void LayoutEngine::moveCursorToClearFloats(CssClear float_clear, point& cursor)
+	void LayoutEngine::moveCursorToClearFloats(CssClear float_clear, point& cursor, const FloatList& floats)
 	{
 		FixedPoint new_y = cursor.y;
 		if(float_clear == CssClear::LEFT || float_clear == CssClear::BOTH) {
-			for(auto& lf : root_->getLeftFloats()) {
+			for(auto& lf : floats.left_) {
 				new_y = std::max(new_y, lf->getMBPHeight() + lf->getOffset().y + lf->getDimensions().content_.y + lf->getDimensions().content_.height);
 			}
 		}
 		if(float_clear == CssClear::RIGHT || float_clear == CssClear::BOTH) {
-			for(auto& rf : root_->getRightFloats()) {
+			for(auto& rf : floats.right_) {
 				new_y = std::max(new_y, rf->getMBPHeight() + rf->getOffset().y + rf->getDimensions().content_.y + rf->getDimensions().content_.height);
 			}
 		}
 		if(new_y != cursor.y) {
-			cursor = point(getXAtPosition(new_y + offset_.top().y), new_y);
+			const FixedPoint y1 = new_y + offset_.top().y;
+			cursor = point(getXAtPosition(y1, y1, floats), new_y);
 		}
 	}
 
-	bool LayoutEngine::hasFloatsAtPosition(FixedPoint y) const
+	bool LayoutEngine::hasFloatsAtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const
 	{
-		for(auto& lf : root_->getLeftFloats()) {
+		for(auto& lf : floats.left_) {
 			auto& dims = lf->getDimensions();
-			if(y >= (-lf->getMBPTop() + lf->getOffset().y + dims.content_.y) && y <= (-lf->getMBPTop() + lf->getMBPHeight() + lf->getOffset().y + dims.content_.height + dims.content_.y)) {
+			auto bb = lf->getAbsBoundingBox();
+			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
 				return true;
 			}
 		}
-		for(auto& rf : root_->getRightFloats()) {
+		for(auto& rf : floats.right_) {
 			auto& dims = rf->getDimensions();
-			if(y >= (-rf->getMBPTop() + rf->getOffset().y + dims.content_.y) && y <= (-rf->getMBPTop() + rf->getMBPHeight() + rf->getOffset().y + dims.content_.height + dims.content_.y)) {
+			auto bb = rf->getAbsBoundingBox();
+			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
 				return true;
 			}
 		}

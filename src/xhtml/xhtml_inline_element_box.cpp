@@ -34,7 +34,7 @@ namespace xhtml
 	{
 	}
 
-	void InlineElementBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
+	void InlineElementBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
 		auto node = getNode();
 		ASSERT_LOG(node != nullptr && node->isReplaced(), "InlineElementBox was generated for an empty node, or node which isn't replacable.");

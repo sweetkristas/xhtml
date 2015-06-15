@@ -36,16 +36,10 @@ namespace xhtml
 		void addFixed(BoxPtr fixed);
 		void layoutFixed(LayoutEngine& eng, const Dimensions& containing);
 		const std::vector<BoxPtr>& getFixed() const { return fixed_boxes_; }
-
-		void addFloatBox(LayoutEngine& eng, BoxPtr box, css::CssFloat cfloat);
-		const std::vector<BoxPtr>& getLeftFloats() const { return left_floats_; }
-		const std::vector<BoxPtr>& getRightFloats() const { return right_floats_; }	
 	private:
-		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
 		void handleEndRender(DisplayListPtr display_list, const point& offset) const override;
 
 		std::vector<BoxPtr> fixed_boxes_;
-		std::vector<BoxPtr> left_floats_;
-		std::vector<BoxPtr> right_floats_;
 	};
 }

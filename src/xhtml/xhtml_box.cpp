@@ -29,6 +29,7 @@
 #include "xhtml_inline_element_box.hpp"
 #include "xhtml_layout_engine.hpp"
 #include "xhtml_line_box.hpp"
+#include "xhtml_root_box.hpp"
 
 namespace xhtml
 {
@@ -175,14 +176,14 @@ namespace xhtml
 	void Box::addAbsoluteElement(LayoutEngine& eng, const Dimensions& containing, BoxPtr abs_box)
 	{
 		absolute_boxes_.emplace_back(abs_box);
-		abs_box->layout(eng, containing);
+		abs_box->layout(eng, containing, FloatList());
 	}
 
 	void Box::layoutAbsolute(LayoutEngine& eng, const Dimensions& containing)
 	{
-		for(auto& abs : absolute_boxes_) {
-			abs->layout(eng, containing);
-		}
+		//for(auto& abs : absolute_boxes_) {
+		//	abs->layout(eng, containing, FloatList());
+		//}
 	}
 
 	bool Box::hasChildBlockBox() const
@@ -204,11 +205,23 @@ namespace xhtml
 		return std::vector<NodePtr>();
 	}
 
-	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
+	void Box::addFloat(BoxPtr box)
 	{
+		ASSERT_LOG(box->cfloat_ != CssFloat::NONE, "Tried to add a float with no float setting.");
+		if(box->cfloat_ == CssFloat::LEFT) {
+			floats_.left_.emplace_back(box);
+		} else {
+			floats_.right_.emplace_back(box);
+		}
+	}
+
+	void Box::layout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	{
+		const FloatList& float_list = isFloat() ? eng.getRoot()->floats_ : floats;
+
 		point cursor;
 		// If we have a clear flag set, then move the cursor in the layout engine to clear appropriate floats.
-		eng.moveCursorToClearFloats(float_clear_, cursor);
+		eng.moveCursorToClearFloats(float_clear_, cursor, float_list);
 
 		NodePtr node = getNode();
 
@@ -217,7 +230,7 @@ namespace xhtml
 			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
 		}
 
-		handlePreChildLayout(eng, containing);
+		handlePreChildLayout(eng, containing, float_list);
 
 		LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
 
@@ -230,16 +243,24 @@ namespace xhtml
 		}
 
 		offset_ = (getParent() != nullptr ? getParent()->getOffset() : point()) + point(dimensions_.content_.x, dimensions_.content_.y);
-		handlePreChildLayout2(eng, containing);
 
 		for(auto& child : boxes_) {
-			child->layout(eng, getDimensions());
+			if(child->isFloat()) {
+				child->layout(eng, getDimensions(), float_list);
+				eng.getRoot()->addFloat(child);
+			}
+		}
+
+		handlePreChildLayout2(eng, containing, float_list);
+
+		for(auto& child : boxes_) {
 			if(!child->isFloat()) {
+				child->layout(eng, getDimensions(), float_list);
 				handlePostChildLayout(eng, child);
 			}
 		}
 		
-		handleLayout(eng, containing);
+		handleLayout(eng, containing, float_list);
 		//layoutAbsolute(eng, containing);
 
 		// need to call this after doing layout, since we need to now what the computed padding/border values are.
@@ -330,7 +351,14 @@ namespace xhtml
 		handleRenderBorder(display_list, offs);
 		handleRender(display_list, offs);
 		for(auto& child : getChildren()) {
-			child->render(display_list, offs);
+			if(!child->isFloat()) {
+				child->render(display_list, offs);
+			}
+		}
+		for(auto& child : getChildren()) {
+			if(child->isFloat()) {
+				child->render(display_list, offs);
+			}
 		}
 		for(auto& ab : absolute_boxes_) {
 			ab->render(display_list, point(0, 0));

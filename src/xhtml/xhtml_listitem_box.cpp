@@ -60,15 +60,15 @@ namespace xhtml
 	std::string ListItemBox::toString() const 
 	{
 		std::ostringstream ss;
-		ss << "ListItemBox: " << getDimensions().content_;
+		ss << "ListItemBox: " << getDimensions().content_ << (isFloat() ? " floating" : "");
 		return ss.str();
 	}
 
-	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
+	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) 
 	{
 		RenderContext& ctx = RenderContext::get();
-		CssListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE).getValue<CssListStyleType>(); // .list_style_type_
-			switch(lst) {
+		CssListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE).getValue<CssListStyleType>();
+		switch(lst) {
 			case CssListStyleType::DISC: /* is the default */ break;
 			case CssListStyleType::CIRCLE:
 				marker_ = utils::codepoint_to_utf8(marker_circle);
@@ -130,8 +130,37 @@ namespace xhtml
 				marker_.clear();
 				break;
 		}
-		setContentX(getMBPLeft());
-		setContentY(getMBPTop() + containing.content_.height);
+
+		FixedPoint top = getMBPTop() + containing.content_.height;
+		FixedPoint left = getMBPLeft();
+
+		if(isFloat()) {
+			const FixedPoint lh = getDimensions().content_.height;
+			const FixedPoint box_w = getDimensions().content_.width;
+
+			FixedPoint y = getMBPTop();
+			FixedPoint x = getMBPLeft();
+
+			FixedPoint y1 = y + getOffset().y;
+			left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh, floats) + x : eng.getX2AtPosition(y1, y1 + lh, floats);
+			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+			bool placed = false;
+			while(!placed) {
+				if(w >= box_w) {
+					left = left - (getFloatValue() == CssFloat::LEFT ? x : box_w);
+					top = y;
+					placed = true;
+				} else {
+					y += lh;
+					y1 = y + getOffset().y;
+					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh, floats) + x : eng.getX2AtPosition(y1, y1 + lh, floats);
+					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+				}
+			}
+		}
+
+		setContentX(left);
+		setContentY(top);
 
 		if(!getCssHeight().isAuto()) {
 			FixedPoint h = getCssHeight().getLength().compute(containing.content_.height);
@@ -143,7 +172,7 @@ namespace xhtml
 
 	}
 
-	void ListItemBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
+	void ListItemBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
 	{
 		FixedPoint containing_width = containing.content_.width;
 
