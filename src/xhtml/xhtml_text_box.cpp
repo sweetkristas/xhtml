@@ -48,12 +48,12 @@ namespace xhtml
 		return ss.str();
 	}
 
-	Text::iterator TextBox::reflow(LayoutEngine& eng, point& cursor, Text::iterator it, const FloatList& floats)
+	Text::iterator TextBox::reflow(LayoutEngine& eng, point& cursor, Text::iterator it)
 	{
 		it_ = it;
 		auto parent = getParent();
 		FixedPoint y1 = cursor.y + getParent()->getOffset().y;
-		FixedPoint width = eng.getWidthAtPosition(y1, y1 + getLineHeight(), parent->getWidth(), floats);
+		FixedPoint width = eng.getWidthAtPosition(y1, y1 + getLineHeight(), parent->getWidth());
 
 		ASSERT_LOG(it != txt_->end(), "Given an iterator at end of text.");
 
@@ -62,12 +62,12 @@ namespace xhtml
 			LinePtr line = txt_->reflowText(it, width, getFont());
 			if(line != nullptr && !line->line.empty()) {
 				// is the line larger than available space and are there floats present?
-				if(line->line.back().advance.back().x > width && eng.hasFloatsAtPosition(y1, y1 + getLineHeight(), floats)) {
+				if(line->line.back().advance.back().x > width && eng.hasFloatsAtPosition(y1, y1 + getLineHeight())) {
 					cursor.y += getLineHeight();
 					y1 = cursor.y + getParent()->getOffset().y;
-					cursor.x = eng.getXAtPosition(y1, y1 + getLineHeight(), floats);
+					cursor.x = eng.getXAtPosition(y1, y1 + getLineHeight());
 					it = it_;
-					width = eng.getWidthAtPosition(y1, y1 + getLineHeight(), parent->getWidth(), floats);
+					width = eng.getWidthAtPosition(y1, y1 + getLineHeight(), parent->getWidth());
 					continue;
 				}
 				line_ = line;
@@ -99,7 +99,7 @@ namespace xhtml
 		return width;
 	}
 
-	void TextBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void TextBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		// TextBox's have no children to deal with, by definition.	
 		//setContentWidth(calculateWidth());

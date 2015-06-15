@@ -97,7 +97,7 @@ namespace xhtml
 			Dimensions root_dims;
 			root_dims.content_.width = container.x;
 
-			root_->layout(*this, root_dims, FloatList());
+			root_->layout(*this, root_dims);
 			return;
 		}
 	}
@@ -193,7 +193,7 @@ namespace xhtml
 						}
 						case CssDisplay::INLINE_BLOCK: {
 							auto ibb = std::make_shared<InlineBlockBox>(parent, child);
-							ibb->layout(*this, parent->getDimensions(), root_->getFloatList());
+							ibb->layout(*this, parent->getDimensions());
 							open_box->addChild(ibb);
 							break;
 						}
@@ -247,12 +247,12 @@ namespace xhtml
 		return ctx_.getFontHandle()->getDescender();
 	}
 
-	FixedPoint LayoutEngine::getXAtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const 
+	FixedPoint LayoutEngine::getXAtPosition(FixedPoint y1, FixedPoint y2) const 
 	{
 		FixedPoint x = 0;
 		// since we expect only a small number of floats per element
 		// a linear search through them seems fine at this point.
-		for(auto& lf : floats.left_) {
+		for(auto& lf : getFloatList().left_) {
 			auto& dims = lf->getDimensions();
 			auto bb = lf->getAbsBoundingBox();
 			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
@@ -262,12 +262,12 @@ namespace xhtml
 		return x;
 	}
 
-	FixedPoint LayoutEngine::getX2AtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const 
+	FixedPoint LayoutEngine::getX2AtPosition(FixedPoint y1, FixedPoint y2) const 
 	{
 		FixedPoint x2 = dims_.content_.width;
 		// since we expect only a small number of floats per element
 		// a linear search through them seems fine at this point.
-		for(auto& rf : floats.right_) {
+		for(auto& rf : getFloatList().right_) {
 			auto& dims = rf->getDimensions();
 			auto bb = rf->getAbsBoundingBox();
 			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
@@ -277,17 +277,17 @@ namespace xhtml
 		return x2;
 	}
 
-	FixedPoint LayoutEngine::getWidthAtPosition(FixedPoint y1, FixedPoint y2, FixedPoint width, const FloatList& floats) const 
+	FixedPoint LayoutEngine::getWidthAtPosition(FixedPoint y1, FixedPoint y2, FixedPoint width) const 
 	{
 		// since we expect only a small number of floats per element
 		// a linear search through them seems fine at this point.
-		for(auto& lf : floats.left_) {
+		for(auto& lf : getFloatList().left_) {
 			auto bb = lf->getAbsBoundingBox();
 			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
 				width -= lf->getMBPWidth() + lf->getDimensions().content_.width;
 			}
 		}
-		for(auto& rf : floats.right_) {
+		for(auto& rf : getFloatList().right_) {
 			auto& dims = rf->getDimensions();
 			auto bb = rf->getAbsBoundingBox();
 			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
@@ -303,35 +303,35 @@ namespace xhtml
 		return offset_.top();
 	}
 
-	void LayoutEngine::moveCursorToClearFloats(CssClear float_clear, point& cursor, const FloatList& floats)
+	void LayoutEngine::moveCursorToClearFloats(CssClear float_clear, point& cursor)
 	{
 		FixedPoint new_y = cursor.y;
 		if(float_clear == CssClear::LEFT || float_clear == CssClear::BOTH) {
-			for(auto& lf : floats.left_) {
+			for(auto& lf : getFloatList().left_) {
 				new_y = std::max(new_y, lf->getMBPHeight() + lf->getOffset().y + lf->getDimensions().content_.y + lf->getDimensions().content_.height);
 			}
 		}
 		if(float_clear == CssClear::RIGHT || float_clear == CssClear::BOTH) {
-			for(auto& rf : floats.right_) {
+			for(auto& rf : getFloatList().right_) {
 				new_y = std::max(new_y, rf->getMBPHeight() + rf->getOffset().y + rf->getDimensions().content_.y + rf->getDimensions().content_.height);
 			}
 		}
 		if(new_y != cursor.y) {
 			const FixedPoint y1 = new_y + offset_.top().y;
-			cursor = point(getXAtPosition(y1, y1, floats), new_y);
+			cursor = point(getXAtPosition(y1, y1), new_y);
 		}
 	}
 
-	bool LayoutEngine::hasFloatsAtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const
+	bool LayoutEngine::hasFloatsAtPosition(FixedPoint y1, FixedPoint y2) const
 	{
-		for(auto& lf : floats.left_) {
+		for(auto& lf : getFloatList().left_) {
 			auto& dims = lf->getDimensions();
 			auto bb = lf->getAbsBoundingBox();
 			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
 				return true;
 			}
 		}
-		for(auto& rf : floats.right_) {
+		for(auto& rf : getFloatList().right_) {
 			auto& dims = rf->getDimensions();
 			auto bb = rf->getAbsBoundingBox();
 			if((y1 >= bb.y && y1 <= (bb.y + bb.height)) || (y2 >= bb.y && y2 <= (bb.y + bb.height))) {
@@ -339,5 +339,10 @@ namespace xhtml
 			}
 		}
 		return false;
+	}
+
+	const FloatList& LayoutEngine::getFloatList() const 
+	{ 
+		return float_list_.empty() ? root_->getFloatList() : float_list_.top(); 
 	}
 }

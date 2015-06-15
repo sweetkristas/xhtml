@@ -43,14 +43,14 @@ namespace xhtml
 
 		RootBoxPtr getRoot() const { return root_; }
 		
-		FixedPoint getXAtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const;
-		FixedPoint getX2AtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const;
+		FixedPoint getXAtPosition(FixedPoint y1, FixedPoint y2) const;
+		FixedPoint getX2AtPosition(FixedPoint y1, FixedPoint y2) const;
 
-		FixedPoint getWidthAtPosition(FixedPoint y1, FixedPoint y2, FixedPoint width, const FloatList& floats) const;
+		FixedPoint getWidthAtPosition(FixedPoint y1, FixedPoint y2, FixedPoint width) const;
 
-		bool hasFloatsAtPosition(FixedPoint y1, FixedPoint y2, const FloatList& floats) const;
+		bool hasFloatsAtPosition(FixedPoint y1, FixedPoint y2) const;
 
-		void moveCursorToClearFloats(css::CssClear float_clear, point& cursor, const FloatList& floats);
+		void moveCursorToClearFloats(css::CssClear float_clear, point& cursor);
 
 		const Dimensions& getDimensions() const { return dims_; }
 
@@ -58,6 +58,14 @@ namespace xhtml
 		static float getFixedPointScaleFloat() { return 65536.0f; }
 
 		const point& getOffset();
+
+		struct FloatContextManager
+		{
+			FloatContextManager(LayoutEngine& eng, const FloatList& floats) : eng_(eng) { eng_.float_list_.emplace(floats); };
+			~FloatContextManager() { eng_.float_list_.pop(); }
+			LayoutEngine& eng_;
+		};
+		const FloatList& getFloatList() const;
 	private:
 		RootBoxPtr root_;
 		Dimensions dims_;
@@ -65,6 +73,8 @@ namespace xhtml
 		
 		std::stack<int> list_item_counter_;
 		std::stack<point> offset_;
+
+		std::stack<FloatList> float_list_;
 	};
 
 }

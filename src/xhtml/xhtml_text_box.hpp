@@ -33,13 +33,13 @@ namespace xhtml
 	public:
 		TextBox(BoxPtr parent, TextPtr txt);
 		std::string toString() const override;
-		Text::iterator reflow(LayoutEngine& eng, point& cursor, Text::iterator it, const FloatList& floats);
+		Text::iterator reflow(LayoutEngine& eng, point& cursor, Text::iterator it);
 		Text::iterator begin() { return it_; }
 		Text::iterator end();
 		LinePtr getLine() const { return line_; }
 		TextPtr getText() const { return txt_; }
 	private:
-		void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBackground(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;

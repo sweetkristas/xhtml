@@ -41,12 +41,12 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void LineBox::reflowChildren(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void LineBox::reflowChildren(LayoutEngine& eng, const Dimensions& containing)
 	{
 		FixedPoint lh = !getChildren().empty() ? getChildren().front()->getLineHeight() : 0;
 		FixedPoint y1 = cursor_.y + getOffset().y;
-		cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
-		FixedPoint width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+		cursor_.x = eng.getXAtPosition(y1, y1 + lh);
+		FixedPoint width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 
 		auto children = getChildren();
 		clearChildren();
@@ -61,7 +61,7 @@ namespace xhtml
 				std::shared_ptr<TextBox> last_txt = txt;
 
 				while(it != tnode->end()) {
-					it = txt->reflow(eng, cursor_, it, floats);
+					it = txt->reflow(eng, cursor_, it);
 
 					LinePtr line = txt->getLine();
 					if(line != nullptr && !line->line.empty()) {
@@ -79,8 +79,8 @@ namespace xhtml
 					if((line != nullptr && line->is_end_line) || width < 0) {
 						cursor_.y += lh;
 						y1 = cursor_.y + getOffset().y;
-						cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
-						width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+						cursor_.x = eng.getXAtPosition(y1, y1 + lh);
+						width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 						lh = 0;
 						last_txt->setEOL(true);
 					}
@@ -101,8 +101,8 @@ namespace xhtml
 					}
 					cursor_.y += std::max(lh, child->getHeight() + child->getMBPHeight());
 					y1 = cursor_.y + getOffset().y;
-					cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
-					width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+					cursor_.x = eng.getXAtPosition(y1, y1 + lh);
+					width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 				}			
 				child->setContentX(cursor_.x);
 				child->setContentY(cursor_.y);
@@ -112,14 +112,14 @@ namespace xhtml
 				if(child->isMultiline()) {
 					cursor_.y += child->getHeight() + child->getMBPHeight();
 					y1 = cursor_.y + getOffset().y;
-					cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
-					width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+					cursor_.x = eng.getXAtPosition(y1, y1 + lh);
+					width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 					child->setEOL(true);
 				} else if(width <= 0) {
 					cursor_.y += std::max(lh, child->getHeight());
 					y1 = cursor_.y + getOffset().y;
-					cursor_.x = eng.getXAtPosition(y1, y1 + lh, floats);
-					width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+					cursor_.x = eng.getXAtPosition(y1, y1 + lh);
+					width = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 					getChildren().back()->setEOL(true);
 				}
 			}
@@ -130,16 +130,16 @@ namespace xhtml
 		}
 	}
 
-	void LineBox::handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void LineBox::handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing)
 	{
 		setContentX(getMBPLeft());
 		setContentY(getMBPTop() + containing.content_.height);
 
 		setContentWidth(containing.content_.width);
-		reflowChildren(eng, containing, floats);
+		reflowChildren(eng, containing);
 	}
 
-	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		// adjust heights of lines for tallest item
 		bool start_of_line = true;

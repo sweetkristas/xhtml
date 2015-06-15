@@ -41,7 +41,7 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void AbsoluteBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void AbsoluteBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		Rect container = containing.content_;
 
@@ -97,7 +97,7 @@ namespace xhtml
 		setContentHeight(child->getTop() + child->getHeight() + child->getMBPBottom());
 	}
 
-	void AbsoluteBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void AbsoluteBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		const FixedPoint containing_height = container_.height;
 

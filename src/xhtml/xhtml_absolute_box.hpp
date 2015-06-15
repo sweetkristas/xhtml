@@ -33,9 +33,9 @@ namespace xhtml
 		AbsoluteBox(BoxPtr parent, NodePtr node);
 		std::string toString() const override;
 	private:
-		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
+		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) override;
-		void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		Rect container_;
 	};

@@ -46,7 +46,7 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void RootBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) 
+	void RootBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
 	{
 		//BlockBox::handleLayout(eng, containing);
 
@@ -78,7 +78,7 @@ namespace xhtml
 	void RootBox::layoutFixed(LayoutEngine& eng, const Dimensions& containing)
 	{
 		for(auto& fix : fixed_boxes_) {
-			fix->layout(eng, eng.getDimensions(), FloatList());
+			fix->layout(eng, eng.getDimensions());
 		}
 	}
 }

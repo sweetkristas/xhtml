@@ -176,7 +176,7 @@ namespace xhtml
 	void Box::addAbsoluteElement(LayoutEngine& eng, const Dimensions& containing, BoxPtr abs_box)
 	{
 		absolute_boxes_.emplace_back(abs_box);
-		abs_box->layout(eng, containing, FloatList());
+		abs_box->layout(eng, containing);
 	}
 
 	void Box::layoutAbsolute(LayoutEngine& eng, const Dimensions& containing)
@@ -215,13 +215,15 @@ namespace xhtml
 		}
 	}
 
-	void Box::layout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		const FloatList& float_list = isFloat() ? eng.getRoot()->floats_ : floats;
-
+		std::unique_ptr<LayoutEngine::FloatContextManager> fcm;
+		if(isFloat()) {
+			fcm.reset(new LayoutEngine::FloatContextManager(eng, FloatList()));
+		}
 		point cursor;
 		// If we have a clear flag set, then move the cursor in the layout engine to clear appropriate floats.
-		eng.moveCursorToClearFloats(float_clear_, cursor, float_list);
+		eng.moveCursorToClearFloats(float_clear_, cursor);
 
 		NodePtr node = getNode();
 
@@ -230,7 +232,7 @@ namespace xhtml
 			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
 		}
 
-		handlePreChildLayout(eng, containing, float_list);
+		handlePreChildLayout(eng, containing);
 
 		LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
 
@@ -246,21 +248,21 @@ namespace xhtml
 
 		for(auto& child : boxes_) {
 			if(child->isFloat()) {
-				child->layout(eng, getDimensions(), float_list);
+				child->layout(eng, getDimensions());
 				eng.getRoot()->addFloat(child);
 			}
 		}
 
-		handlePreChildLayout2(eng, containing, float_list);
+		handlePreChildLayout2(eng, containing);
 
 		for(auto& child : boxes_) {
 			if(!child->isFloat()) {
-				child->layout(eng, getDimensions(), float_list);
+				child->layout(eng, getDimensions());
 				handlePostChildLayout(eng, child);
 			}
 		}
 		
-		handleLayout(eng, containing, float_list);
+		handleLayout(eng, containing);
 		//layoutAbsolute(eng, containing);
 
 		// need to call this after doing layout, since we need to now what the computed padding/border values are.

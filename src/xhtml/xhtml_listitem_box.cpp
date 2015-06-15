@@ -64,7 +64,7 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) 
+	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
 	{
 		RenderContext& ctx = RenderContext::get();
 		CssListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE).getValue<CssListStyleType>();
@@ -142,8 +142,8 @@ namespace xhtml
 			FixedPoint x = getMBPLeft();
 
 			FixedPoint y1 = y + getOffset().y;
-			left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh, floats) + x : eng.getX2AtPosition(y1, y1 + lh, floats);
-			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+			left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 			bool placed = false;
 			while(!placed) {
 				if(w >= box_w) {
@@ -153,8 +153,8 @@ namespace xhtml
 				} else {
 					y += lh;
 					y1 = y + getOffset().y;
-					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh, floats) + x : eng.getX2AtPosition(y1, y1 + lh, floats);
-					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 				}
 			}
 		}
@@ -172,7 +172,7 @@ namespace xhtml
 
 	}
 
-	void ListItemBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void ListItemBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		FixedPoint containing_width = containing.content_.width;
 

@@ -34,10 +34,10 @@ namespace xhtml
 		virtual std::string toString() const override;
 		std::vector<NodePtr> getChildNodes() const override;
 	protected:
-		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
+		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const override;
 	private:
-		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
+		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		// Called after every child has been laid out.
 		void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) override;
 		void layoutWidth(const Dimensions& containing);

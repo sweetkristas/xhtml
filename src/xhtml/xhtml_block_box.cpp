@@ -42,7 +42,7 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void BlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void BlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		NodePtr node = getNode();
 		bool is_replaced = false;
@@ -67,7 +67,7 @@ namespace xhtml
 		return Box::getChildNodes();
 	}
 
-	void BlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats)
+	void BlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		NodePtr node = getNode();
 		if(node != nullptr && node->id() == NodeId::ELEMENT && node->isReplaced()) {
@@ -111,8 +111,8 @@ namespace xhtml
 			FixedPoint x = 0;
 
 			FixedPoint y1 = y + eng.getOffset().y;
-			left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh, floats) + x : eng.getX2AtPosition(y1, y1 + lh, floats);
-			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+			left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 			bool placed = false;
 			while(!placed) {
 				if(w >= box_w) {
@@ -122,8 +122,8 @@ namespace xhtml
 				} else {
 					y += lh;
 					y1 = y + eng.getOffset().y;
-					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh, floats) + x : eng.getX2AtPosition(y1, y1 + lh, floats);
-					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width, floats);
+					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 				}
 			}
 		}

@@ -37,7 +37,7 @@ namespace xhtml
 		void layoutFixed(LayoutEngine& eng, const Dimensions& containing);
 		const std::vector<BoxPtr>& getFixed() const { return fixed_boxes_; }
 	private:
-		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) override;
+		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleEndRender(DisplayListPtr display_list, const point& offset) const override;
 
 		std::vector<BoxPtr> fixed_boxes_;

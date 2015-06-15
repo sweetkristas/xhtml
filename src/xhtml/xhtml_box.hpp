@@ -172,7 +172,7 @@ namespace xhtml
 
 		static RootBoxPtr createLayout(NodePtr node, int containing_width, int containing_height);
 
-		void layout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats);
+		void layout(LayoutEngine& eng, const Dimensions& containing);
 		virtual std::string toString() const = 0;
 
 		void addAbsoluteElement(LayoutEngine& eng, const Dimensions& containing, BoxPtr abs);
@@ -224,9 +224,9 @@ namespace xhtml
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
 		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
 	private:
-		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) = 0;
-		virtual void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) {}
-		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing, const FloatList& floats) {}
+		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
+		virtual void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) {}
+		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) {}
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 		virtual void handleEndRender(DisplayListPtr display_list, const point& offset) const {}
