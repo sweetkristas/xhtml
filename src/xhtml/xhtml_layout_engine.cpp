@@ -80,10 +80,12 @@ namespace xhtml
 		  dims_(), 
 		  ctx_(RenderContext::get()), 
 		  list_item_counter_(),
-		  offset_()
+		  offset_(),
+		  float_list_()
 	{
 		list_item_counter_.emplace(0);
 		offset_.emplace(point());
+		float_list_.emplace(FloatList());
 	}
 
 	void LayoutEngine::layoutRoot(NodePtr node, BoxPtr parent, const point& container) 
@@ -245,6 +247,16 @@ namespace xhtml
 	FixedPoint LayoutEngine::getDescent() const 
 	{
 		return ctx_.getFontHandle()->getDescender();
+	}
+
+	void LayoutEngine::addFloat(BoxPtr float_box)
+	{
+		ASSERT_LOG(!float_list_.empty(), "Empty float list.");
+		if(float_box->getFloatValue() == CssFloat::LEFT) {
+			float_list_.top().left_.emplace_back(float_box);
+		} else {
+			float_list_.top().right_.emplace_back(float_box);
+		}
 	}
 
 	FixedPoint LayoutEngine::getXAtPosition(FixedPoint y1, FixedPoint y2) const 

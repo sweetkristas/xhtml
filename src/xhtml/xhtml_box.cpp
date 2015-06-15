@@ -249,7 +249,7 @@ namespace xhtml
 		for(auto& child : boxes_) {
 			if(child->isFloat()) {
 				child->layout(eng, getDimensions());
-				eng.getRoot()->addFloat(child);
+				eng.addFloat(child);
 			}
 		}
 

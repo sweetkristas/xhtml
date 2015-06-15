@@ -66,6 +66,7 @@ namespace xhtml
 			LayoutEngine& eng_;
 		};
 		const FloatList& getFloatList() const;
+		void addFloat(BoxPtr float_box);
 	private:
 		RootBoxPtr root_;
 		Dimensions dims_;
