@@ -1,7 +1,4 @@
 Current bugs:
-Fixed Boxes placed outside screen bounds
-repro: ui_test2.xhtml 
-
 Hover over button not causing layout
 repro: test4.xhtml
 

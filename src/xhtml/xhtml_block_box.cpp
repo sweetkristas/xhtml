@@ -98,8 +98,8 @@ namespace xhtml
 
 		calculateVertMPB(containing.content_.height);
 
-		FixedPoint left = 0;
-		FixedPoint top = 0;
+		FixedPoint left = getMBPLeft();
+		FixedPoint top = getMBPTop() + containing.content_.height;
 		if(getPosition() == CssPosition::FIXED) {
 			const FixedPoint containing_width = containing.content_.width;
 			const FixedPoint containing_height = containing.content_.height;
@@ -124,8 +124,8 @@ namespace xhtml
 			bool placed = false;
 			while(!placed) {
 				if(w >= box_w) {
-					left = left - (getFloatValue() == CssFloat::LEFT ? x : box_w);
-					top = y;
+					left = left - (getFloatValue() == CssFloat::LEFT ? x : box_w) + getMBPLeft();
+					top = y + getMBPTop() + containing.content_.height;
 					placed = true;
 				} else {
 					y += lh;
@@ -136,8 +136,8 @@ namespace xhtml
 			}
 		}
 	
-		setContentX(left + getMBPLeft());
-		setContentY(top + getMBPTop() + containing.content_.height);
+		setContentX(left);
+		setContentY(top);
 	}
 
 	void BlockBox::handlePostChildLayout(LayoutEngine& eng, BoxPtr child)
