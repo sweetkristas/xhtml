@@ -37,6 +37,7 @@ namespace xhtml
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) override;
+		void postParentLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
 		point cursor_;

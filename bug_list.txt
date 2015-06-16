@@ -12,9 +12,6 @@ repro: test15.xhtml
 Vertical alignment has no effect.
 repro: test18.xhtml
 
-Text within button element is not centred.
-repro: test19.xhtml
-
 Inline-block element is not positioned correctly.
 repro: test23.xhtml
 

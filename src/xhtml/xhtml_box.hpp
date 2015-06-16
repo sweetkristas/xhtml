@@ -216,6 +216,8 @@ namespace xhtml
 
 		virtual std::vector<NodePtr> getChildNodes() const;
 
+		css::CssDirection getCssDirection() const { return css_direction_; }
+
 		bool isReplaceable() const { return is_replaceable_; }
 	protected:
 		void clearChildren() { boxes_.clear(); } 
@@ -226,6 +228,7 @@ namespace xhtml
 		virtual void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) {}
+		virtual void postParentLayout(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
 		virtual void handleEndRender(DisplayListPtr display_list, const point& offset) const {}
 

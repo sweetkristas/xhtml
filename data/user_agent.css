@@ -41,6 +41,7 @@ var, address    { font-style: italic }
 pre, tt, code,
 kbd, samp       { font-family: monospace }
 pre             { white-space: pre }
+button         { text-align: center }
 button, textarea,
 input, select   { display: inline-block }
 big             { font-size: 1.17em }

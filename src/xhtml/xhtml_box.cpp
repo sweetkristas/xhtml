@@ -130,6 +130,8 @@ namespace xhtml
 
 		css_direction_ = ctx.getComputedValue(Property::DIRECTION).getValue<CssDirection>();
 
+		text_align_ = ctx.getComputedValue(Property::TEXT_ALIGN).getValue<CssTextAlign>();
+
 		cfloat_ = ctx.getComputedValue(Property::FLOAT).getValue<CssFloat>();
 		
 		const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
@@ -260,6 +262,10 @@ namespace xhtml
 		
 		handleLayout(eng, containing);
 		//layoutAbsolute(eng, containing);
+
+		for(auto& child : boxes_) {
+			child->postParentLayout(eng, getDimensions());
+		}
 
 		// need to call this after doing layout, since we need to now what the computed padding/border values are.
 		border_info_.init(dimensions_);

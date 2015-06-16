@@ -221,6 +221,32 @@ namespace xhtml
 		}
 	}
 
+	void LineBox::postParentLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
+		const FixedPoint containing_width = containing.content_.width;
+		const css::CssTextAlign ta = getParent()->getTextAlign();
+
+		// computer&set children X offsets
+		for(auto& child : getChildren()) {
+			FixedPoint child_x = child->getLeft();
+			switch(ta) {
+				case css::CssTextAlign::RIGHT:		child_x = containing_width - child->getWidth(); break;
+				case css::CssTextAlign::CENTER:		child_x = (containing_width - child->getWidth() - child_x) / 2; break;
+				case css::CssTextAlign::JUSTIFY:	ASSERT_LOG(false, "implement justify text align"); break;
+				case css::CssTextAlign::NORMAL:	
+					if(getParent()->getCssDirection() == css::CssDirection::RTL) {
+						child_x = containing_width - child->getWidth();
+					}
+					break;
+				case css::CssTextAlign::LEFT:
+				default:
+					// use default value.
+					break;
+			}
+			child->setContentX(child_x);
+		}
+	}
+
 	void LineBox::handleRender(DisplayListPtr display_list, const point& offset) const
 	{
 		// do nothing
