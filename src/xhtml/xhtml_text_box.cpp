@@ -53,7 +53,7 @@ namespace xhtml
 		it_ = it;
 		auto parent = getParent();
 		FixedPoint y1 = cursor.y + getParent()->getOffset().y;
-		FixedPoint width = eng.getWidthAtPosition(y1, y1 + getLineHeight(), parent->getWidth());
+		FixedPoint width = eng.getWidthAtPosition(y1, y1 + getLineHeight(), parent->getWidth()) - cursor.x + eng.getXAtPosition(y1, y1 + getLineHeight());
 
 		ASSERT_LOG(it != txt_->end(), "Given an iterator at end of text.");
 

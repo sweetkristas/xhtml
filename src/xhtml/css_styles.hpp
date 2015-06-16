@@ -142,7 +142,10 @@ namespace css
 		TRANSITION_DURATION,
 		TRANSITION_TIMING_FUNCTION,
 		TRANSITION_DELAY,
-		BORDER_RADIUS,
+		BORDER_TOP_LEFT_RADIUS,
+		BORDER_TOP_RIGHT_RADIUS,
+		BORDER_BOTTOM_LEFT_RADIUS,
+		BORDER_BOTTOM_RIGHT_RADIUS,
 		BORDER_SPACING,
 		OPACITY,
 		BORDER_IMAGE_SOURCE,
@@ -235,6 +238,25 @@ namespace css
 	private:
 		xhtml::FixedPoint value_;
 		LengthUnits units_;
+	};
+
+	enum class AngleUnits {
+		DEGREES,
+		RADIANS,
+		GRADIANS,
+		TURNS,
+	};
+
+	class Angle
+	{
+	public:
+		Angle() : value_(0), units_(AngleUnits::DEGREES) {}
+		explicit Angle(float angle, AngleUnits units) : value_(angle), units_(units) {}
+		explicit Angle(float angle, const std::string& units);		
+		float getAngle(AngleUnits units=AngleUnits::DEGREES);
+	private:
+		float value_;
+		AngleUnits units_;
 	};
 
 	class Width : public Style
@@ -961,5 +983,55 @@ namespace css
 	private:
 		std::array<Width,4> slices_;
 		bool fill_;
+	};
+
+	class BorderRadius : public Style
+	{
+	public:
+		MAKE_FACTORY(BorderRadius);
+		BorderRadius() : horiz_(0), vert_(0) {}
+		explicit BorderRadius(const Length& horiz, const Length& vert) : horiz_(horiz), vert_(vert) {}
+		const Length& getHoriz() const { return horiz_; }
+		const Length& getVert() const { return vert_; }
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+	private:
+		Length horiz_;
+		Length vert_;
+	};
+
+	enum class CssBorderClip {
+		BORDER_BOX,
+		PADDING_BOX,
+		CONTENT_BOX,
+	};
+
+	struct BorderClip : public Style
+	{
+		MAKE_FACTORY(BorderClip);
+		BorderClip() : border_clip_(CssBorderClip::BORDER_BOX) {}
+		explicit BorderClip(CssBorderClip border_clip) : border_clip_(border_clip) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(border_clip_); }
+		CssBorderClip border_clip_;
+	};
+
+	class LinearGradient : public Style
+	{
+	public:
+		MAKE_FACTORY(LinearGradient);
+		LinearGradient() : angle_(0), color_stops_() {}
+		struct ColorStop {
+			ColorStop() : color(), length() {}
+			explicit ColorStop(const std::shared_ptr<CssColor>& c, const Length& l) : color(c), length(l) {}
+			std::shared_ptr<CssColor> color;
+			Length length;
+		};
+		void setAngle(float angle) { angle_ = angle; }
+		void clearColorStops() { color_stops_.clear(); }
+		void addColorStop(const ColorStop& cs) { color_stops_.emplace_back(cs); }
+		const std::vector<ColorStop>& getColorStops() const { return color_stops_; }
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }		
+	private:
+		float angle_;	// in degrees
+		std::vector<ColorStop> color_stops_;
 	};
 }

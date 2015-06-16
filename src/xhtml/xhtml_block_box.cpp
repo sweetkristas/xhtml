@@ -39,6 +39,10 @@ namespace xhtml
 	{
 		std::ostringstream ss;
 		ss << "BlockBox: " << getDimensions().content_ << (isFloat() ? " floating" : "");
+		NodePtr node = getNode();
+		if(node != nullptr && node->id() == NodeId::ELEMENT) {
+			ss << " <" << node->getTag() << ">";
+		}
 		return ss.str();
 	}
 
@@ -86,6 +90,10 @@ namespace xhtml
 			}
 		} else {
 			layoutWidth(containing);
+
+			//if(!getCssHeight().isAuto()) {
+			//	setContentHeight(getCssHeight().getLength().compute(containing.content_.height));
+			//}
 		}
 
 		calculateVertMPB(containing.content_.height);
@@ -104,13 +112,13 @@ namespace xhtml
 				top = getCssTop().getLength().compute(containing_height);
 			}
 		} else if(isFloat()) {
-			const FixedPoint lh = getLineHeight();
+			const FixedPoint lh = getCssHeight().isAuto() ? getLineHeight() : getCssHeight().getLength().compute(containing.content_.height);
 			const FixedPoint box_w = getDimensions().content_.width;
 
 			FixedPoint y = 0;
 			FixedPoint x = 0;
 
-			FixedPoint y1 = y + eng.getOffset().y;
+			FixedPoint y1 = y + getOffset().y;
 			left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 			bool placed = false;
@@ -121,7 +129,7 @@ namespace xhtml
 					placed = true;
 				} else {
 					y += lh;
-					y1 = y + eng.getOffset().y;
+					y1 = y + getOffset().y;
 					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 				}

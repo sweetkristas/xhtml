@@ -261,6 +261,13 @@ namespace css
 		PropertyRegistrar property213("border-image-outset", Property::BORDER_IMAGE_OUTSET, false, Object(WidthList(0)), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-outset", ""));
 		PropertyRegistrar property214("border-image-slice", Property::BORDER_IMAGE_SLICE, false, Object(BorderImageSlice()), std::bind(&PropertyParser::parseBorderImageSlice, _1, "border-image-slice", ""));
 		PropertyRegistrar property215("border-image", std::bind(&PropertyParser::parseBorderImage, _1, "border-image", ""));
+		
+		PropertyRegistrar property216("border-top-left-radius", Property::BORDER_TOP_LEFT_RADIUS, false, Object(BorderRadius()), std::bind(&PropertyParser::parseSingleBorderRadius, _1, "border-top-left-radius", ""));
+		PropertyRegistrar property217("border-top-right-radius", Property::BORDER_TOP_RIGHT_RADIUS, false, Object(BorderRadius()), std::bind(&PropertyParser::parseSingleBorderRadius, _1, "border-top-right-radius", ""));
+		PropertyRegistrar property218("border-bottom-left-radius", Property::BORDER_BOTTOM_LEFT_RADIUS, false, Object(BorderRadius()), std::bind(&PropertyParser::parseSingleBorderRadius, _1, "border-bottom-left-radius", ""));
+		PropertyRegistrar property219("border-bottom-right-radius", Property::BORDER_BOTTOM_RIGHT_RADIUS, false, Object(BorderRadius()), std::bind(&PropertyParser::parseSingleBorderRadius, _1, "border-bottom-right-radius", ""));
+		PropertyRegistrar property220("border-radius", std::bind(&PropertyParser::parseBorderRadius, _1, "border", "radius"));
+
 
 		// Compound properties -- still to be implemented.
 		// font
@@ -546,6 +553,8 @@ namespace css
 				});					
 				advance();
 				color->setColor(hsla_to_color(values[0], values[1], values[2], values[3]));
+			} else {
+				throw ParserError(formatter() << "Unexpected token for color value, found " << ref);
 			}
 		} else if(isToken(TokenId::HASH)) {
 			const std::string& ref = (*it_)->getStringValue();
@@ -2034,6 +2043,16 @@ namespace css
 				const std::string uri = (*it_)->getStringValue();
 				advance();
 				bi->setURI(uri);
+			} else if(isToken(TokenId::FUNCTION)) {
+				const std::string& ref = (*it_)->getStringValue();
+				auto& params = (*it_)->getParameters();
+				if(ref == "linear-gradient") {
+					LOG_ERROR("XXX Connect linear-gradient function up as an image source.");
+					parseLinearGradient(params);
+					advance();
+				} else {
+					parseColor2(bc);
+				}
 			} else {
 				parseColor2(bc);
 			}
@@ -2406,4 +2425,244 @@ namespace css
 		plist_.addProperty("border-image-slice", BorderImageSlice::create(slices, fill));
 	}
 
+	void PropertyParser::parseSingleBorderRadius(const std::string& prefix, const std::string& suffix)
+	{
+		// Parse one or two border widths, which can be length or percentages.
+		std::vector<Length> lengths;
+		bool done = false;
+		while(!done) {
+			lengths.emplace_back(parseLengthInternal(static_cast<NumericParseOptions>(NumericParseOptions::LENGTH | NumericParseOptions::PERCENTAGE)));
+			if(isEndToken()) {
+				done = true;
+			}
+		}
+		if(lengths.empty()) {
+			throw ParserError(formatter() << "No lengths/percentages supplied for " << prefix);
+		}
+		if(lengths.size() == 1) {
+			lengths.push_back(lengths[0]);
+		}
+		plist_.addProperty(prefix, BorderRadius::create(lengths[0], lengths[1]));
+	}
+
+	void PropertyParser::parseBorderRadius(const std::string& prefix, const std::string& suffix)
+	{
+		std::vector<Length> horiz_lengths;
+		std::vector<Length> vert_lengths;
+		bool done = false;
+		while(!done) {
+			if(isEndToken() || isTokenDelimiter("/")) {
+				done = true;
+			} else {
+				horiz_lengths.emplace_back(parseLengthInternal(static_cast<NumericParseOptions>(NumericParseOptions::LENGTH | NumericParseOptions::PERCENTAGE)));
+			}
+		}
+		done = false;
+		while(!done) {
+			if(isEndToken()) {
+				done = true;
+			} else {
+				vert_lengths.emplace_back(parseLengthInternal(static_cast<NumericParseOptions>(NumericParseOptions::LENGTH | NumericParseOptions::PERCENTAGE)));
+			}
+		}
+		if(horiz_lengths.empty() && vert_lengths.empty()) {
+			throw ParserError(formatter() << "No lengths/percentages supplied for " << prefix);
+		}
+		switch(horiz_lengths.size()) {
+			case 0:
+				horiz_lengths.emplace_back(Length(0));
+				horiz_lengths.emplace_back(Length(0));
+				horiz_lengths.emplace_back(Length(0));
+				horiz_lengths.emplace_back(Length(0));
+				break;
+			case 1:
+				horiz_lengths.push_back(horiz_lengths[0]);
+				horiz_lengths.push_back(horiz_lengths[0]);
+				horiz_lengths.push_back(horiz_lengths[0]);
+				break;
+			case 2:
+				horiz_lengths.push_back(horiz_lengths[0]);
+				horiz_lengths.push_back(horiz_lengths[1]);
+				break;
+			case 3:
+				horiz_lengths.push_back(horiz_lengths[1]);
+				break;
+			default: 
+				// is 4 or more already.
+				break;
+		}
+		switch(vert_lengths.size()) {
+			case 0:
+				vert_lengths.emplace_back(Length(0));
+				vert_lengths.emplace_back(Length(0));
+				vert_lengths.emplace_back(Length(0));
+				vert_lengths.emplace_back(Length(0));
+				break;
+			case 1:
+				vert_lengths.push_back(vert_lengths[0]);
+				vert_lengths.push_back(vert_lengths[0]);
+				vert_lengths.push_back(vert_lengths[0]);
+				break;
+			case 2:
+				vert_lengths.push_back(vert_lengths[0]);
+				vert_lengths.push_back(vert_lengths[1]);
+				break;
+			case 3:
+				vert_lengths.push_back(vert_lengths[1]);
+				break;
+			default: 
+				// is 4 or more already.
+				break;
+		}
+		plist_.addProperty(prefix + "-top-left-" + suffix, BorderRadius::create(horiz_lengths[0], vert_lengths[0]));
+		plist_.addProperty(prefix + "-top-right-" + suffix, BorderRadius::create(horiz_lengths[1], vert_lengths[1]));
+		plist_.addProperty(prefix + "-bottom-left-" + suffix, BorderRadius::create(horiz_lengths[2], vert_lengths[2]));
+		plist_.addProperty(prefix + "-bottom-right-" + suffix, BorderRadius::create(horiz_lengths[3], vert_lengths[3]));
+	}
+
+	void PropertyParser::parseBorderClip(const std::string& prefix, const std::string& suffix)
+	{
+		CssBorderClip bc = CssBorderClip::BORDER_BOX;
+		if(isToken(TokenId::IDENT)) {
+			const std::string ref = (*it_)->getStringValue();
+			advance();
+			if(ref == "border-box") {
+				bc = CssBorderClip::BORDER_BOX;
+			} else if(ref == "padding-box") {
+				bc = CssBorderClip::PADDING_BOX;
+			} else if(ref == "content-box") {
+				bc = CssBorderClip::CONTENT_BOX;
+			} else {
+				throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
+			}
+		} else {
+			throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
+		}
+		plist_.addProperty(prefix, BorderClip::create(bc));
+	}
+
+	StylePtr PropertyParser::parseLinearGradient(const std::vector<TokenPtr>& tokens)
+	{
+		IteratorContext ic(*this, tokens);
+		auto lingrad = LinearGradient::create();
+
+		float angle = 0;
+		bool expect_comma = false;
+
+		skipWhitespace();
+		// Check for angle value first.
+		if(isToken(TokenId::IDENT) && (*it_)->getStringValue() == "to") {
+			advance();
+			if(!isToken(TokenId::IDENT)) {
+				std::string direction1 = (*it_)->getStringValue();
+				advance();
+				expect_comma = true;
+				if(direction1 == "left") {
+					angle = 270.0f;
+				} else if(direction1 == "right") {
+					angle = 90.0f;
+				} else if(direction1 == "top") {
+					angle = 0;
+				} else if(direction1 == "bottom") {
+					angle = 180.0f;
+				}
+				skipWhitespace();
+				if(isToken(TokenId::IDENT)) {
+					std::string direction2 = (*it_)->getStringValue();
+					advance();
+					if(direction2 == "left") {
+						if(angle == 0.0f) {
+							angle = 315.0f;
+						} else {
+							angle = 225.0f;
+						}
+					} else if(direction2 == "right") {
+						if(angle == 0.0f) {
+							angle = 45.0f;
+						} else {
+							angle = 135.0f;
+						}
+					} else if(direction2 == "top") {
+						if(angle == 90.0f) {
+							angle = 45.0f;
+						} else {
+							angle = 315.0f;
+						}
+					} else if(direction2 == "bottom") {
+						if(angle == 90.0f) {
+							angle = 135.0f;
+						} else {
+							angle = 225.0f;
+						}
+					}
+				}
+			} else {
+				throw ParserError(formatter() << "Expected identifier for 'linear-gradient' after 'to', found: " << (*it_)->toString());
+			}
+		} else if(isToken(TokenId::DIMENSION)) {
+			Angle new_angle(static_cast<float>((*it_)->getNumericValue()), (*it_)->getStringValue());
+			angle = new_angle.getAngle();
+			while(angle < 0) {
+				angle += 360.0f;
+			}
+			angle = std::fmod(angle, 360.0f);
+			expect_comma = true;
+			advance();
+		}
+		skipWhitespace();
+		lingrad->setAngle(angle);
+
+		if(expect_comma && !isToken(TokenId::COMMA)) {
+			throw ParserError(formatter() << "Expected comma while parsing linear gradient found: " << (*it_)->toString());
+		}
+		advance();
+		skipWhitespace();
+
+		// <color-stop> [, <color-stop>]+
+		// where <color-stop> = <color> [ <percentage> | <length> ]?
+
+		std::shared_ptr<CssColor> cs_color = parseColorInternal();
+		Length len;
+		skipWhitespace();
+		if(isToken(TokenId::DIMENSION)) {
+			const std::string units = (*it_)->getStringValue();
+			xhtml::FixedPoint value = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+			advance();
+			len = Length(value, units);
+		} else if(isToken(TokenId::PERCENT)) {
+			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+			advance();
+			len = Length(d, true);
+		}
+		skipWhitespace();
+		lingrad->addColorStop(LinearGradient::ColorStop(cs_color, len));
+
+		while(isToken(TokenId::COMMA)) {
+			advance();
+			skipWhitespace();
+			std::shared_ptr<CssColor> cs_color = parseColorInternal();
+			Length len;
+
+			skipWhitespace();
+			if(isToken(TokenId::DIMENSION)) {
+				const std::string units = (*it_)->getStringValue();
+				xhtml::FixedPoint value = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+				advance();
+				len = Length(value, units);
+			} else if(isToken(TokenId::PERCENT)) {
+				xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+				advance();
+				len = Length(d, true);
+			}
+			skipWhitespace();
+
+			lingrad->addColorStop(LinearGradient::ColorStop(cs_color, len));
+		}
+		
+		if(lingrad->getColorStops().empty()) {
+			throw ParserError(formatter() << "No color stops where found while processing linear-gradient");
+		}
+
+		return lingrad;
+	}
 }

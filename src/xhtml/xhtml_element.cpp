@@ -435,16 +435,40 @@ namespace xhtml
 				: Element(id, name, owner) ,
 				  width_(240),
 				  height_(100),
-				  tex_(KRE::svg_texture_from_file("button.svg", width_, height_))
+				  img_src_("button.svg"),
+				  tex_(KRE::svg_texture_from_file(img_src_, width_, height_))
 			{
 			}
 			void init() override {
+				auto attr_w = getAttribute("width");
+				auto attr_h = getAttribute("height");
+				auto attr_src = getAttribute("src");
+				if(attr_src != nullptr && !attr_src->getValue().empty()) {
+					img_src_ = attr_src->getValue();
+					tex_ = KRE::Texture::createTexture(img_src_);
+					width_ = tex_->width();
+					height_ = tex_->height();
+				}
+				if(attr_w != nullptr) {
+					try {
+						width_ = boost::lexical_cast<int>(attr_w->getValue());
+					} catch(boost::bad_lexical_cast&) {
+						LOG_ERROR("Unable to convert 'button' tag 'width' attribute to number: " << attr_w->getValue());
+					}
+				}
+				if(attr_h != nullptr) {
+					try {
+						height_ = boost::lexical_cast<int>(attr_h->getValue());
+					} catch(boost::bad_lexical_cast&) {
+						LOG_ERROR("Unable to convert 'button' tag 'height' attribute to number: " << attr_h->getValue());
+					}
+				}
 				setDimensions(rect(0, 0, width_, height_));
 			}
 			void handleSetDimensions(const rect& r) override {
 				width_ = r.w();
 				height_ = r.h();
-				tex_ = KRE::svg_texture_from_file("button.svg", width_, height_);
+				tex_ = KRE::svg_texture_from_file(img_src_, width_, height_);
 			}
 			bool isReplaced() const override { return true; }
 			KRE::SceneObjectPtr getRenderable()
@@ -456,6 +480,7 @@ namespace xhtml
 			}
 			int width_;
 			int height_;
+			std::string img_src_;
 			bool dims_set_;
 			KRE::TexturePtr tex_;
 		};

@@ -492,4 +492,7 @@ UNIT_TEST(css_declarations)
 	pl = css::Parser::parseDeclarationList("color: #ff0 !important; font-family: 'Arial'; color: hsl(360,0,0)");
 	CHECK_EQ(pl.hasProperty(css::Property::COLOR), true);
 	CHECK_EQ(pl.hasProperty(css::Property::FONT_FAMILY), true);
+
+	pl = css::Parser::parseDeclarationList("background: linear-gradient(45deg, blue, red)");
+	CHECK_EQ(pl.hasProperty(css::Property::BACKGROUND_IMAGE), true);
 }

@@ -37,15 +37,15 @@ namespace xhtml
 		const char32_t marker_disc = 0x2022;
 		const char32_t marker_circle = 0x25e6;
 		const char32_t marker_square = 0x25a0;
-		const char32_t marker_lower_greek = 0x03b1;
+		const char32_t marker_lower_greek = 0x03b1 - 1;
 		const char32_t marker_lower_greek_end = 0x03c9;
-		const char32_t marker_lower_latin = 0x0061;
+		const char32_t marker_lower_latin = 0x0061 - 1;
 		const char32_t marker_lower_latin_end = 0x007a;
-		const char32_t marker_upper_latin = 0x0041;
+		const char32_t marker_upper_latin = 0x0041 - 1;
 		const char32_t marker_upper_latin_end = 0x005A;
-		const char32_t marker_armenian = 0x0531;
+		const char32_t marker_armenian = 0x0531 - 1;
 		const char32_t marker_armenian_end = 0x0556;
-		const char32_t marker_georgian = 0x10d0;
+		const char32_t marker_georgian = 0x10d0 - 1;
 		const char32_t marker_georgian_end = 0x10f6;
 	}
 

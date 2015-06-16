@@ -480,4 +480,77 @@ namespace css
 	{
 		setWidths(widths);
 	}
+
+	Angle::Angle(float angle, const std::string& units)
+		: value_(angle),
+		  units_(AngleUnits::DEGREES)
+	{
+		if(units == "deg") {
+			units_ = AngleUnits::DEGREES;
+		} else if(units == "rad") {
+			units_ = AngleUnits::RADIANS;
+		} else if(units == "grad") {
+			units_ = AngleUnits::GRADIANS;
+		} else if(units == "turn") {
+			units_ = AngleUnits::TURNS;		
+		} else {
+			ASSERT_LOG(false, "Unrecognised angle units value: " << units);
+		}
+	}
+
+	float Angle::getAngle(AngleUnits units)
+	{
+		// early return if units are the same.
+		if(units == units_) {
+			return value_;
+		}
+
+		// convert to degrees. Probably not the most elegant way of doing it.
+		float angle = value_;
+		switch(units_) {
+			case AngleUnits::RADIANS:	angle = 180.0f / static_cast<float>(M_PI) * value_; break;
+			case AngleUnits::GRADIANS:	angle = 0.9f * value_; break;
+			case AngleUnits::TURNS:		angle = 360.0f * value_; break;
+			case AngleUnits::DEGREES:	
+			default:
+				// no conversion required.
+				break;
+		}
+
+		// convert to requested format.
+		switch(units) {
+			case AngleUnits::RADIANS:	angle = static_cast<float>(M_PI) / 180.0f * angle; break;
+			case AngleUnits::GRADIANS:	angle = angle / 0.9f; break;
+			case AngleUnits::TURNS:		angle = angle / 360.0f; break;
+			case AngleUnits::DEGREES:
+			default:
+				// no conversion required.
+				break;
+		}
+		return angle;
+	}
+	
+	/*
+		// XXX roughly compute what the stops should be, there doesn't seem to be an algorithm specfied for this, so we
+		// make one up.
+
+		// Make first and last stops be 0% and 100% respectively if they weren't specified.
+		if(stops.size() > 0 && stops.front().length.isNumber()) {
+			stops.front().length = Length(0, true);
+		}
+		if(stops.size() > 1 && stops.back().length.isNumber()) {
+			stops.back().length = Length(0, true);
+		}
+		if(stops.size() > 2) {
+			auto it = stops.begin() + 1;
+			auto end = stops.end() - 1;
+			for(; it != end; ++it) {
+				auto prev = it - 1;
+				auto next = it + 1;
+				if(it->length.isNumber()) {
+					it->length = Length();
+				}
+			}
+		}
+	*/
 }

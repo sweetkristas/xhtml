@@ -10,8 +10,8 @@
 	
 	div#content1 {
 		position: absolute;
-		width: 40%;
-		height: 45%;
+		width: 75%;
+        height: 55%;
 		border-style: solid;
 		border-width: 5px;
 		border-image: url(../images/border1.png) 5 stretch;
@@ -72,9 +72,8 @@
 	}
 	
 	ul.checkbox-grid > li {
-		display: block;
 		float: left;
-		width: 50%;
+		width: 40%;
 	}
 	
 	label {
@@ -87,8 +86,10 @@
 		overflow: hidden;
 		outline: none;
 	}
-	ul.inststatus {
+    ul {
 		list-style: none;
+    }
+	ul.inststatus {
 		margin: 0;
 		padding: 0;
 		border: inset 2px #BBA58E;
@@ -137,7 +138,7 @@
 				</ul>
 			</div>
 		</div>
-		<div style="padding-top:11em">Add-ons will be sorted as follows when no column is selected:</div>
+		<div style="padding-top:12em; border: solid 1px lime;">Add-ons will be sorted as follows when no column is selected:</div>
 		<ul class="checkbox-grid">
 			<li><input type="radio" class="radio_button" name="group1"/><label>By name</label></li>
 			<li><input type="radio" class="radio_button" name="group2"/><label>Ascending</label></li>

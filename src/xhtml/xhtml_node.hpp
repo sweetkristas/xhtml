@@ -135,6 +135,7 @@ namespace xhtml
 		// is this element replaced, replaced elements generate a seperate box during layout.
 		virtual bool isReplaced() const { return false; }
 		virtual bool ignoreForLayout() const { return false; }
+		virtual const std::string& getTag() const { static const std::string tag("none"); return tag; }
 	protected:
 		std::string nodeToString() const;
 	private:

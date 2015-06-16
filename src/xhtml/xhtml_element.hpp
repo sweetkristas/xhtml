@@ -42,7 +42,7 @@ namespace xhtml
 		static ElementPtr create(const std::string& name, WeakDocumentPtr owner=WeakDocumentPtr());
 		std::string toString() const override;
 		ElementId getElementId() const { return tag_; }
-		const std::string& getTag() const { return name_; }
+		const std::string& getTag() const override { return name_; }
 		const std::string& getName() const { return name_; }
 		bool hasTag(const std::string& tag) const { return tag == name_; }
 		bool hasTag(ElementId tag) const { return tag == tag_; }

@@ -129,6 +129,9 @@ namespace css
 		void parseWidthList2(const std::string& prefix, const std::string& suffix);
 		void parseBorderImageSlice(const std::string& prefix, const std::string& suffix);
 		void parseBorderImage(const std::string& prefix, const std::string& suffix);
+		void parseSingleBorderRadius(const std::string& prefix, const std::string& suffix);
+		void parseBorderRadius(const std::string& prefix, const std::string& suffix);
+		void parseBorderClip(const std::string& prefix, const std::string& suffix);
 	private:
 		enum NumericParseOptions {
 			NUMBER = 1,
@@ -153,9 +156,30 @@ namespace css
 		Width parseWidthInternal2();
 		StylePtr parseBorderWidthInternal();
 		StylePtr parseBorderStyleInternal();
+		StylePtr parseLinearGradient(const std::vector<TokenPtr>& tokens);
 		void parseColor2(std::shared_ptr<CssColor> color);
 		CssListStyleType parseListStyleTypeInt(const std::string& lst);
 		CssBorderImageRepeat parseBorderImageRepeatInteral(const std::string& ref);
+
+		struct IteratorContext
+		{
+			IteratorContext(PropertyParser& pp, const std::vector<TokenPtr>& toks)
+				: pp_(pp),
+				  it_it(pp.it_),
+				  end_it(pp.end_)
+			{
+				pp.it_ = toks.cbegin();
+				pp.end_ = toks.cend();
+			}
+			~IteratorContext() 
+			{
+				pp_.it_ = it_it;
+				pp_.end_ = end_it;
+			}
+			PropertyParser& pp_; 
+			const_iterator it_it;
+			const_iterator end_it;
+		};
 
 		const_iterator it_;
 		const_iterator end_;
