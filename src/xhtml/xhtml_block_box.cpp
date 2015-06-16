@@ -43,6 +43,7 @@ namespace xhtml
 		if(node != nullptr && node->id() == NodeId::ELEMENT) {
 			ss << " <" << node->getTag() << ">";
 		}
+		ss << " " << getOffset();
 		return ss.str();
 	}
 
@@ -53,6 +54,34 @@ namespace xhtml
 		} else {
 			layoutChildren(eng);
 			layoutHeight(containing);
+		}
+
+		if(isFloat()) {
+			FixedPoint top = 0;
+			const FixedPoint lh = getCssHeight().isAuto() ? getLineHeight() : getCssHeight().getLength().compute(containing.content_.height);
+			const FixedPoint box_w = getDimensions().content_.width;
+
+			FixedPoint y = 0;
+			FixedPoint x = 0;
+
+			FixedPoint y1 = y + getOffset().y;
+			FixedPoint left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
+			bool placed = false;
+			while(!placed) {
+				if(w >= box_w) {
+					left = left - (getFloatValue() == CssFloat::LEFT ? x : box_w) + getMBPLeft();
+					top = y + getMBPTop() + containing.content_.height;
+					placed = true;
+				} else {
+					y += lh;
+					y1 = y + getOffset().y;
+					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
+				}
+			}
+			setContentX(left);
+			setContentY(top);
 		}
 	}
 
@@ -104,29 +133,6 @@ namespace xhtml
 			top = containing.content_.y;
 			if(!getCssTop().isAuto()) {
 				top = getCssTop().getLength().compute(containing_height);
-			}
-		} else if(isFloat()) {
-			const FixedPoint lh = getCssHeight().isAuto() ? getLineHeight() : getCssHeight().getLength().compute(containing.content_.height);
-			const FixedPoint box_w = getDimensions().content_.width;
-
-			FixedPoint y = 0;
-			FixedPoint x = 0;
-
-			FixedPoint y1 = y + getOffset().y;
-			left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
-			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
-			bool placed = false;
-			while(!placed) {
-				if(w >= box_w) {
-					left = left - (getFloatValue() == CssFloat::LEFT ? x : box_w) + getMBPLeft();
-					top = y + getMBPTop() + containing.content_.height;
-					placed = true;
-				} else {
-					y += lh;
-					y1 = y + getOffset().y;
-					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
-					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
-				}
 			}
 		}
 	
@@ -214,7 +220,7 @@ namespace xhtml
 			}
 		}
 		if(getCssWidth().isAuto() && !isReplaceable()) {
-			setContentWidth(width);
+			//setContentWidth(width);
 		}
 		auto css_height = getCssHeight();
 		if(css_height.isAuto() && !isReplaceable()) {

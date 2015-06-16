@@ -1,6 +1,4 @@
 Current bugs:
-All text is being shifted by a float box, instead of wrapping.
-repro: test5.xhtml
 
 There are end-caps on all text lines (which is incorrect), when border is used on inline elements.
 repro: test2.xhtml
@@ -24,6 +22,10 @@ Div should encompass the ul ?
 repro: test24.xhtml
 
 Linear gradient background has no effect.
+repro: test28.xhtml
+
+Block boxes inside an inline-block non-replaced context don't have the correct width (i.e. shrink-to-fit isn't being applied correctly for the inline-block element).
+This isn't an easy problem to solve since it requires multiple layout passes to layout the children, which would require re-doing the layout engine.
 repro: test28.xhtml
 
 box-shadow doesn't work

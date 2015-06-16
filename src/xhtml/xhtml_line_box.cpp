@@ -175,7 +175,7 @@ namespace xhtml
 
 		// compute our width/height
 		for(auto& child : getChildren()) {
-			width = std::max(width, child->getWidth() + getMBPWidth());
+			width = std::max(width, child->getLeft() + child->getWidth() + getMBPWidth());
 		}
 		
 		setContentWidth(width);

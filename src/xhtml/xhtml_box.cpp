@@ -227,8 +227,6 @@ namespace xhtml
 			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
 		}
 
-		offset_ = (getParent() != nullptr ? getParent()->getOffset() : point()) + point(dimensions_.content_.x, dimensions_.content_.y);
-
 		handlePreChildLayout(eng, containing);
 
 		LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
@@ -242,6 +240,7 @@ namespace xhtml
 		}
 
 		// xxx offs
+		offset_ = (getParent() != nullptr ? getParent()->getOffset() : point()) + point(dimensions_.content_.x, dimensions_.content_.y);
 
 		for(auto& child : boxes_) {
 			if(child->isFloat()) {
