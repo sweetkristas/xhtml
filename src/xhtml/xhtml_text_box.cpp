@@ -31,7 +31,8 @@ namespace xhtml
 		: Box(BoxId::TEXT, parent, nullptr),
 		  line_(),
 		  txt_(txt),
-		  it_()
+		  it_(),
+		  justification_(0)
 	{
 	}
 
@@ -109,6 +110,15 @@ namespace xhtml
 		calculateVertMPB(containing.content_.height);
 	}
 
+	void TextBox::justify(FixedPoint containing_width)
+	{
+		int word_count = line_->line.size() - 1;
+		if(word_count <= 2) {
+			return;
+		}
+		justification_ = (containing_width - calculateWidth()) / word_count;
+	}
+
 	void TextBox::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
 	{
 		point offs = offset - point(0, getDimensions().content_.height);
@@ -132,7 +142,7 @@ namespace xhtml
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);
 			}
-			dim_x += word.advance.back().x + line_->space_advance;
+			dim_x += word.advance.back().x + line_->space_advance + justification_;
 			text += word.word;
 		}
 		

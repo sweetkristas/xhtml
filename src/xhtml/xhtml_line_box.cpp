@@ -232,7 +232,7 @@ namespace xhtml
 			switch(ta) {
 				case css::CssTextAlign::RIGHT:		child_x = containing_width - child->getWidth(); break;
 				case css::CssTextAlign::CENTER:		child_x = (containing_width - child->getWidth() - child_x) / 2; break;
-				case css::CssTextAlign::JUSTIFY:	ASSERT_LOG(false, "implement justify text align"); break;
+				case css::CssTextAlign::JUSTIFY:	child->justify(containing_width); break;
 				case css::CssTextAlign::NORMAL:	
 					if(getParent()->getCssDirection() == css::CssDirection::RTL) {
 						child_x = containing_width - child->getWidth();

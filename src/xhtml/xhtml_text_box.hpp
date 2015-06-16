@@ -38,6 +38,7 @@ namespace xhtml
 		Text::iterator end();
 		LinePtr getLine() const { return line_; }
 		TextPtr getText() const { return txt_; }
+		void justify(FixedPoint containing_width) override;
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
@@ -47,5 +48,6 @@ namespace xhtml
 		LinePtr line_;
 		TextPtr txt_;
 		Text::iterator it_;
+		FixedPoint justification_;
 	};
 }

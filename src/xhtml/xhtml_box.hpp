@@ -219,6 +219,9 @@ namespace xhtml
 		css::CssDirection getCssDirection() const { return css_direction_; }
 
 		bool isReplaceable() const { return is_replaceable_; }
+
+		// for text boxes
+		virtual void justify(FixedPoint containing_width) {};
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
