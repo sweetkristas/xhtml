@@ -1,0 +1,42 @@
+Current bugs:
+Fixed Boxes placed outside screen bounds
+repro: ui_test2.xhtml 
+
+Hover over button not causing layout
+repro: test4.xhtml
+
+All text is being shifted by a float box, instead of wrapping.
+repro: test5.xhtml
+
+There are end-caps on all text lines (which is incorrect), when border is used on inline elements.
+repro: test2.xhtml
+
+Verify left&right padding are applied correctly to inline element.
+repro: test8.xhtml
+
+There is an extra line before placement of inline-block element.
+repro: test15.xhtml
+
+Vertical alignment has no effect.
+repro: test18.xhtml
+
+Text within button element is not centred.
+repro: test19.xhtml
+
+Inline-block element is not positioned correctly.
+repro: test23.xhtml
+
+Div should encompass the ul ?
+repro: test24.xhtml
+
+Linear gradient background has no effect.
+repro: test28.xhtml
+
+box-shadow doesn't work
+
+text-shadow doesn't work
+
+border-radius isn't applied
+
+background-clip isn't obeyed
+
