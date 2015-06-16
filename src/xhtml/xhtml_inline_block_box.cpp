@@ -30,12 +30,8 @@ namespace xhtml
 
 	InlineBlockBox::InlineBlockBox(BoxPtr parent, NodePtr node)
 		: Box(BoxId::INLINE_BLOCK, parent, node),
-		  is_replacable_(false),
 		  multiline_(false)
 	{
-		if(node != nullptr && node->id() == NodeId::ELEMENT) {
-			is_replacable_ = node->isReplaced();
-		}
 	}
 
 	std::string InlineBlockBox::toString() const
@@ -53,12 +49,17 @@ namespace xhtml
 		layoutChildren(eng);
 		layoutHeight(containing);
 
-		if(!is_replacable_) {
+		if(!isReplaceable()) {
 			if(getChildren().size() > 1) {
 				multiline_ = true;
 			} else if(!getChildren().empty() && getChildren().front()->id() == BoxId::LINE && getChildren().front()->getChildren().size() > 1) {
 				multiline_ = true;
 			}
+		}
+
+		if(isReplaceable()) {
+			NodePtr node = getNode();
+			node->setDimensions(rect(0, 0, getWidth() / LayoutEngine::getFixedPointScale(), getHeight() / LayoutEngine::getFixedPointScale()));
 		}
 	}
 
@@ -95,50 +96,17 @@ namespace xhtml
 		if(css_width.isAuto()) {
 			setContentWidth(underflow);
 		}
-
-		/*if(css_width.isAuto()) {
-			if(css_margin_left.isAuto()) {
-				setMarginLeft(0);
-			}
-			if(css_margin_right.isAuto()) {
-				setMarginRight(0);
-			}
-			if(underflow >= 0) {
-				width = underflow;
-			} else {
-				width = 0;
-				const auto rmargin = css_margin_right.getLength().compute(containing_width);
-				setMarginRight(rmargin + underflow);
-			}
-			setContentWidth(width);
-		} else if(!css_margin_left.isAuto() && !css_margin_right.isAuto()) {
-			setMarginRight(getDimensions().margin_.right + underflow);
-		} else if(!css_margin_left.isAuto() && css_margin_right.isAuto()) {
-			setMarginRight(underflow);
-		} else if(css_margin_left.isAuto() && !css_margin_right.isAuto()) {
-			setMarginLeft(underflow);
-		} else if(css_margin_left.isAuto() && css_margin_right.isAuto()) {
-			setMarginLeft(underflow / 2);
-			setMarginRight(underflow / 2);
-		}*/
-	}
-
-	void InlineBlockBox::layoutPosition(LayoutEngine& eng, const Dimensions& containing)
-	{
 	}
 
 	void InlineBlockBox::layoutChildren(LayoutEngine& eng)
 	{
-		if(!is_replacable_) {
-			// calculate height if not specified from children.
-			// same for width?
-			//FixedPoint height = 0;
+		// calculate height if not specified from children.
+		// same for width?
+		if(!getChildren().empty()) {
 			FixedPoint width = 0;
 			for(auto& child : getChildren()) {
-				//height = std::max(height, child->getTop() + child->getHeight() + child->getMBPHeight());
 				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
 			}
-			//setContentHeight(height);
 			if(getCssWidth().isAuto()) {
 				setContentWidth(width);
 			}
@@ -153,16 +121,18 @@ namespace xhtml
 
 	void InlineBlockBox::handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing)
 	{
-		setContentHeight(0);
+		if(!getChildren().empty() || !isReplaceable()) {
+			setContentHeight(0);
+		} else if(isReplaceable()) {
+			NodePtr node = getNode();
+			const rect& r = node->getDimensions();
+			setContentWidth(r.w() * LayoutEngine::getFixedPointScale());
+			setContentHeight(r.h() * LayoutEngine::getFixedPointScale());
+		}
 	}
 
 	void InlineBlockBox::layoutHeight(const Dimensions& containing)
 	{
-		if(is_replacable_) {
-			NodePtr node = getNode();
-			setContentHeight(node->getDimensions().h() * LayoutEngine::getFixedPointScale());
-		}
-
 		RenderContext& ctx = RenderContext::get();
 		// a set height value overrides the calculated value.
 		if(!getCssHeight().isAuto()) {
@@ -184,30 +154,7 @@ namespace xhtml
 
 	void InlineBlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		if(is_replacable_) {
-			NodePtr node = getNode();
-			calculateHorzMPB(containing.content_.width);
-			setContentWidth(node->getDimensions().w() * LayoutEngine::getFixedPointScale());
-			setContentHeight(node->getDimensions().h() * LayoutEngine::getFixedPointScale());
-			auto css_width = getCssWidth();
-			auto css_height = getCssHeight();
-			if(!css_width.isAuto()) {
-				setContentWidth(css_width.getLength().compute(containing.content_.width));
-			}
-			if(!css_height.isAuto()) {
-				setContentHeight(css_height.getLength().compute(containing.content_.height));
-			}
-			if(!css_width.isAuto() || !css_height.isAuto()) {
-				node->setDimensions(rect(0, 0, getDimensions().content_.width/LayoutEngine::getFixedPointScale(), getDimensions().content_.height/LayoutEngine::getFixedPointScale()));
-			}
-			// add this to set a default width to the containing box if it is zero. we should re-evaluate the actual width
-			// based on the children size.
-			if(getDimensions().content_.width == 0) {
-				setContentWidth(containing.content_.width);
-			}
-		} else {
-			layoutWidth(containing);
-		}
+		layoutWidth(containing);
 		calculateVertMPB(containing.content_.height);
 	}
 

@@ -194,6 +194,9 @@ namespace xhtml
 							break;
 						}
 						case CssDisplay::INLINE_BLOCK: {
+							if(open_box == nullptr) {
+								open_box = std::make_shared<LineBox>(parent);
+							}
 							auto ibb = std::make_shared<InlineBlockBox>(parent, child);
 							ibb->layout(*this, parent->getDimensions());
 							open_box->addChild(ibb);
@@ -355,6 +358,7 @@ namespace xhtml
 
 	const FloatList& LayoutEngine::getFloatList() const 
 	{ 
-		return float_list_.empty() ? root_->getFloatList() : float_list_.top(); 
+		ASSERT_LOG(!float_list_.empty(), "Float list was empty!");
+		return float_list_.top(); 
 	}
 }

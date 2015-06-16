@@ -76,8 +76,13 @@ namespace xhtml
 		  css_direction_(CssDirection::LTR),
 		  offset_(),
 		  line_height_(0),
-		  end_of_line_(false)
+		  end_of_line_(false),
+		  is_replaceable_(false)
 	{
+		if(node != nullptr && node->id() == NodeId::ELEMENT) {
+			is_replaceable_ = node->isReplaced();
+		}
+
 		init();
 	}
 
@@ -203,16 +208,6 @@ namespace xhtml
 			return node->getChildren();
 		}
 		return std::vector<NodePtr>();
-	}
-
-	void Box::addFloat(BoxPtr box)
-	{
-		ASSERT_LOG(box->cfloat_ != CssFloat::NONE, "Tried to add a float with no float setting.");
-		if(box->cfloat_ == CssFloat::LEFT) {
-			floats_.left_.emplace_back(box);
-		} else {
-			floats_.right_.emplace_back(box);
-		}
 	}
 
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)

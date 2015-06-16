@@ -36,7 +36,6 @@ namespace xhtml
 		bool isMultiline() const override { return multiline_; }
 	private:
 		void layoutWidth(const Dimensions& containing);
-		void layoutPosition(LayoutEngine& eng, const Dimensions& containing);
 		void layoutChildren(LayoutEngine& eng);
 		void layoutHeight(const Dimensions& containing);
 
@@ -46,8 +45,6 @@ namespace xhtml
 		void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) override;
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		
-		// set if the element is replaceable.
-		bool is_replacable_;
 		// If it's one line or more than one, if it's non-replaceable
 		bool multiline_;
 	};

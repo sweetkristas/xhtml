@@ -214,11 +214,9 @@ namespace xhtml
 		bool isFloat() const { return cfloat_ != css::CssFloat::NONE; }
 		css::CssFloat getFloatValue() const { return cfloat_; }
 
-		void addFloat(BoxPtr box);
-		const FloatList& getFloatList() const { return floats_; }
-
 		virtual std::vector<NodePtr> getChildNodes() const;
 
+		bool isReplaceable() const { return is_replaceable_; }
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
@@ -268,7 +266,7 @@ namespace xhtml
 		// Helper marker when doing LineBox layout
 		bool end_of_line_;
 
-		FloatList floats_;
+		bool is_replaceable_;
 	};
 
 	std::ostream& operator<<(std::ostream& os, const Rect& r);

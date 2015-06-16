@@ -1,7 +1,4 @@
 Current bugs:
-Hover over button not causing layout
-repro: test4.xhtml
-
 All text is being shifted by a float box, instead of wrapping.
 repro: test5.xhtml
 

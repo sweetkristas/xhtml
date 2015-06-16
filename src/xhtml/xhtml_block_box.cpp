@@ -48,13 +48,7 @@ namespace xhtml
 
 	void BlockBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		NodePtr node = getNode();
-		bool is_replaced = false;
-		if(node != nullptr && node->id() == NodeId::ELEMENT) {
-			is_replaced = node->isReplaced();
-		}
-
-		if(is_replaced) {
+		if(isReplaceable()) {
 			layoutChildren(eng);
 		} else {
 			layoutChildren(eng);
@@ -73,8 +67,8 @@ namespace xhtml
 
 	void BlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		NodePtr node = getNode();
-		if(node != nullptr && node->id() == NodeId::ELEMENT && node->isReplaced()) {
+		if(isReplaceable()) {
+			NodePtr node = getNode();
 			calculateHorzMPB(containing.content_.width);
 			setContentRect(Rect(0, 0, node->getDimensions().w() * LayoutEngine::getFixedPointScale(), node->getDimensions().h() * LayoutEngine::getFixedPointScale()));
 			auto css_width = getCssWidth();
@@ -212,13 +206,18 @@ namespace xhtml
 	{
 		// XXX we should add collapsible margins to children here.
 		child_height_ = 0;
+		FixedPoint width = 0;
 		for(auto& child : getChildren()) {
 			if(!child->isFloat()) {
 				child_height_ += child->getHeight() + child->getMBPHeight();
+				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
 			}
 		}
+		if(getCssWidth().isAuto() && !isReplaceable()) {
+			setContentWidth(width);
+		}
 		auto css_height = getCssHeight();
-		if(css_height.isAuto() && !(getNode() != nullptr && getNode()->id() == NodeId::ELEMENT && getNode()->isReplaced())) {
+		if(css_height.isAuto() && !isReplaceable()) {
 			setContentHeight(child_height_);
 		}
 	}
@@ -249,8 +248,8 @@ namespace xhtml
 
 	void BlockBox::handleRender(DisplayListPtr display_list, const point& offset) const
 	{
-		NodePtr node = getNode();
-		if(node != nullptr && node->isReplaced()) {
+		if(isReplaceable()) {
+			NodePtr node = getNode();
 			auto r = node->getRenderable();
 			r->setPosition(glm::vec3(static_cast<float>(offset.x)/65536.0f,
 				static_cast<float>(offset.y)/65536.0f,

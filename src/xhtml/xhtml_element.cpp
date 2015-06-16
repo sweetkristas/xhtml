@@ -295,29 +295,31 @@ namespace xhtml
 			{
 			}
 			void handleSetDimensions(const rect& r) override {
-				width_ = r.w();
-				height_ = r.h();
-				switch(type_) {
-					case InputElementType::CHECKBOX:
-						checkbox_tex_ = KRE::svg_texture_from_file("checkbox.svg", width_, height_);
-						checkbox_checked_tex_ = KRE::svg_texture_from_file("checkbox-checked.svg", width_, height_);
-						break;
-					case InputElementType::RADIO:
-						radio_tex_ = KRE::svg_texture_from_file("radiobutton.svg", width_, height_);
-						radio_checked_tex_ = KRE::svg_texture_from_file("radiobutton-checked.svg", width_, height_);
-						break;
-					case InputElementType::TEXT:
-					case InputElementType::PASSWORD:
-					case InputElementType::SUBMIT:
-					case InputElementType::IMAGE:
-					case InputElementType::RESET:
-					case InputElementType::BUTTON:
-					case InputElementType::HIDDEN:
-					case InputElementType::FILE:
-					default: 
-						ASSERT_LOG(false, "Need to add getRenderable() for InputElement of type: " << static_cast<int>(type_));
-						break;
-				}			
+				if(width_ != r.w() || height_ != r.h()) {
+					width_ = r.w();
+					height_ = r.h();
+					switch(type_) {
+						case InputElementType::CHECKBOX:
+							checkbox_tex_ = KRE::svg_texture_from_file("checkbox.svg", width_, height_);
+							checkbox_checked_tex_ = KRE::svg_texture_from_file("checkbox-checked.svg", width_, height_);
+							break;
+						case InputElementType::RADIO:
+							radio_tex_ = KRE::svg_texture_from_file("radiobutton.svg", width_, height_);
+							radio_checked_tex_ = KRE::svg_texture_from_file("radiobutton-checked.svg", width_, height_);
+							break;
+						case InputElementType::TEXT:
+						case InputElementType::PASSWORD:
+						case InputElementType::SUBMIT:
+						case InputElementType::IMAGE:
+						case InputElementType::RESET:
+						case InputElementType::BUTTON:
+						case InputElementType::HIDDEN:
+						case InputElementType::FILE:
+						default: 
+							ASSERT_LOG(false, "Need to add getRenderable() for InputElement of type: " << static_cast<int>(type_));
+							break;
+					}			
+				}
 			}
 			void init() override {
 				auto attr_checked = getAttribute("checked");
@@ -440,8 +442,6 @@ namespace xhtml
 			{
 			}
 			void init() override {
-				auto attr_w = getAttribute("width");
-				auto attr_h = getAttribute("height");
 				auto attr_src = getAttribute("src");
 				if(attr_src != nullptr && !attr_src->getValue().empty()) {
 					img_src_ = attr_src->getValue();
@@ -449,26 +449,14 @@ namespace xhtml
 					width_ = tex_->width();
 					height_ = tex_->height();
 				}
-				if(attr_w != nullptr) {
-					try {
-						width_ = boost::lexical_cast<int>(attr_w->getValue());
-					} catch(boost::bad_lexical_cast&) {
-						LOG_ERROR("Unable to convert 'button' tag 'width' attribute to number: " << attr_w->getValue());
-					}
-				}
-				if(attr_h != nullptr) {
-					try {
-						height_ = boost::lexical_cast<int>(attr_h->getValue());
-					} catch(boost::bad_lexical_cast&) {
-						LOG_ERROR("Unable to convert 'button' tag 'height' attribute to number: " << attr_h->getValue());
-					}
-				}
 				setDimensions(rect(0, 0, width_, height_));
 			}
 			void handleSetDimensions(const rect& r) override {
-				width_ = r.w();
-				height_ = r.h();
-				tex_ = KRE::svg_texture_from_file(img_src_, width_, height_);
+				if(width_ != r.w() || height_ != r.h()) {
+					width_ = r.w();
+					height_ = r.h();
+					tex_ = KRE::svg_texture_from_file(img_src_, width_, height_);
+				}
 			}
 			bool isReplaced() const override { return true; }
 			KRE::SceneObjectPtr getRenderable()
