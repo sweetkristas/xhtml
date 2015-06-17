@@ -915,6 +915,12 @@ namespace css
 	public:
 		BoxShadow();
 		explicit BoxShadow(bool inset, const Length& x, const Length& y, const Length& blur, const Length& spread, const CssColor& color);
+		bool inset() const { return inset_; }
+		const Length& getX() const { return x_offset_; }
+		const Length& getY() const { return y_offset_; }
+		const Length& getBlur() const { return blur_radius_; }
+		const Length& getSpread() const { return spread_radius_; }
+		const CssColor& getColor() const { return color_; }
 	private:
 		bool inset_;
 		Length x_offset_;
@@ -931,6 +937,8 @@ namespace css
 		BoxShadowStyle() : shadows_() {}
 		BoxShadowStyle(const std::vector<BoxShadow>& shadows) : shadows_(shadows) {}
 		void setShadows(const std::vector<BoxShadow>& shadows) { shadows_ = shadows; }
+		const std::vector<BoxShadow>& getShadows() const { return shadows_; }
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
 	private:
 		std::vector<BoxShadow> shadows_;
 	};

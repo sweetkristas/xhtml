@@ -27,6 +27,8 @@
 #include FT_LCD_FILTER_H
 #include FT_BBOX_H
 
+#include <unordered_map>
+
 #include "formatter.hpp"
 #include "font_freetype.hpp"
 #include "utf8_to_codepoint.hpp"

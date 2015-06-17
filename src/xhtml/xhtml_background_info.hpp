@@ -30,6 +30,19 @@
 
 namespace xhtml
 {
+	struct BgBoxShadow
+	{
+		BgBoxShadow() : x_offset(0), y_offset(0), blur_radius(0), spread_radius(0), inset(false), color(KRE::Color::colorBlack()) {}
+		BgBoxShadow(FixedPoint x, FixedPoint y, FixedPoint blur, FixedPoint spread, bool ins, const KRE::Color& col) 
+			: x_offset(x), y_offset(y), blur_radius(blur), spread_radius(spread), inset(ins), color(col) {}
+		FixedPoint x_offset;
+		FixedPoint y_offset;
+		FixedPoint blur_radius;
+		FixedPoint spread_radius;
+		bool inset;
+		KRE::Color color;
+	};
+
 	class BackgroundInfo
 	{
 	public:
@@ -40,9 +53,13 @@ namespace xhtml
 		void setRepeat(css::CssBackgroundRepeat repeat) { repeat_ = repeat; }
 		void render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
 	private:
+		void renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
 		KRE::Color color_;
 		KRE::TexturePtr texture_;
 		css::CssBackgroundRepeat repeat_;
 		css::BackgroundPosition position_;
+
+		// box-shadow properties.
+		std::vector<BgBoxShadow> box_shadows_;
 	};
 }

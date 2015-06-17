@@ -47,6 +47,7 @@
 namespace
 {
 	static int display_tree_parse = false;
+	static int layout_cycle_test = false;
 }
 
 void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayListPtr display_list, KRE::SceneGraphPtr graph)
@@ -119,6 +120,8 @@ int main(int argc, char* argv[])
 	for(int i = 1; i < argc; ++i) {
 		if(argv[i] == std::string("--display-tree")) {
 			display_tree_parse = true;
+		} else if(argv[i] == std::string("--layout-cycle")) {
+			layout_cycle_test = true;
 		} else {
 			args.emplace_back(argv[i]);
 		}
@@ -191,6 +194,11 @@ int main(int argc, char* argv[])
 	root->attachNode(display_list);
 	xhtml::DocumentPtr doc = load_xhtml(ua_ss, test_doc);
 	check_layout(width, height, doc, display_list, scene);
+
+	while(layout_cycle_test) {
+		doc->triggerLayout();
+		check_layout(width, height, doc, display_list, scene);
+	}
 
 	auto canvas = Canvas::getInstance();
 

@@ -135,7 +135,8 @@ namespace xhtml
 		FixedPoint left = getMBPLeft();
 
 		if(isFloat()) {
-			const FixedPoint lh = getDimensions().content_.height;
+			// XXX fixme to use a more intelligent approach than iterating every pixel!
+			const FixedPoint lh = 65536;//getDimensions().content_.height;
 			const FixedPoint box_w = getDimensions().content_.width;
 
 			FixedPoint y = getMBPTop();

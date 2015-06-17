@@ -2194,7 +2194,7 @@ namespace css
 				advance();
 				xo = Length(value, units);
 			} else {
-				throw ParserError(formatter() << "Expected dimension fo x-offset while parsing: " << prefix << ": "  << (*it_)->toString());
+				throw ParserError(formatter() << "Expected dimension of x-offset while parsing: " << prefix << ": "  << (*it_)->toString());
 			}
 
 			skipWhitespace();
@@ -2204,7 +2204,7 @@ namespace css
 				advance();
 				yo = Length(value, units);
 			} else {
-				throw ParserError(formatter() << "Expected dimension fo y-offset while parsing: " << prefix << ": "  << (*it_)->toString());
+				throw ParserError(formatter() << "Expected dimension of y-offset while parsing: " << prefix << ": "  << (*it_)->toString());
 			}
 
 			skipWhitespace();
