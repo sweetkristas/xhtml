@@ -64,5 +64,8 @@ namespace xhtml
 
 		// box-shadow properties.
 		std::vector<BgBoxShadow> box_shadows_;
+
+		// background-clip
+		css::CssBackgroundClip background_clip_; 
 	};
 }

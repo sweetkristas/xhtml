@@ -131,7 +131,7 @@ namespace css
 		void parseBorderImage(const std::string& prefix, const std::string& suffix);
 		void parseSingleBorderRadius(const std::string& prefix, const std::string& suffix);
 		void parseBorderRadius(const std::string& prefix, const std::string& suffix);
-		void parseBorderClip(const std::string& prefix, const std::string& suffix);
+		void parseBackgroundClip(const std::string& prefix, const std::string& suffix);
 	private:
 		enum NumericParseOptions {
 			NUMBER = 1,

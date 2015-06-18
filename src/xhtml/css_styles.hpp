@@ -153,6 +153,7 @@ namespace css
 		BORDER_IMAGE_WIDTH,
 		BORDER_IMAGE_OUTSET,
 		BORDER_IMAGE_REPEAT,
+		BACKGROUND_CLIP,
 
 		MAX_PROPERTIES,
 	};
@@ -1007,19 +1008,19 @@ namespace css
 		Length vert_;
 	};
 
-	enum class CssBorderClip {
+	enum class CssBackgroundClip {
 		BORDER_BOX,
 		PADDING_BOX,
 		CONTENT_BOX,
 	};
 
-	struct BorderClip : public Style
+	struct BackgroundClip : public Style
 	{
-		MAKE_FACTORY(BorderClip);
-		BorderClip() : border_clip_(CssBorderClip::BORDER_BOX) {}
-		explicit BorderClip(CssBorderClip border_clip) : border_clip_(border_clip) {}
-		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(border_clip_); }
-		CssBorderClip border_clip_;
+		MAKE_FACTORY(BackgroundClip);
+		BackgroundClip() : background_clip_(CssBackgroundClip::BORDER_BOX) {}
+		explicit BackgroundClip(CssBackgroundClip background_clip) : background_clip_(background_clip) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(background_clip_); }
+		CssBackgroundClip background_clip_;
 	};
 
 	class LinearGradient : public Style

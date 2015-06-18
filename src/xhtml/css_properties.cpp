@@ -268,6 +268,8 @@ namespace css
 		PropertyRegistrar property219("border-bottom-right-radius", Property::BORDER_BOTTOM_RIGHT_RADIUS, false, Object(BorderRadius()), std::bind(&PropertyParser::parseSingleBorderRadius, _1, "border-bottom-right-radius", ""));
 		PropertyRegistrar property220("border-radius", std::bind(&PropertyParser::parseBorderRadius, _1, "border", "radius"));
 
+		PropertyRegistrar property230("background-clip", Property::BACKGROUND_CLIP, false, Object(CssBackgroundClip::BORDER_BOX), std::bind(&PropertyParser::parseBackgroundClip, _1, "background-clip", ""));
+
 
 		// Compound properties -- still to be implemented.
 		// font
@@ -2520,25 +2522,25 @@ namespace css
 		plist_.addProperty(prefix + "-bottom-right-" + suffix, BorderRadius::create(horiz_lengths[3], vert_lengths[3]));
 	}
 
-	void PropertyParser::parseBorderClip(const std::string& prefix, const std::string& suffix)
+	void PropertyParser::parseBackgroundClip(const std::string& prefix, const std::string& suffix)
 	{
-		CssBorderClip bc = CssBorderClip::BORDER_BOX;
+		CssBackgroundClip bc = CssBackgroundClip::BORDER_BOX;
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();
 			if(ref == "border-box") {
-				bc = CssBorderClip::BORDER_BOX;
+				bc = CssBackgroundClip::BORDER_BOX;
 			} else if(ref == "padding-box") {
-				bc = CssBorderClip::PADDING_BOX;
+				bc = CssBackgroundClip::PADDING_BOX;
 			} else if(ref == "content-box") {
-				bc = CssBorderClip::CONTENT_BOX;
+				bc = CssBackgroundClip::CONTENT_BOX;
 			} else {
 				throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
 			}
 		} else {
 			throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 		}
-		plist_.addProperty(prefix, BorderClip::create(bc));
+		plist_.addProperty(prefix, BackgroundClip::create(bc));
 	}
 
 	StylePtr PropertyParser::parseLinearGradient(const std::vector<TokenPtr>& tokens)

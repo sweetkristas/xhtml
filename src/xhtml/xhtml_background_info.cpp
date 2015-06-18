@@ -61,7 +61,6 @@ namespace xhtml
 			return res;
 		}
 
-
 		void gaussian_filter(int width, int height, uint8_t* src, int src_stride, float radius)
 		{
 			cairo_surface_t* tmp = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
@@ -123,13 +122,28 @@ namespace xhtml
 			}
 			cairo_surface_destroy(tmp);
 		}
+
+
+		KRE::StencilSettings& get_stencil_mask_settings() 
+		{
+			static KRE::StencilSettings ss(true, 
+				KRE::StencilFace::FRONT_AND_BACK, 
+				KRE::StencilFunc::NOT_EQUAL, 
+				0xff, 0x00, 0xff, 
+				KRE::StencilOperation::INCREMENT, 
+				KRE::StencilOperation::KEEP, 
+				KRE::StencilOperation::KEEP);
+			return ss;
+		}
+
 	}
 
 	BackgroundInfo::BackgroundInfo()
 		: color_(0, 0, 0, 0),
 		  texture_(),
 		  repeat_(CssBackgroundRepeat::REPEAT),
-		  position_()
+		  position_(),
+		  background_clip_(CssBackgroundClip::BORDER_BOX)
 	{
 		RenderContext& ctx = RenderContext::get();
 
@@ -151,6 +165,8 @@ namespace xhtml
 			border_radius_horiz_[n] = br.getHoriz().compute();
 			border_radius_vert_[n]  = br.getVert().compute();
 		}
+
+		background_clip_ = ctx.getComputedValue(Property::BACKGROUND_CLIP).getValue<CssBackgroundClip>();
 	}
 
 	void BackgroundInfo::setFile(const std::string& filename)
@@ -234,6 +250,28 @@ namespace xhtml
 	{
 		renderBoxShadow(display_list, offset, dims);
 
+		std::shared_ptr<SolidRenderable> clip_shape = nullptr;
+		switch(background_clip_) {
+			case CssBackgroundClip::BORDER_BOX:
+				// don't do anything unless border-radius is specified
+				break;
+			case CssBackgroundClip::PADDING_BOX:
+				clip_shape = std::make_shared<SolidRenderable>(rect(
+					offset.x - dims.padding_.left,
+					offset.y - dims.padding_.top,
+					dims.content_.width + dims.padding_.left + dims.padding_.right,
+					dims.content_.height + dims.padding_.top + dims.padding_.bottom), KRE::Color::colorWhite());
+				break;
+			case CssBackgroundClip::CONTENT_BOX:
+				clip_shape = std::make_shared<SolidRenderable>(rect(
+					offset.x,
+					offset.y,
+					dims.content_.width,
+					dims.content_.height), KRE::Color::colorWhite());
+				break;
+		}
+
+
 		// XXX if we're rendering the body element then it takes the entire canvas :-/
 		// technically the rule is that if no background styles are applied to the html element then
 		// we apply the body styles.
@@ -245,14 +283,9 @@ namespace xhtml
 
 		if(color_.ai() != 0) {
 			auto solid = std::make_shared<SolidRenderable>(r, color_);
-			KRE::StencilSettings ss(true, 
-				KRE::StencilFace::FRONT_AND_BACK, 
-				KRE::StencilFunc::NEVER, 
-				0xff, 0x01, 0x01, 
-				KRE::StencilOperation::REPLACE, 
-				KRE::StencilOperation::KEEP, 
-				KRE::StencilOperation::KEEP);
-			solid->setClipSettings(ss, std::make_shared<SolidRenderable>(rect(rx+20, ry+20, rw-40, rh-40), KRE::Color::colorWhite()));
+			if(clip_shape != nullptr) {
+				solid->setClipSettings(get_stencil_mask_settings(), clip_shape);
+			}
 			display_list->addRenderable(solid);
 		}
 		// XXX if texture is set then use background position and repeat as appropriate.
@@ -306,6 +339,9 @@ namespace xhtml
 					break;
 			}
 
+			if(clip_shape != nullptr) {
+				ptr->setClipSettings(get_stencil_mask_settings(), clip_shape);
+			}
 			display_list->addRenderable(ptr);
 		}
 	}
