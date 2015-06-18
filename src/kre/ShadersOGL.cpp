@@ -380,6 +380,50 @@ namespace KRE
 				{"", ""},
 			};
 
+			const char* const blur_vs =
+				"uniform mat4 u_mvp_matrix;\n"
+				"attribute vec2 a_position;\n"
+				"attribute vec2 a_texcoord;\n"
+				"varying vec2 v_texcoord;\n"
+				"void main()\n"
+				"{\n"
+				"    v_texcoord = a_texcoord;\n"
+				"    gl_Position = u_mvp_matrix * vec4(a_position, 0.0, 1.0);\n"
+				"}\n";
+			const char* const blur_fs =
+				"uniform sampler2D u_tex_map;\n"
+				"uniform vec4 u_color;\n"
+				"varying vec2 v_texcoord;\n"
+				"\n"
+				"uniform float offset[3] = float[3]( 0.0, 1.3846153846, 3.2307692308 );\n"
+				"uniform float weight[3] = float[3]( 0.2270270270, 0.3162162162, 0.0702702703 );\n"
+				"\n"
+				"void main()\n"
+				"{\n"
+				"    float img_width = 512.0;\n"
+				"    float img_height = 256.0;\n"
+				"    vec2 coords = vec2(gl_FragCoord.x/img_width, gl_FragCoord.y/img_height);\n"
+				"    vec4 color = texture2D(u_tex_map, coords) * weight[0];\n"
+				"    for(int i = 1; i < 3; i++) {\n"
+				"        color += texture2D(u_tex_map, coords + vec2(0.0, offset[i] / img_height)) * weight[i];\n"
+				"        color += texture2D(u_tex_map, coords - vec2(0.0, offset[i] / img_height)) * weight[i];\n"
+				"    }\n"
+				"    gl_FragColor = color * u_color;\n"
+				"}\n";
+			const uniform_mapping blur_uniform_mapping[] = 
+			{
+				{"mvp_matrix", "u_mvp_matrix"},
+				{"tex_map", "u_tex_map"},
+				{"color", "u_color"},
+				{"", ""},
+			};
+			const attribute_mapping blur_attribute_mapping[] = 
+			{
+				{"position", "a_position"},
+				{"texcoord", "a_texcoord"},
+				{"", ""},
+			};
+
 			const struct {
 				const char* shader_name;
 				const char* vertex_shader_name;
@@ -398,6 +442,7 @@ namespace KRE
 				{ "circle", "circle_vs", circle_vs, "circle_fs", circle_fs, circle_uniform_mapping, circle_attribue_mapping },
 				{ "point_shader", "point_shader_vs", point_shader_vs, "point_shader_fs", point_shader_fs, point_shader_uniform_mapping, point_shader_attribute_mapping },
 				{ "font_shader", "font_shader_vs", font_shader_vs, "font_shader_fs", font_shader_fs, font_shader_uniform_mapping, font_shader_attribute_mapping },
+				{ "blur_shader", "blur_vs", blur_vs, "blur_fs", blur_fs, blur_uniform_mapping, blur_attribute_mapping },
 			};
 
 			typedef std::map<std::string, ShaderProgramPtr> shader_factory_map;

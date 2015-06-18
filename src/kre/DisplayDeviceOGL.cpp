@@ -106,6 +106,16 @@ namespace KRE
 			ASSERT_LOG(false, "Unrecognised value for index type.");
 			return GL_NONE;
 		}
+
+		static const StencilSettings keep_stencil_settings(true,
+			StencilFace::FRONT_AND_BACK, 
+			StencilFunc::EQUAL, 
+			0x01,
+			0x01,
+			0x00,
+			StencilOperation::KEEP,
+			StencilOperation::KEEP,
+			StencilOperation::KEEP);
 	}
 
 	DisplayDeviceOpenGL::DisplayDeviceOpenGL(WindowPtr wnd)
@@ -266,6 +276,16 @@ namespace KRE
 			return;
 		}
 
+		StencilScopePtr stencil_scope;
+		if(r->hasClipSettings()) {
+			stencil_scope.reset(new StencilScopeOGL(r->getStencilSettings()));
+			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+			glClear(GL_STENCIL_BUFFER_BIT);
+			render(r->getStencilMask().get());
+			stencil_scope->applyNewSettings(keep_stencil_settings);
+			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		}
+
 		auto shader = r->getShader();
 		shader->makeActive();
 
@@ -293,12 +313,15 @@ namespace KRE
 			}
 		}
 
-		glm::mat4 pvmat(1.0f);
+		glm::mat4 pmat(1.0f);
+		glm::mat4 vmat(1.0f);
 		if(r->getCamera()) {
 			// set camera here.
-			pvmat = r->getCamera()->getProjectionMat() * r->getCamera()->getViewMat();
+			pmat = r->getCamera()->getProjectionMat();
+			vmat = r->getCamera()->getViewMat();
 		} else if(get_default_camera() != nullptr) {
-			pvmat = get_default_camera()->getProjectionMat() * get_default_camera()->getViewMat();
+			pmat = get_default_camera()->getProjectionMat();
+			vmat = get_default_camera()->getViewMat();
 		}
 
 		if(use_lighting) {
@@ -311,11 +334,26 @@ namespace KRE
 			r->getRenderTarget()->apply();
 		}
 
-		if(shader->getMvpUniform() != ShaderProgram::INVALID_UNIFORM) {
+		if(shader->getPUniform() != ShaderProgram::INVALID_UNIFORM) {
+			shader->setUniformValue(shader->getPUniform(), glm::value_ptr(pmat));
+		}
+
+		if(shader->getMvUniform() != ShaderProgram::INVALID_UNIFORM) {
+			glm::mat4 mvmat = vmat;
 			if(is_global_model_matrix_valid() && !r->ignoreGlobalModelMatrix()) {
-				pvmat = pvmat * get_global_model_matrix() * r->getModelMatrix();
+				mvmat *= get_global_model_matrix() * r->getModelMatrix();
 			} else {
-				pvmat *= r->getModelMatrix();
+				mvmat *= r->getModelMatrix();
+			}
+			shader->setUniformValue(shader->getMvUniform(), glm::value_ptr(mvmat));
+		}
+
+		if(shader->getMvpUniform() != ShaderProgram::INVALID_UNIFORM) {
+			glm::mat4 pvmat(1.0f);
+			if(is_global_model_matrix_valid() && !r->ignoreGlobalModelMatrix()) {
+				pvmat = pmat * vmat * get_global_model_matrix() * r->getModelMatrix();
+			} else {
+				pvmat = pmat * vmat * r->getModelMatrix();
 			}
 			shader->setUniformValue(shader->getMvpUniform(), glm::value_ptr(pvmat));
 		}

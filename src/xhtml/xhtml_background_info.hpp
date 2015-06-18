@@ -59,6 +59,9 @@ namespace xhtml
 		css::CssBackgroundRepeat repeat_;
 		css::BackgroundPosition position_;
 
+		std::array<FixedPoint, 4> border_radius_horiz_;
+		std::array<FixedPoint, 4> border_radius_vert_;
+
 		// box-shadow properties.
 		std::vector<BgBoxShadow> box_shadows_;
 	};

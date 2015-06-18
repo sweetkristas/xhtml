@@ -43,6 +43,7 @@ namespace KRE
 		explicit SceneNode(std::weak_ptr<SceneGraph> sg, const variant& node);
 		virtual ~SceneNode();
 		void attachNode(const SceneNodePtr& node);
+		void removeNode(const SceneNodePtr& node);
 		void attachLight(size_t ref, const LightPtr& obj);
 		void attachCamera(const CameraPtr& obj);
 		void attachObject(const SceneObjectPtr& obj);

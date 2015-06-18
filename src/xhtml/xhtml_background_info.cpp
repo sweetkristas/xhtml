@@ -25,9 +25,12 @@
 
 #include "AttributeSet.hpp"
 #include "Blittable.hpp"
+#include "StencilScope.hpp"
 #include "DisplayDevice.hpp"
+#include "RenderTarget.hpp"
 #include "SceneObject.hpp"
 #include "Shaders.hpp"
+#include "WindowManager.hpp"
 
 #include "profile_timer.hpp"
 #include "solid_renderable.hpp"
@@ -38,21 +41,115 @@ namespace xhtml
 {
 	using namespace css;
 
+	namespace
+	{
+		static const int kernel_size = 9;
+		static const int half_kernel_size = kernel_size / 2;
+		static unsigned kernel_acc = 0;
+		std::vector<uint8_t>& get_gaussian_kernel()
+		{
+			static std::vector<uint8_t> res;
+			if(res.empty()) {
+				res.resize(kernel_size);
+				kernel_acc = 0;
+				for(int n = 0; n != kernel_size; ++n) {
+					float f = static_cast<float>(n - half_kernel_size);
+					res[n] = static_cast<uint8_t>(std::exp(-f * f / 30.0f) * 80.0f);
+					kernel_acc += res[n];
+				}
+			}
+			return res;
+		}
+
+
+		void gaussian_filter(int width, int height, uint8_t* src, int src_stride, float radius)
+		{
+			cairo_surface_t* tmp = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+
+			uint8_t *dst = cairo_image_surface_get_data(tmp);
+			const int dst_stride = cairo_image_surface_get_stride(tmp);
+
+			profile::manager pman("convolution");
+			auto& kernel = get_gaussian_kernel();
+
+			for(int y = 0; y != height; ++y) {
+				uint32_t* s = reinterpret_cast<uint32_t *>(src + y * src_stride);
+				uint32_t* d = reinterpret_cast<uint32_t *>(dst + y * dst_stride);
+				for(int x = 0; x != width; ++x) {
+					if(radius < x && x < width - radius) {
+						d[x] = s[x];
+						continue;
+					}
+
+					int r = 0, g = 0, b = 0, a = 0;
+					for(int n = 0; n != kernel_size; ++n) {
+						if (x - half_kernel_size + n < 0 || x - half_kernel_size + n >= width) {
+							continue;
+						}
+						uint32_t pix = s[x - half_kernel_size + n];
+						r += ((pix >> 24) & 0xff) * kernel[n];
+						g += ((pix >> 16) & 0xff) * kernel[n];
+						b += ((pix >>  8) & 0xff) * kernel[n];
+						a += ((pix >>  0) & 0xff) * kernel[n];
+					}
+					d[x] = (r / kernel_acc << 24) | (g / kernel_acc << 16) | (b / kernel_acc << 8) | (a / kernel_acc);
+				}
+			}
+
+			for(int y = 0; y != height; ++y) {
+				uint32_t* s = reinterpret_cast<uint32_t *>(dst + y * dst_stride);
+				uint32_t* d = reinterpret_cast<uint32_t *>(src + y * src_stride);
+				for(int x = 0; x != width; ++x) {
+					if(radius <= y && y < height - radius) {
+						d[x] = s[x];
+						continue;
+					}
+
+					int r = 0, g = 0, b = 0, a = 0;
+					for(int n = 0; n != kernel_size; ++n) {
+						if (y - half_kernel_size + n < 0 || y - half_kernel_size + n >= height) {
+							continue;
+						}
+
+						s = reinterpret_cast<uint32_t *>(dst + (y - half_kernel_size + n) * dst_stride);
+						uint32_t pix = s[x];
+						r += ((pix >> 24) & 0xff) * kernel[n];
+						g += ((pix >> 16) & 0xff) * kernel[n];
+						b += ((pix >>  8) & 0xff) * kernel[n];
+						a += ((pix >>  0) & 0xff) * kernel[n];
+					}
+					d[x] = (r / kernel_acc << 24) | (g / kernel_acc << 16) | (b / kernel_acc << 8) | (a / kernel_acc);
+				}
+			}
+			cairo_surface_destroy(tmp);
+		}
+	}
+
 	BackgroundInfo::BackgroundInfo()
 		: color_(0, 0, 0, 0),
 		  texture_(),
 		  repeat_(CssBackgroundRepeat::REPEAT),
 		  position_()
 	{
-		auto& shadows = RenderContext::get().getComputedValue(Property::BOX_SHADOW).getValue<BoxShadowStyle>().getShadows();
+		RenderContext& ctx = RenderContext::get();
 
-		for(auto shadow : shadows) {
+		auto& shadows = ctx.getComputedValue(Property::BOX_SHADOW).getValue<BoxShadowStyle>().getShadows();
+
+		for(auto it = shadows.rbegin(); it != shadows.rend(); ++it) {
+			auto& shadow = *it;
 			box_shadows_.emplace_back(shadow.getX().compute(), 
 				shadow.getY().compute(), 
 				shadow.getBlur().compute(), 
 				shadow.getSpread().compute(), 
 				shadow.inset(), 
 				shadow.getColor().compute());
+		}
+
+		Property props[4]  = { Property::BORDER_TOP_LEFT_RADIUS, Property::BORDER_TOP_RIGHT_RADIUS, Property::BORDER_BOTTOM_LEFT_RADIUS, Property::BORDER_BOTTOM_RIGHT_RADIUS };
+		for(int n = 0; n != 4; ++n) {
+			auto br = ctx.getComputedValue(props[n]).getValue<css::BorderRadius>();
+			border_radius_horiz_[n] = br.getHoriz().compute();
+			border_radius_vert_[n]  = br.getVert().compute();
 		}
 	}
 
@@ -83,11 +180,6 @@ namespace xhtml
 		const FixedPoint right = dims.content_.x + dims.content_.width + dims.border_.right + dims.padding_.right + dims.margin_.right;
 		const FixedPoint bottom = dims.content_.y + dims.content_.height + dims.border_.bottom + dims.padding_.bottom + dims.margin_.bottom;
 
-		const int kernel_size = 17;
-		const int half = kernel_size / 2;
-		std::vector<uint8_t> kernel;
-		kernel.resize(kernel_size);
-
 		for(auto& shadow : box_shadows_) {
 			if(shadow.inset) {
 				// XXX
@@ -97,103 +189,43 @@ namespace xhtml
 				const FixedPoint spread_right = right + shadow.spread_radius;
 				const FixedPoint spread_bottom = bottom + shadow.spread_radius;
 				
-				const int width = (spread_right - spread_left) / LayoutEngine::getFixedPointScale() + half * 2; 
-				const int height = (spread_bottom - spread_top) / LayoutEngine::getFixedPointScale() + half * 2;
+				const int width = (spread_right - spread_left) / LayoutEngine::getFixedPointScale() + half_kernel_size * 2; 
+				const int height = (spread_bottom - spread_top) / LayoutEngine::getFixedPointScale() + half_kernel_size * 2;;
 
 				cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 				cairo_t* cairo = cairo_create(surface);
 
-				{
-				profile::manager pman("cario_rect");
-				cairo_set_source_rgba(cairo, 0, 0, 0, 0.05);
+				cairo_set_source_rgba(cairo, 0, 0, 0, 0);
 				cairo_rectangle(cairo, 0, 0, width, height);
 				cairo_fill(cairo);
 
 				cairo_set_source_rgba(cairo, shadow.color.r(), shadow.color.g(), shadow.color.b(), shadow.color.a());
 				cairo_rectangle(cairo, 
-					left / LayoutEngine::getFixedPointScaleFloat(), 
-					top / LayoutEngine::getFixedPointScaleFloat(), 
+					left / LayoutEngine::getFixedPointScaleFloat() + half_kernel_size, 
+					top / LayoutEngine::getFixedPointScaleFloat() + half_kernel_size, 
 					(right - left) / LayoutEngine::getFixedPointScaleFloat(), 
 					(bottom - top) / LayoutEngine::getFixedPointScaleFloat());
 				cairo_fill(cairo);
-				}
 
-				cairo_surface_t* tmp = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 				uint8_t *src = cairo_image_surface_get_data(surface);
 				const int src_stride = cairo_image_surface_get_stride(surface);
-				uint8_t *dst = cairo_image_surface_get_data(tmp);
-				const int dst_stride = cairo_image_surface_get_stride(tmp);
 
-				profile::manager pman("convolution");
-				unsigned acc = 0;
-				for(int n = 0; n != kernel_size; ++n) {
-					double f = n - half;
-					kernel[n] = static_cast<uint8_t>(std::exp(-f * f / 30.0) * 80);
-					acc += kernel[n];
-				}
-
-				for(int y = 0; y != height; ++y) {
-					uint32_t* s = reinterpret_cast<uint32_t *>(src + y * src_stride);
-					uint32_t* d = reinterpret_cast<uint32_t *>(dst + y * dst_stride);
-					for(int x = 0; x != width; ++x) {
-						if(shadow.blur_radius < x && x < width - shadow.blur_radius) {
-							d[x] = s[x];
-							continue;
-						}
-
-						int r = 0, g = 0, b = 0, a = 0;
-						for(int n = 0; n != kernel_size; ++n) {
-							if (x - half + n < 0 || x - half + n >= width) {
-								continue;
-							}
-							uint32_t pix = s[x - half + n];
-							r += ((pix >> 24) & 0xff) * kernel[n];
-							g += ((pix >> 16) & 0xff) * kernel[n];
-							b += ((pix >>  8) & 0xff) * kernel[n];
-							a += ((pix >>  0) & 0xff) * kernel[n];
-						}
-						d[x] = (r / acc << 24) | (g / acc << 16) | (b / acc << 8) | (a / acc);
-					}
-				}
-
-				for(int y = 0; y != height; ++y) {
-					uint32_t* s = reinterpret_cast<uint32_t *>(dst + y * dst_stride);
-					uint32_t* d = reinterpret_cast<uint32_t *>(src + y * src_stride);
-					for(int x = 0; x != width; ++x) {
-						if(shadow.blur_radius <= y && y < height - shadow.blur_radius) {
-							d[x] = s[x];
-							continue;
-						}
-
-						int r = 0, g = 0, b = 0, a = 0;
-						for(int n = 0; n != kernel_size; ++n) {
-							if (y - half + n < 0 || y - half + n >= height) {
-								continue;
-							}
-
-							s = reinterpret_cast<uint32_t *>(dst + (y - half + n) * dst_stride);
-							uint32_t pix = s[x];
-							r += ((pix >> 24) & 0xff) * kernel[n];
-							g += ((pix >> 16) & 0xff) * kernel[n];
-							b += ((pix >>  8) & 0xff) * kernel[n];
-							a += ((pix >>  0) & 0xff) * kernel[n];
-						}
-						d[x] = (r / acc << 24) | (g / acc << 16) | (b / acc << 8) | (a / acc);
-					}
+				if(shadow.blur_radius > 0) {
+					gaussian_filter(width, height, src, src_stride, shadow.blur_radius);
 				}
 
 				auto surf = KRE::Surface::create(width, height, KRE::PixelFormat::PF::PIXELFORMAT_ARGB8888);
 				surf->writePixels(src, src_stride * height);
-				surf->createAlphaMap();
+				//surf->createAlphaMap();
 
 				auto ptr = std::make_shared<KRE::Blittable>(KRE::Texture::createTexture(surf));
 				ptr->setCentre(KRE::Blittable::Centre::TOP_LEFT);
-				ptr->setPosition(half + shadow.x_offset / LayoutEngine::getFixedPointScale(), half + shadow.y_offset / LayoutEngine::getFixedPointScale());
+				//ptr->setShader(KRE::ShaderProgram::getProgram("blur_shader"));
+				ptr->setPosition(shadow.x_offset / LayoutEngine::getFixedPointScale(), shadow.y_offset / LayoutEngine::getFixedPointScale());
 				display_list->addRenderable(ptr);
 
 				cairo_destroy(cairo);
 				cairo_surface_destroy(surface);
-				cairo_surface_destroy(tmp);
 			}
 		}
 	}
@@ -212,7 +244,16 @@ namespace xhtml
 		rect r(rx, ry, rw, rh);
 
 		if(color_.ai() != 0) {
-			display_list->addRenderable(std::make_shared<SolidRenderable>(r, color_));
+			auto solid = std::make_shared<SolidRenderable>(r, color_);
+			KRE::StencilSettings ss(true, 
+				KRE::StencilFace::FRONT_AND_BACK, 
+				KRE::StencilFunc::NEVER, 
+				0xff, 0x01, 0x01, 
+				KRE::StencilOperation::REPLACE, 
+				KRE::StencilOperation::KEEP, 
+				KRE::StencilOperation::KEEP);
+			solid->setClipSettings(ss, std::make_shared<SolidRenderable>(rect(rx+20, ry+20, rw-40, rh-40), KRE::Color::colorWhite()));
+			display_list->addRenderable(solid);
 		}
 		// XXX if texture is set then use background position and repeat as appropriate.
 		if(texture_) {
