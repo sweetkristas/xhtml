@@ -23,37 +23,57 @@
 
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include "AttributeSet.hpp"
+#include "CameraObject.hpp"
 #include "Color.hpp"
 #include "ClipScopeOGL.hpp"
+#include "DisplayDevice.hpp"
+#include "ModelMatrixScope.hpp"
 #include "ShadersOGL.hpp"
 #include "StencilScopeOGL.hpp"
 
 namespace KRE
 {
+	namespace
+	{
+		static const StencilSettings keep_stencil_settings(true,
+			StencilFace::FRONT_AND_BACK, 
+			StencilFunc::EQUAL, 
+			0xff,
+			0x01,
+			0x00,
+			StencilOperation::KEEP,
+			StencilOperation::KEEP,
+			StencilOperation::KEEP);
+
+		static const StencilSettings mask_stencil_settings(true, 
+			KRE::StencilFace::FRONT_AND_BACK, 
+			KRE::StencilFunc::NOT_EQUAL, 
+			0xff, 0x00, 0xff, 
+			KRE::StencilOperation::INCREMENT, 
+			KRE::StencilOperation::KEEP, 
+			KRE::StencilOperation::KEEP);
+	}
+
 	ClipScopeOGL::ClipScopeOGL(const rect& r)
-		: ClipScope(r)
+		: ClipScope(r),
+		  stencil_scope_(nullptr)
 	{
 	}
 
 	ClipScopeOGL::~ClipScopeOGL()
 	{
+		stencil_scope_.reset();
 	}
 
 	void ClipScopeOGL::apply() const 
 	{
-		StencilScopeOGL stencil_scope(StencilSettings(true, 
-			StencilFace::FRONT_AND_BACK, 
-			StencilFunc::NEVER, 
-			0xff,
-			0x01,
-			0x01,
-			StencilOperation::REPLACE,
-			StencilOperation::KEEP,
-			StencilOperation::KEEP)); 
-		
-		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		glClear(GL_STENCIL_BUFFER_BIT);
+		stencil_scope_.reset(new StencilScopeOGL(mask_stencil_settings));
 
+		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+		glDepthMask(GL_FALSE);
+		glClear(GL_STENCIL_BUFFER_BIT);
+	
 		const float varray[] = {
 			area().x(), area().y(),
 			area().x2(), area().y(),
@@ -61,9 +81,12 @@ namespace KRE
 			area().x2(), area().y2(),
 		};
 
+		auto cam = DisplayDevice::getCurrent()->getDefaultCamera();
+
 		glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3((area().x()+area().x2())/2.0f,(area().y()+area().y2())/2.0f,0.0f)) 
 			* glm::translate(glm::mat4(1.0f), glm::vec3(-(area().x()+area().y())/2.0f,-(area().y()+area().y())/2.0f,0.0f));
-		glm::mat4 mvp = /*mvp_ **/ model;
+		glm::mat4 mvp = cam->getProjectionMat() * cam->getViewMat() * get_global_model_matrix() * model;
+		
 		static OpenGL::ShaderProgramPtr shader = OpenGL::ShaderProgram::factory("simple");
 		shader->makeActive();
 		shader->setUniformValue(shader->getMvpUniform(), glm::value_ptr(mvp));
@@ -73,10 +96,14 @@ namespace KRE
 		glVertexAttribPointer(shader->getVertexAttribute(), 2, GL_FLOAT, GL_FALSE, 0, varray);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
+		stencil_scope_->applyNewSettings(keep_stencil_settings);
+
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glDepthMask(GL_TRUE);
 	}
 
 	void ClipScopeOGL::clear() const 
 	{
+		stencil_scope_.reset();
 	}
 }

@@ -37,5 +37,6 @@ namespace KRE
 		void clear() const override;
 	private:
 		DISALLOW_COPY_ASSIGN_AND_DEFAULT(ClipScopeOGL);
+		mutable StencilScopePtr stencil_scope_;
 	};
 }

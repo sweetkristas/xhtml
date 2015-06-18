@@ -49,6 +49,7 @@ namespace KRE
 
 		// Lets us set a default camera if nothing else is configured.
 		CameraPtr setDefaultCamera(const CameraPtr& cam) override;
+		CameraPtr getDefaultCamera() const override;
 
 		CanvasPtr getCanvas() override;
 		ClipScopePtr createClipScope(const rect& r) override;

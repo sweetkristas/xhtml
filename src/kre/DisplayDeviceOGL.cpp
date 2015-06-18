@@ -110,7 +110,7 @@ namespace KRE
 		static const StencilSettings keep_stencil_settings(true,
 			StencilFace::FRONT_AND_BACK, 
 			StencilFunc::EQUAL, 
-			0x01,
+			0xff,
 			0x01,
 			0x00,
 			StencilOperation::KEEP,
@@ -269,6 +269,11 @@ namespace KRE
 		return old_cam;
 	}
 
+	CameraPtr DisplayDeviceOpenGL::getDefaultCamera() const
+	{
+		return get_default_camera();
+	}
+
 	void DisplayDeviceOpenGL::render(const Renderable* r) const
 	{
 		if(!r->isEnabled()) {
@@ -280,10 +285,12 @@ namespace KRE
 		if(r->hasClipSettings()) {
 			stencil_scope.reset(new StencilScopeOGL(r->getStencilSettings()));
 			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+			glDepthMask(GL_FALSE);
 			glClear(GL_STENCIL_BUFFER_BIT);
 			render(r->getStencilMask().get());
 			stencil_scope->applyNewSettings(keep_stencil_settings);
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+			glDepthMask(GL_TRUE);
 		}
 
 		auto shader = r->getShader();
