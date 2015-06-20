@@ -30,13 +30,26 @@
 
 namespace xhtml
 {
+	class SimpleRenderable : public KRE::SceneObject
+	{
+	public:
+		SimpleRenderable();
+		explicit SimpleRenderable(KRE::DrawMode draw_mode);
+		void init(KRE::DrawMode draw_mode = KRE::DrawMode::TRIANGLES);
+		void update(std::vector<glm::vec2>* coords);
+		void setDrawMode(KRE::DrawMode draw_mode);
+	private:
+		std::shared_ptr<KRE::Attribute<glm::vec2>> attribs_;
+	};
+
 	class SolidRenderable : public KRE::SceneObject
 	{
 	public:
 		SolidRenderable();
-		SolidRenderable(const rect& r, const KRE::Color& color);
+		explicit SolidRenderable(const rect& r, const KRE::Color& color);
 		void init();
 		void update(std::vector<KRE::vertex_color>* coords);
+		void setDrawMode(KRE::DrawMode draw_mode);
 	private:
 		std::shared_ptr<KRE::Attribute<KRE::vertex_color>> attribs_;
 	};
@@ -62,7 +75,7 @@ namespace xhtml
 	{
 	public:
 		BlurredSolidRenderable();
-		BlurredSolidRenderable(const rect& r, const KRE::Color& color, float blur_radius);
+		explicit BlurredSolidRenderable(const rect& r, const KRE::Color& color, float blur_radius);
 		void init();
 		void update(std::vector<vertex_normal>* coords);
 	private:

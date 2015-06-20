@@ -33,7 +33,7 @@
 	span:hover {
 		color: #fff;
 		background-color: rgb(128, 128, 128);
-		transition: color,background-color 500ms;
+		transition: color,background-color 500ms cubic-bezier(0.4, 0, 0.5, 1);
 	}
 	span:hover + div {
 		display: block;
@@ -45,7 +45,7 @@
 		left: 0px;
 		width: 260px;
 		height: 360px;
-		border-color: white;
+		border-color: lightgray;
 		border-style: inset;
 		border-width: 2px;
 		overflow: clip;

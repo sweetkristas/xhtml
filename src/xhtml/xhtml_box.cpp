@@ -246,7 +246,7 @@ namespace xhtml
 
 		for(auto& child : boxes_) {
 			if(child->isFloat()) {
-				child->layout(eng, getDimensions());
+				child->layout(eng, dimensions_);
 				eng.addFloat(child);
 			}
 		}
@@ -255,7 +255,7 @@ namespace xhtml
 
 		for(auto& child : boxes_) {
 			if(!child->isFloat()) {
-				child->layout(eng, getDimensions());
+				child->layout(eng, dimensions_);
 				handlePostChildLayout(eng, child);
 			}
 		}
@@ -264,11 +264,12 @@ namespace xhtml
 		//layoutAbsolute(eng, containing);
 
 		for(auto& child : boxes_) {
-			child->postParentLayout(eng, getDimensions());
+			child->postParentLayout(eng, dimensions_);
 		}
 
 		// need to call this after doing layout, since we need to now what the computed padding/border values are.
 		border_info_.init(dimensions_);
+		background_info_.init(dimensions_);
 	}
 
 	void Box::calculateVertMPB(FixedPoint containing_height)

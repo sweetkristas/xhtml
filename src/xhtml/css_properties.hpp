@@ -132,6 +132,11 @@ namespace css
 		void parseSingleBorderRadius(const std::string& prefix, const std::string& suffix);
 		void parseBorderRadius(const std::string& prefix, const std::string& suffix);
 		void parseBackgroundClip(const std::string& prefix, const std::string& suffix);
+
+		void parseTransition(const std::string& prefix, const std::string& suffix);
+		void parseTransitionProperty(const std::string& prefix, const std::string& suffix);
+		void parseTransitionTimingFunction(const std::string& prefix, const std::string& suffix);
+		void parseTransitionTiming(const std::string& prefix, const std::string& suffix);
 	private:
 		enum NumericParseOptions {
 			NUMBER = 1,

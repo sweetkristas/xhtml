@@ -529,7 +529,48 @@ namespace css
 		}
 		return angle;
 	}
-	
+
+	Time::Time(float t, const std::string& units)
+		: value_(t),
+		  units_(TimeUnits::SECONDS)
+	{
+		if(units == "s") {
+			units_ = TimeUnits::SECONDS;
+		} else if(units == "ms") {
+			units_ = TimeUnits::MILLISECONDS;
+		} else {
+			ASSERT_LOG(false, "Unrecognised angle units value: " << units);
+		}
+	}
+
+	float Time::getTime(TimeUnits units)
+	{
+		// early return if units are the same.
+		if(units == units_) {
+			return value_;
+		}
+
+		// convert to degrees. Probably not the most elegant way of doing it.
+		float time_value = value_;
+		switch(units_) {
+			case TimeUnits::MILLISECONDS:	time_value /= 1000.0f; break;
+			case TimeUnits::SECONDS:	
+			default:
+				// no conversion required.
+				break;
+		}
+
+		// convert to requested format.
+		switch(units) {
+			case TimeUnits::MILLISECONDS:	time_value *= 1000.0f; break;
+			case TimeUnits::SECONDS:
+			default:
+				// no conversion required.
+				break;
+		}
+		return time_value;
+	}
+
 	/*
 		// XXX roughly compute what the stops should be, there doesn't seem to be an algorithm specfied for this, so we
 		// make one up.

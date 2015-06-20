@@ -61,7 +61,7 @@ namespace xhtml
 			return res;
 		}
 
-		void gaussian_filter(int width, int height, uint8_t* src, int src_stride, float radius)
+		void gaussian_filter(int width, int height, uint8_t* src, int src_stride, int radius)
 		{
 			cairo_surface_t* tmp = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
 
@@ -136,6 +136,131 @@ namespace xhtml
 			return ss;
 		}
 
+		
+		void calculate_ellipse_quadrant(std::vector<glm::vec2>* res, int divisions, float rx, float ry, float x_start, float x_end, float x_offset, float y_offset)
+		{
+			// divisions is the number of increments along the x-axis to use.
+			// rx (a) the x radius.
+			// ry (b) the y radius.
+			// x_start starting x co-ordinate.
+			// x_end ending x co-ordinate.
+			// x_offset X Offset added to result (i.e. x translation)
+			// y_offset Y Offset added to result (i.e. y translation)
+
+			ASSERT_LOG(divisions > 0, "Number of divisions can't be zero of negative.");
+
+			const float rx_sqr = rx * rx;
+
+			float x_incr = (x_end - x_start) / (divisions - 1);
+			float x = x_start;
+			for(int n = 0; n != divisions; ++n) {
+				const float intermediate = 1 - (x * x / rx_sqr);
+				ASSERT_LOG(intermediate >= 0, "Intermediate value was less than zero.");
+				const float y = std::sqrt(intermediate) * ry;
+				res->emplace_back(x + x_offset, y + y_offset);
+				x += x_incr;
+			}
+		}
+
+		void calculate_border_shape(std::vector<glm::vec2>* res, 
+			const std::array<FixedPoint, 4>& horiz_radius, 
+			const std::array<FixedPoint, 4>& vert_radius, 
+			float left, float top, float right, float bottom)
+		{
+			// res The result, i.e. where vertices go.
+			// horiz_radius The horizontal radius values. Ordered TL, TR, BR, BL.
+			// vert_radius The vertical radius values. Ordered TL, TR, BR, BL.
+			// left, top, right, bottom The border box bounds.
+
+			std::array<glm::vec2, 4> corners;
+			corners[0] = glm::vec2(left, top);
+			corners[1] = glm::vec2(right, top);
+			corners[2] = glm::vec2(right, bottom);
+			corners[3] = glm::vec2(left, bottom);
+
+			std::array<glm::vec2, 4> quadrant = { glm::vec2(-1.0f, -1.0f), glm::vec2(1.0f, -1.0f), glm::vec2(1.0f, 1.0f), glm::vec2(-1.0f, 1.0f) };
+
+			const float width = right - left;
+			const float height = bottom - top;
+
+			const float center_x = (right - left) / 2.0f;
+			const float center_y = (bottom - top) / 2.0f;
+
+			std::array<glm::vec2, 4> radii;
+			radii[0] = glm::vec2(horiz_radius[0]/LayoutEngine::getFixedPointScaleFloat(), vert_radius[0]/LayoutEngine::getFixedPointScaleFloat());
+			radii[1] = glm::vec2(horiz_radius[1]/LayoutEngine::getFixedPointScaleFloat(), vert_radius[1]/LayoutEngine::getFixedPointScaleFloat());
+			radii[2] = glm::vec2(horiz_radius[2]/LayoutEngine::getFixedPointScaleFloat(), vert_radius[2]/LayoutEngine::getFixedPointScaleFloat());
+			radii[3] = glm::vec2(horiz_radius[3]/LayoutEngine::getFixedPointScaleFloat(), vert_radius[3]/LayoutEngine::getFixedPointScaleFloat());
+
+			const float left_radius_height = radii[0].x + radii[1].x;
+			const float right_radius_height = radii[2].x + radii[3].x;
+			const float bottom_radius_width = radii[1].y + radii[2].y;
+			const float top_radius_width = radii[0].y + radii[3].y;
+
+			const float fx = std::min(top_radius_width == 0.0f ? 1.0f : width / top_radius_width, bottom_radius_width == 0.0f ? 1.0f : width / bottom_radius_width);
+			const float fy = std::min(left_radius_height == 0.0f ? 1.0f : height / left_radius_height, right_radius_height == 0.0f ? 1.0f : height / right_radius_height);
+			const float f = std::min(fx, fy);
+
+			for(int corner = 0; corner != 4; ++corner) {
+				if(f < 1.0f) {
+					radii[corner].x *= f;
+					radii[corner].y *= f;
+				}
+				// check for overlapping borders and proportionally reduce them.
+				if(radii[corner].x > width/2.0f) {
+					radii[corner].x = width/2.0f;
+				}
+				if(radii[corner].y > height/2.0f) {
+					radii[corner].y = height/2.0f;
+				}
+				if(radii[corner].x == 0 && radii[corner].y == 0) {
+					// Is just a square edge
+					// XXX this may need adjust if the ellipse from an adjacent intersects
+					res->emplace_back(corners[corner]);
+				} else {
+					const float rx = radii[corner].x;
+					const float ry = radii[corner].y;
+
+					//roughly estimate number of divisions
+					const int ndivisions = std::max(10, std::max(static_cast<int>(rx)/2, static_cast<int>(ry)/2));
+
+					calculate_ellipse_quadrant(res, ndivisions, 
+						rx, ry * quadrant[corner].t, 
+						(corner % 2) ? 0 : quadrant[corner].s * rx , (corner % 2) ? rx * quadrant[corner].s : 0, 
+						corners[corner].x - rx * quadrant[corner].s, 
+						corners[corner].y - ry * quadrant[corner].t);
+				}
+			}
+		}
+
+		KRE::RenderablePtr create_border_mask(const std::array<FixedPoint, 4>& horiz_radius, 
+			const std::array<FixedPoint, 4>& vert_radius, 
+			FixedPoint left, FixedPoint top, FixedPoint right, FixedPoint bottom)
+		{
+			std::shared_ptr<SimpleRenderable> sr = std::make_shared<SimpleRenderable>(KRE::DrawMode::TRIANGLE_FAN);
+
+			const float l = left/LayoutEngine::getFixedPointScaleFloat();
+			const float t = top/LayoutEngine::getFixedPointScaleFloat();
+			const float r = right/LayoutEngine::getFixedPointScaleFloat();
+			const float b = bottom/LayoutEngine::getFixedPointScaleFloat();
+
+			const float cx = (r-l)/2.0f;
+			const float cy = (b-t)/2.0f;
+
+			std::vector<glm::vec2> vertices;
+			vertices.reserve(20*4);
+			
+			// Place center as first vertex
+			vertices.emplace_back(cx, cy);
+
+			calculate_border_shape(&vertices, horiz_radius, vert_radius, l, t, r, b);
+			// repeat second point.
+			vertices.push_back(vertices[1]);
+
+			sr->update(&vertices);
+
+			return sr;
+		}
 	}
 
 	BackgroundInfo::BackgroundInfo()
@@ -143,7 +268,8 @@ namespace xhtml
 		  texture_(),
 		  repeat_(CssBackgroundRepeat::REPEAT),
 		  position_(),
-		  background_clip_(CssBackgroundClip::BORDER_BOX)
+		  background_clip_(CssBackgroundClip::BORDER_BOX),
+		  has_border_radius_(false)
 	{
 		RenderContext& ctx = RenderContext::get();
 
@@ -159,14 +285,26 @@ namespace xhtml
 				shadow.getColor().compute());
 		}
 
+		background_clip_ = ctx.getComputedValue(Property::BACKGROUND_CLIP).getValue<CssBackgroundClip>();
+	}
+
+	void BackgroundInfo::init(const Dimensions& dims)
+	{
+		RenderContext& ctx = RenderContext::get();
+
+		// Height and width of border box
+		FixedPoint bbox_width  = dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right;
+		FixedPoint bbox_height = dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom;
+
 		Property props[4]  = { Property::BORDER_TOP_LEFT_RADIUS, Property::BORDER_TOP_RIGHT_RADIUS, Property::BORDER_BOTTOM_LEFT_RADIUS, Property::BORDER_BOTTOM_RIGHT_RADIUS };
 		for(int n = 0; n != 4; ++n) {
 			auto br = ctx.getComputedValue(props[n]).getValue<css::BorderRadius>();
-			border_radius_horiz_[n] = br.getHoriz().compute();
-			border_radius_vert_[n]  = br.getVert().compute();
+			border_radius_horiz_[n] = br.getHoriz().compute(bbox_width);
+			border_radius_vert_[n]  = br.getVert().compute(bbox_height);
+			if(border_radius_horiz_[n] != 0 || border_radius_vert_[n] != 0) {
+				has_border_radius_ = true;
+			}
 		}
-
-		background_clip_ = ctx.getComputedValue(Property::BACKGROUND_CLIP).getValue<CssBackgroundClip>();
 	}
 
 	void BackgroundInfo::setFile(const std::string& filename)
@@ -191,15 +329,16 @@ namespace xhtml
 	void BackgroundInfo::renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
 	{
 		// XXX We should be using the shape generated via clipping.
-		const FixedPoint left = dims.content_.x - dims.border_.left - dims.padding_.left - dims.margin_.left;
-		const FixedPoint top = dims.content_.y - dims.border_.top - dims.padding_.top - dims.margin_.top;
-		const FixedPoint right = dims.content_.x + dims.content_.width + dims.border_.right + dims.padding_.right + dims.margin_.right;
-		const FixedPoint bottom = dims.content_.y + dims.content_.height + dims.border_.bottom + dims.padding_.bottom + dims.margin_.bottom;
+		const FixedPoint left = dims.content_.x - dims.border_.left - dims.padding_.left - dims.margin_.left + offset.x;
+		const FixedPoint top = dims.content_.y - dims.border_.top - dims.padding_.top - dims.margin_.top + offset.y;
+		const FixedPoint right = dims.content_.x + dims.content_.width + dims.border_.right + dims.padding_.right + dims.margin_.right + offset.x;
+		const FixedPoint bottom = dims.content_.y + dims.content_.height + dims.border_.bottom + dims.padding_.bottom + dims.margin_.bottom + offset.y;
 
 		for(auto& shadow : box_shadows_) {
 			if(shadow.inset) {
 				// XXX
 			} else {
+				// This needs to be clipped by the background clip shape.
 				const FixedPoint spread_left = left - shadow.spread_radius;
 				const FixedPoint spread_top = top - shadow.spread_radius;
 				const FixedPoint spread_right = right + shadow.spread_radius;
@@ -217,8 +356,8 @@ namespace xhtml
 
 				cairo_set_source_rgba(cairo, shadow.color.r(), shadow.color.g(), shadow.color.b(), shadow.color.a());
 				cairo_rectangle(cairo, 
-					left / LayoutEngine::getFixedPointScaleFloat() + half_kernel_size, 
-					top / LayoutEngine::getFixedPointScaleFloat() + half_kernel_size, 
+					half_kernel_size, 
+					half_kernel_size, 
 					(right - left) / LayoutEngine::getFixedPointScaleFloat(), 
 					(bottom - top) / LayoutEngine::getFixedPointScaleFloat());
 				cairo_fill(cairo);
@@ -227,7 +366,7 @@ namespace xhtml
 				const int src_stride = cairo_image_surface_get_stride(surface);
 
 				if(shadow.blur_radius > 0) {
-					gaussian_filter(width, height, src, src_stride, shadow.blur_radius);
+					gaussian_filter(width, height, src, src_stride, shadow.blur_radius/LayoutEngine::getFixedPointScale());
 				}
 
 				auto surf = KRE::Surface::create(width, height, KRE::PixelFormat::PF::PIXELFORMAT_ARGB8888);
@@ -237,7 +376,7 @@ namespace xhtml
 				auto ptr = std::make_shared<KRE::Blittable>(KRE::Texture::createTexture(surf));
 				ptr->setCentre(KRE::Blittable::Centre::TOP_LEFT);
 				//ptr->setShader(KRE::ShaderProgram::getProgram("blur_shader"));
-				ptr->setPosition(shadow.x_offset / LayoutEngine::getFixedPointScale(), shadow.y_offset / LayoutEngine::getFixedPointScale());
+				ptr->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScale(), (shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScale());
 				display_list->addRenderable(ptr);
 
 				cairo_destroy(cairo);
@@ -250,10 +389,24 @@ namespace xhtml
 	{
 		renderBoxShadow(display_list, offset, dims);
 
-		std::shared_ptr<SolidRenderable> clip_shape = nullptr;
+		// XXX if we're rendering the body element then it takes the entire canvas :-/
+		// technically the rule is that if no background styles are applied to the html element then
+		// we apply the body styles.
+		const int rx = offset.x - dims.padding_.left - dims.border_.left;
+		const int ry = offset.y - dims.padding_.top - dims.border_.top;
+		const int rw = dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right;
+		const int rh = dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom;
+		rect r(rx, ry, rw, rh);
+
+
+		KRE::RenderablePtr clip_shape = nullptr;
 		switch(background_clip_) {
 			case CssBackgroundClip::BORDER_BOX:
 				// don't do anything unless border-radius is specified
+				if(has_border_radius_) {
+					clip_shape = create_border_mask(border_radius_horiz_, border_radius_vert_, 0, 0, rw, rh);
+					clip_shape->setPosition(rx / LayoutEngine::getFixedPointScale(), ry / LayoutEngine::getFixedPointScale());
+				}
 				break;
 			case CssBackgroundClip::PADDING_BOX:
 				clip_shape = std::make_shared<SolidRenderable>(rect(
@@ -270,16 +423,6 @@ namespace xhtml
 					dims.content_.height), KRE::Color::colorWhite());
 				break;
 		}
-
-
-		// XXX if we're rendering the body element then it takes the entire canvas :-/
-		// technically the rule is that if no background styles are applied to the html element then
-		// we apply the body styles.
-		const int rx = offset.x - dims.padding_.left - dims.border_.left;
-		const int ry = offset.y - dims.padding_.top - dims.border_.top;
-		const int rw = dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right;
-		const int rh = dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom;
-		rect r(rx, ry, rw, rh);
 
 		if(color_.ai() != 0) {
 			auto solid = std::make_shared<SolidRenderable>(r, color_);

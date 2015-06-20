@@ -61,6 +61,11 @@ namespace xhtml
 		attribs_->update(&vc);
 	}
 
+	void SolidRenderable::setDrawMode(KRE::DrawMode draw_mode)
+	{
+		getAttributeSet().back()->setDrawMode(draw_mode);
+	}
+
 	void SolidRenderable::init()
 	{
 		using namespace KRE;
@@ -112,7 +117,7 @@ namespace xhtml
 		auto shader = getShader();
 		const int u_blur = shader->getUniform("u_blur");
 		const int u_line_width = shader->getUniform("u_line_width");
-		const float line_width = r.h();
+		const float line_width = static_cast<float>(r.h());
 		const float blur = blur_radius;
 		shader->setUniformDrawFunction([u_blur, u_line_width, line_width, blur, shader]() {
 			shader->setUniformValue(u_blur, blur);
@@ -177,4 +182,41 @@ namespace xhtml
 	{
 		attribs_->update(coords);
 	}
+
+	SimpleRenderable::SimpleRenderable()
+		: KRE::SceneObject("SimpleRenderable")
+	{
+		init();
+	}
+
+	SimpleRenderable::SimpleRenderable(KRE::DrawMode draw_mode)
+		: KRE::SceneObject("SimpleRenderable")
+	{
+		init(draw_mode);
+	}
+
+	void SimpleRenderable::init(KRE::DrawMode draw_mode)
+	{
+		using namespace KRE;
+		setShader(ShaderProgram::getProgram("simple"));
+
+		auto as = DisplayDevice::createAttributeSet();
+		attribs_.reset(new KRE::Attribute<glm::vec2>(AccessFreqHint::DYNAMIC, AccessTypeHint::DRAW));
+		attribs_->addAttributeDesc(AttributeDesc(AttrType::POSITION, 2, AttrFormat::FLOAT, false));
+		as->addAttribute(AttributeBasePtr(attribs_));
+		as->setDrawMode(draw_mode);
+		
+		addAttributeSet(as);
+	}
+
+	void SimpleRenderable::update(std::vector<glm::vec2>* coords)
+	{
+		attribs_->update(coords);
+	}
+
+	void SimpleRenderable::setDrawMode(KRE::DrawMode draw_mode)
+	{
+		getAttributeSet().back()->setDrawMode(draw_mode);
+	}
+
 }

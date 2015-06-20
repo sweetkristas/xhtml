@@ -93,6 +93,7 @@
     <ClCompile Include="..\src\xhtml\css_properties.cpp" />
     <ClCompile Include="..\src\xhtml\css_selector.cpp" />
     <ClCompile Include="..\src\xhtml\css_stylesheet.cpp" />
+    <ClCompile Include="..\src\xhtml\css_transition.cpp" />
     <ClCompile Include="..\src\xhtml\display_list.cpp" />
     <ClCompile Include="..\src\xhtml\document_object_model.cpp" />
     <ClCompile Include="..\src\xhtml\dom_exception.cpp" />
@@ -223,6 +224,7 @@
     <ClInclude Include="..\src\xhtml\css_properties.hpp" />
     <ClInclude Include="..\src\xhtml\css_selector.hpp" />
     <ClInclude Include="..\src\xhtml\css_stylesheet.hpp" />
+    <ClInclude Include="..\src\xhtml\css_transition.hpp" />
     <ClInclude Include="..\src\xhtml\display_list.hpp" />
     <ClInclude Include="..\src\xhtml\document_object_model.hpp" />
     <ClInclude Include="..\src\xhtml\dom_exception.hpp" />

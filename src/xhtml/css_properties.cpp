@@ -21,7 +21,7 @@
 	   distribution.
 */
 
-#include <stack>
+#include <set>
 
 #include "asserts.hpp"
 #include "formatter.hpp"
@@ -102,9 +102,9 @@ namespace css
 		}
 
 		// These are the properties that can be animated using the transition* properties.
-		std::stack<Property>& get_transitional_properties()
+		std::set<Property>& get_transitional_properties()
 		{
-			static std::stack<Property> res;
+			static std::set<Property> res;
 			if(res.empty()) {
 				res.emplace(Property::BACKGROUND_COLOR);
 				res.emplace(Property::BACKGROUND_POSITION);
@@ -269,6 +269,12 @@ namespace css
 		PropertyRegistrar property220("border-radius", std::bind(&PropertyParser::parseBorderRadius, _1, "border", "radius"));
 
 		PropertyRegistrar property230("background-clip", Property::BACKGROUND_CLIP, false, Object(CssBackgroundClip::BORDER_BOX), std::bind(&PropertyParser::parseBackgroundClip, _1, "background-clip", ""));
+
+		PropertyRegistrar property250("transition-property", Property::TRANSITION_PROPERTY, false, Object(TransitionProperties()), std::bind(&PropertyParser::parseTransitionProperty, _1, "transition-property", ""));
+		PropertyRegistrar property251("transition-duration", Property::TRANSITION_DURATION, false, Object(TransitionTiming()), std::bind(&PropertyParser::parseTransitionTiming, _1, "transition-duration", ""));
+		PropertyRegistrar property252("transition-delay", Property::TRANSITION_DELAY, false, Object(TransitionTiming()), std::bind(&PropertyParser::parseTransitionTiming, _1, "transition-delay", ""));
+		PropertyRegistrar property253("transition-timing-function", Property::TRANSITION_TIMING_FUNCTION, false, Object(TransitionTimingFunctions()), std::bind(&PropertyParser::parseTransitionTimingFunction, _1, "transition-timing-function", ""));
+		PropertyRegistrar property254("transition", std::bind(&PropertyParser::parseTransition, _1, "transition", ""));
 
 
 		// Compound properties -- still to be implemented.
@@ -2449,14 +2455,21 @@ namespace css
 
 	void PropertyParser::parseBorderRadius(const std::string& prefix, const std::string& suffix)
 	{
-		std::vector<Length> horiz_lengths;
-		std::vector<Length> vert_lengths;
+		std::vector<Length> lengths1;
+		std::vector<Length> lengths2;
 		bool done = false;
+		bool extended_syntax = false;
 		while(!done) {
-			if(isEndToken() || isTokenDelimiter("/")) {
+			skipWhitespace();
+			if(isEndToken()) {
 				done = true;
+			} else if(isTokenDelimiter("/")) {
+				advance();
+				skipWhitespace();
+				done = true;
+				extended_syntax = true;
 			} else {
-				horiz_lengths.emplace_back(parseLengthInternal(static_cast<NumericParseOptions>(NumericParseOptions::LENGTH | NumericParseOptions::PERCENTAGE)));
+				lengths1.emplace_back(parseLengthInternal(static_cast<NumericParseOptions>(NumericParseOptions::LENGTH | NumericParseOptions::PERCENTAGE)));
 			}
 		}
 		done = false;
@@ -2464,57 +2477,88 @@ namespace css
 			if(isEndToken()) {
 				done = true;
 			} else {
-				vert_lengths.emplace_back(parseLengthInternal(static_cast<NumericParseOptions>(NumericParseOptions::LENGTH | NumericParseOptions::PERCENTAGE)));
+				lengths2.emplace_back(parseLengthInternal(static_cast<NumericParseOptions>(NumericParseOptions::LENGTH | NumericParseOptions::PERCENTAGE)));
 			}
+			skipWhitespace();
 		}
-		if(horiz_lengths.empty() && vert_lengths.empty()) {
+		if(lengths1.empty() || (extended_syntax && lengths2.empty())) {
 			throw ParserError(formatter() << "No lengths/percentages supplied for " << prefix);
 		}
-		switch(horiz_lengths.size()) {
-			case 0:
-				horiz_lengths.emplace_back(Length(0));
-				horiz_lengths.emplace_back(Length(0));
-				horiz_lengths.emplace_back(Length(0));
-				horiz_lengths.emplace_back(Length(0));
-				break;
+		std::vector<Length> horiz_lengths;
+		std::vector<Length> vert_lengths;
+		switch(lengths1.size()) {
+			case 0: /* Invalid case. Will have already thrown ParseError by this point. */ break;
 			case 1:
-				horiz_lengths.push_back(horiz_lengths[0]);
-				horiz_lengths.push_back(horiz_lengths[0]);
-				horiz_lengths.push_back(horiz_lengths[0]);
+				// Radius for all for sides.
+				horiz_lengths.emplace_back(lengths1[0]);
+				horiz_lengths.emplace_back(lengths1[0]);
+				horiz_lengths.emplace_back(lengths1[0]);
+				horiz_lengths.emplace_back(lengths1[0]);
+				if(!extended_syntax) {
+					vert_lengths.emplace_back(lengths1[0]);
+					vert_lengths.emplace_back(lengths1[0]);
+					vert_lengths.emplace_back(lengths1[0]);
+					vert_lengths.emplace_back(lengths1[0]);					
+				}
 				break;
 			case 2:
-				horiz_lengths.push_back(horiz_lengths[0]);
-				horiz_lengths.push_back(horiz_lengths[1]);
+				horiz_lengths.push_back(lengths1[0]);
+				horiz_lengths.push_back(lengths1[1]);
+				horiz_lengths.push_back(lengths1[0]);
+				horiz_lengths.push_back(lengths1[1]);
+				if(!extended_syntax) {
+					vert_lengths.emplace_back(lengths1[0]);
+					vert_lengths.emplace_back(lengths1[1]);
+					vert_lengths.emplace_back(lengths1[0]);
+					vert_lengths.emplace_back(lengths1[1]);					
+				}
 				break;
 			case 3:
-				horiz_lengths.push_back(horiz_lengths[1]);
+				horiz_lengths.push_back(lengths1[0]);
+				horiz_lengths.push_back(lengths1[1]);
+				horiz_lengths.push_back(lengths1[2]);
+				horiz_lengths.push_back(lengths1[1]);
+				if(!extended_syntax) {
+					vert_lengths.push_back(lengths1[0]);
+					vert_lengths.push_back(lengths1[1]);
+					vert_lengths.push_back(lengths1[2]);
+					vert_lengths.push_back(lengths1[1]);
+				}
 				break;
 			default: 
 				// is 4 or more already.
+				horiz_lengths = lengths1;
+				if(!extended_syntax) {
+					vert_lengths = lengths1;
+				}
 				break;
 		}
-		switch(vert_lengths.size()) {
-			case 0:
-				vert_lengths.emplace_back(Length(0));
-				vert_lengths.emplace_back(Length(0));
-				vert_lengths.emplace_back(Length(0));
-				vert_lengths.emplace_back(Length(0));
-				break;
-			case 1:
-				vert_lengths.push_back(vert_lengths[0]);
-				vert_lengths.push_back(vert_lengths[0]);
-				vert_lengths.push_back(vert_lengths[0]);
-				break;
-			case 2:
-				vert_lengths.push_back(vert_lengths[0]);
-				vert_lengths.push_back(vert_lengths[1]);
-				break;
-			case 3:
-				vert_lengths.push_back(vert_lengths[1]);
-				break;
-			default: 
-				// is 4 or more already.
-				break;
+		if(extended_syntax) {
+			switch(lengths2.size()) {
+				case 0: /* Invalid case. Will have already thrown ParseError by this point. */ break;
+				case 1:
+					vert_lengths.emplace_back(lengths2[0]);
+					vert_lengths.emplace_back(lengths2[0]);
+					vert_lengths.emplace_back(lengths2[0]);
+					vert_lengths.emplace_back(lengths2[0]);					
+					break;
+				case 2:
+					vert_lengths.emplace_back(lengths2[0]);
+					vert_lengths.emplace_back(lengths2[1]);
+					vert_lengths.emplace_back(lengths2[0]);
+					vert_lengths.emplace_back(lengths2[1]);					
+					break;
+				case 3:
+					vert_lengths.emplace_back(lengths2[0]);
+					vert_lengths.emplace_back(lengths2[1]);
+					vert_lengths.emplace_back(lengths2[2]);
+					vert_lengths.emplace_back(lengths2[1]);					
+					break;
+				default: 
+					// is 4 or more already.
+					vert_lengths = lengths2;
+					break;
+			}
 		}
 		plist_.addProperty(prefix + "-top-left-" + suffix, BorderRadius::create(horiz_lengths[0], vert_lengths[0]));
 		plist_.addProperty(prefix + "-top-right-" + suffix, BorderRadius::create(horiz_lengths[1], vert_lengths[1]));
@@ -2666,5 +2710,306 @@ namespace css
 		}
 
 		return lingrad;
+	}
+
+	void PropertyParser::parseTransitionProperty(const std::string& prefix, const std::string& suffix)
+	{
+		std::vector<Property> props;
+		while(!isEndToken()) {
+			skipWhitespace();
+			if(isToken(TokenId::IDENT)) {
+				const std::string ref = (*it_)->getStringValue();
+				advance();
+				if(ref == "all") {
+					plist_.addProperty(prefix, TransitionProperties::create(true));
+					return;
+				} else if(ref == "none") {
+					plist_.addProperty(prefix, TransitionProperties::create(false));
+					return;
+				} else {
+					auto pit = get_property_table().find(ref);
+					if(pit == get_property_table().end()) {
+						// just giving up -- goes against spec
+						throw ParserError(formatter() << "Couldn't find property with name " << ref << " in the list of all properties");
+					}
+
+					auto it = get_transitional_properties().find(pit->second.value);
+					if(it == get_transitional_properties().end()) {
+						throw ParserError(formatter() << "Couldn't find property with name " << ref << " in the list of transitional properties");
+					}
+					props.emplace_back(*it);
+				}
+			} else {
+				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
+			}
+			skipWhitespace();
+			if(isToken(TokenId::COMMA)) {
+				advance();
+				skipWhitespace();
+			}
+		}
+		plist_.addProperty(prefix, TransitionProperties::create(props));
+	}
+
+	void PropertyParser::parseTransitionTimingFunction(const std::string& prefix, const std::string& suffix)
+	{
+		std::vector<TimingFunction> fns;
+		while(!isEndToken()) {
+			skipWhitespace();
+			if(isToken(TokenId::IDENT)) {
+				const std::string ref = (*it_)->getStringValue();
+				advance();
+				if(ref == "ease") {
+					fns.emplace_back(0.25f, 0.1f, 0.25f, 1.0f);
+				} else if(ref == "linear") {
+					fns.emplace_back(0.0f, 0.0f, 1.0f, 1.0f);
+				} else if(ref == "ease-in") {
+					fns.emplace_back(0.42f, 0.0f, 1.0f, 1.0f);
+				} else if(ref == "ease-out") {
+					fns.emplace_back(0.0f, 0.0f, 0.58f, 1.0f);
+				} else if(ref == "ease-in-out") {
+					fns.emplace_back(0.42f, 0.0f, 0.58f, 1.0f);
+				} else if(ref == "step-start") {
+					fns.emplace_back(1, StepChangePoint::START);
+				} else if(ref == "step-end") {
+					fns.emplace_back(1, StepChangePoint::END);
+				} else {
+					throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
+				}
+			} else if(isToken(TokenId::FUNCTION)) {
+				const std::string ref = (*it_)->getStringValue();
+				auto tokens = (*it_)->getParameters();
+				advance();
+				if(ref == "cubic-bezier") {
+					IteratorContext ic(*this, tokens);
+					std::vector<float> pt;
+					for(int n = 0; n != 4; ++n) {
+						skipWhitespace();
+						if(!isToken(TokenId::NUMBER)) {
+							throw ParserError(formatter() << "Expected integer parsing '" << ref << "' function , property:'" << prefix << "'");
+						}
+						pt.emplace_back(static_cast<float>((*it_)->getNumericValue()));
+						advance();
+						skipWhitespace();
+						if(n < 4-1) {
+							if(!isToken(TokenId::COMMA)) {
+								throw ParserError(formatter() << "Expected comma while parsing '" << ref << "' function, property: '" << prefix << "'");
+							}
+							advance();
+						}
+					}
+					fns.emplace_back(pt[0], pt[1], pt[2], pt[3]);
+				} else if(ref == "steps") {
+					IteratorContext ic(*this, tokens);
+					skipWhitespace();
+					if(!isToken(TokenId::NUMBER)) {
+						throw ParserError(formatter() << "Expected integer parsing '" << ref << "' function, property: '" << prefix << "'");
+					}
+					int nintervals = static_cast<int>((*it_)->getNumericValue());
+					advance();
+					skipWhitespace();
+					if(isToken(TokenId::COMMA)) {
+						advance();
+						skipWhitespace();
+						if(!isToken(TokenId::IDENT)) {
+							throw ParserError(formatter() << "Expected 'start' or 'end' parsing '" << ref << "' function, property: '" << prefix << "'");
+						}
+						const std::string ref = (*it_)->getStringValue();
+						if(ref == "start") {
+							fns.emplace_back(nintervals, StepChangePoint::START);
+						} else if( ref == "end") {
+							fns.emplace_back(nintervals, StepChangePoint::END);
+						} else {
+							throw ParserError(formatter() << "Expected 'start' or 'end' parsing 'steps' function, found" << ref << " property: '" << prefix << "'");
+						}
+					}
+				} else {
+					throw ParserError(formatter() << "Unrecognised function for '" << prefix << "' property: " << ref);
+				}
+			} else {
+				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
+			}
+		}
+		plist_.addProperty(prefix, TransitionTimingFunctions::create(fns));
+	}
+
+	void PropertyParser::parseTransitionTiming(const std::string& prefix, const std::string& suffix)
+	{
+		std::vector<float> times;
+
+		while(!isEndToken()) {
+			skipWhitespace();
+			if(isToken(TokenId::DIMENSION)) {
+				Time new_time(static_cast<float>((*it_)->getNumericValue()), (*it_)->getStringValue());
+				advance();
+				times.emplace_back(new_time.getTime(TimeUnits::SECONDS));
+			} else {
+				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
+			}
+			skipWhitespace();
+			if(isToken(TokenId::COMMA)) {
+				advance();
+				skipWhitespace();
+			}
+		}
+
+		plist_.addProperty(prefix, TransitionTiming::create(times));
+	}
+
+	void PropertyParser::parseTransition(const std::string& prefix, const std::string& suffix)
+	{
+		std::vector<float> durations;
+		std::vector<float> delays;
+		std::vector<TimingFunction> fns;
+		std::vector<Property> props;
+
+		// [ none | single-transition-property ] || time(duration) || timing fn || time(delay)
+		// order of parsing is important.
+
+		while(!isEndToken()) {
+			skipWhitespace();
+			if(isToken(TokenId::IDENT)) {
+				const std::string ref = (*it_)->getStringValue();
+				advance();
+				if(ref == "none") {
+					ASSERT_LOG(false, "fixme");
+				} else {
+					auto pit = get_property_table().find(ref);
+					if(pit == get_property_table().end()) {
+						// just giving up -- goes against spec
+						throw ParserError(formatter() << "Couldn't find property with name " << ref << " in the list of all properties");
+					}
+
+					auto it = get_transitional_properties().find(pit->second.value);
+					if(it == get_transitional_properties().end()) {
+						throw ParserError(formatter() << "Couldn't find property with name " << ref << " in the list of transitional properties");
+					}
+					props.emplace_back(*it);
+				}
+			} else {
+				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
+			}
+			skipWhitespace();
+
+			if(isToken(TokenId::DIMENSION)) {
+				Time new_time(static_cast<float>((*it_)->getNumericValue()), (*it_)->getStringValue());
+				advance();
+				durations.emplace_back(new_time.getTime(TimeUnits::SECONDS));
+			} else if(isToken(TokenId::COMMA)) {
+				advance();
+				continue;
+			} else if(isEndToken()) {
+				continue;
+			} else {
+				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
+			}
+			skipWhitespace();
+
+			if(isToken(TokenId::IDENT)) {
+				const std::string ref = (*it_)->getStringValue();
+				advance();
+				if(ref == "ease") {
+					fns.emplace_back(0.25f, 0.1f, 0.25f, 1.0f);
+				} else if(ref == "linear") {
+					fns.emplace_back(0.0f, 0.0f, 1.0f, 1.0f);
+				} else if(ref == "ease-in") {
+					fns.emplace_back(0.42f, 0.0f, 1.0f, 1.0f);
+				} else if(ref == "ease-out") {
+					fns.emplace_back(0.0f, 0.0f, 0.58f, 1.0f);
+				} else if(ref == "ease-in-out") {
+					fns.emplace_back(0.42f, 0.0f, 0.58f, 1.0f);
+				} else if(ref == "step-start") {
+					fns.emplace_back(1, StepChangePoint::START);
+				} else if(ref == "step-end") {
+					fns.emplace_back(1, StepChangePoint::END);
+				} else {
+					throw ParserError(formatter() << "Unrecognised identifier for '" << prefix << "' property: " << ref);
+				}
+			} else if(isToken(TokenId::FUNCTION)) {
+				const std::string ref = (*it_)->getStringValue();
+				auto tokens = (*it_)->getParameters();
+				advance();
+				if(ref == "cubic-bezier") {
+					IteratorContext ic(*this, tokens);
+					std::vector<float> pt;
+					for(int n = 0; n != 4; ++n) {
+						skipWhitespace();
+						if(!isToken(TokenId::NUMBER)) {
+							throw ParserError(formatter() << "Expected integer parsing '" << ref << "' function , property:'" << prefix << "'");
+						}
+						pt.emplace_back(static_cast<float>((*it_)->getNumericValue()));
+						advance();
+						skipWhitespace();
+						if(n < 4-1) {
+							if(!isToken(TokenId::COMMA)) {
+								throw ParserError(formatter() << "Expected comma while parsing '" << ref << "' function, property: '" << prefix << "'");
+							}
+							advance();
+						}
+					}
+					if(pt[0] < 0.0f || pt[0] > 1.0f) {
+						throw ParserError(formatter() << "cubic-bezier function X values must be in range [0,1], X1 was: " << pt[0] << " property: " << prefix);
+					}
+					if(pt[2] < 0.0f || pt[2] > 1.0f) {
+						throw ParserError(formatter() << "cubic-bezier function X values must be in range [0,1], X2 was: " << pt[2] << " property: " << prefix);
+					}
+					fns.emplace_back(pt[0], pt[1], pt[2], pt[3]);
+				} else if(ref == "steps") {
+					IteratorContext ic(*this, tokens);
+					skipWhitespace();
+					if(!isToken(TokenId::NUMBER)) {
+						throw ParserError(formatter() << "Expected integer parsing '" << ref << "' function, property: '" << prefix << "'");
+					}
+					int nintervals = static_cast<int>((*it_)->getNumericValue());
+					if(nintervals < 1) {
+						throw ParserError(formatter() << "step function interval expected to be greater than 1, was: " << nintervals << " property: " << prefix);
+					}
+					advance();
+					skipWhitespace();
+					if(isToken(TokenId::COMMA)) {
+						advance();
+						skipWhitespace();
+						if(!isToken(TokenId::IDENT)) {
+							throw ParserError(formatter() << "Expected 'start' or 'end' parsing '" << ref << "' function, property: '" << prefix << "'");
+						}
+						const std::string ref = (*it_)->getStringValue();
+						if(ref == "start") {
+							fns.emplace_back(nintervals, StepChangePoint::START);
+						} else if( ref == "end") {
+							fns.emplace_back(nintervals, StepChangePoint::END);
+						} else {
+							throw ParserError(formatter() << "Expected 'start' or 'end' parsing 'steps' function, found" << ref << " property: '" << prefix << "'");
+						}
+					}
+				} else {
+					throw ParserError(formatter() << "Unrecognised function for '" << prefix << "' property: " << ref);
+				}
+			} else if(isToken(TokenId::COMMA)) {
+				advance();
+				continue;
+			} else if(isEndToken()) {
+				continue;
+			} else {
+				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
+			}
+			skipWhitespace();
+
+			if(isToken(TokenId::DIMENSION)) {
+				Time new_time(static_cast<float>((*it_)->getNumericValue()), (*it_)->getStringValue());
+				advance();
+				delays.emplace_back(new_time.getTime(TimeUnits::SECONDS));
+			} else if(isToken(TokenId::COMMA)) {
+				advance();
+				continue;
+			} else if(isEndToken()) {
+				continue;
+			} else {
+				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
+			}
+		}
+		plist_.addProperty(prefix + "-property", TransitionProperties::create(props));
+		plist_.addProperty(prefix + "-duration", TransitionTiming::create(durations));
+		plist_.addProperty(prefix + "-timing-function", TransitionTimingFunctions::create(fns));
+		plist_.addProperty(prefix + "-delay", TransitionTiming::create(delays));
 	}
 }

@@ -52,6 +52,7 @@ namespace xhtml
 		void setPosition(const css::BackgroundPosition& pos) { position_ = pos; }
 		void setRepeat(css::CssBackgroundRepeat repeat) { repeat_ = repeat; }
 		void render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
+		void init(const Dimensions& dims);
 	private:
 		void renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
 		KRE::Color color_;
@@ -67,5 +68,7 @@ namespace xhtml
 
 		// background-clip
 		css::CssBackgroundClip background_clip_; 
+
+		bool has_border_radius_;
 	};
 }

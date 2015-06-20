@@ -260,6 +260,23 @@ namespace css
 		AngleUnits units_;
 	};
 
+	enum class TimeUnits {
+		SECONDS,
+		MILLISECONDS,
+	};
+
+	class Time
+	{
+	public:
+		Time() : value_(0), units_(TimeUnits::SECONDS) {}
+		explicit Time(float t, TimeUnits units) : value_(t), units_(units) {}
+		explicit Time(float t, const std::string& units);		
+		float getTime(TimeUnits units=TimeUnits::SECONDS);
+	private:
+		float value_;
+		TimeUnits units_;
+	};
+
 	class Width : public Style
 	{
 	public:
@@ -1042,5 +1059,72 @@ namespace css
 	private:
 		float angle_;	// in degrees
 		std::vector<ColorStop> color_stops_;
+	};
+
+	class TransitionProperties : public Style
+	{
+	public:
+		MAKE_FACTORY(TransitionProperties);
+		TransitionProperties() : properties_(), all_(true) {}
+		explicit TransitionProperties(bool use_all) : properties_(), all_(use_all) {}
+		explicit TransitionProperties(const std::vector<Property>& p) : properties_(p), all_(false) {}
+		const std::vector<Property>& getProperties() { return properties_; }
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+	private:
+		std::vector<Property> properties_;
+		bool all_;
+	};
+
+	// for delays and duration
+	class TransitionTiming : public Style
+	{
+	public:
+		MAKE_FACTORY(TransitionTiming);
+		TransitionTiming() : timings_() {}
+		explicit TransitionTiming(const std::vector<float>& timings) : timings_(timings) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+		const std::vector<float>& getTiming() const { return timings_; }
+	private:
+		std::vector<float> timings_;
+	};
+
+	enum class CssTransitionTimingFunction {
+		STEPS,
+		CUBIC_BEZIER,
+	};
+
+	enum class StepChangePoint {
+		START,
+		END,
+	};
+
+	class TimingFunction
+	{
+	public:
+		TimingFunction() : ttfn_(CssTransitionTimingFunction::CUBIC_BEZIER), nintervals_(0), poc_(StepChangePoint::END), p1_(0.25f, 0.1f), p2_(0.25f, 1.0f) {}
+		// for cubic-bezier
+		explicit TimingFunction(float x1, float y1, float x2, float y2) 
+			: ttfn_(CssTransitionTimingFunction::CUBIC_BEZIER), nintervals_(0), poc_(StepChangePoint::END), p1_(x1, y1), p2_(x2, y2) {}
+		// for step function
+		explicit TimingFunction(int nintervals, StepChangePoint poc)
+			: ttfn_(CssTransitionTimingFunction::STEPS), nintervals_(nintervals), poc_(poc), p1_(), p2_() {}
+	private:
+		CssTransitionTimingFunction ttfn_;
+		int nintervals_;
+		StepChangePoint poc_;
+		glm::vec2 p1_;
+		glm::vec2 p2_;
+	};
+
+	class TransitionTimingFunctions : public Style
+	{
+	public:
+		MAKE_FACTORY(TransitionTimingFunctions);
+		TransitionTimingFunctions() : ttfns_() {}
+		explicit TransitionTimingFunctions(const std::vector<TimingFunction>& ttfns) : ttfns_(ttfns) {}
+		Object evaluate(const xhtml::RenderContext& rc) const override { return Object(*this); }
+		const std::vector<TimingFunction>& getTimingFunctions() { return ttfns_; }
+	private:
+		std::vector<TimingFunction> ttfns_;
 	};
 }
