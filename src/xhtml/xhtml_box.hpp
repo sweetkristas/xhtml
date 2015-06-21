@@ -33,7 +33,6 @@
 #include "xhtml_border_info.hpp"
 #include "xhtml_node.hpp"
 #include "xhtml_render_ctx.hpp"
-#include "variant_object.hpp"
 
 namespace xhtml
 {
@@ -181,25 +180,25 @@ namespace xhtml
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
 		bool ancestralTraverse(std::function<bool(const ConstBoxPtr&)> fn) const;
 
-		css::CssPosition getPosition() const { return css_position_; }
+		css::Position getPosition() const { return css_position_; }
 		const point& getOffset() const { return offset_; }
 
 		void render(DisplayListPtr display_list, const point& offset) const;
 		KRE::FontHandlePtr getFont() const { return font_handle_; }
 
-		const css::Width& getCssLeft() const { return css_sides_[1]; }
-		const css::Width& getCssTop() const { return css_sides_[0]; }
-		const css::Width& getCssRight() const { return css_sides_[3]; }
-		const css::Width& getCssBottom() const { return css_sides_[2]; }
-		const css::Width& getCssWidth() const { return css_width_; }
-		const css::Width& getCssHeight() const { return css_height_; }
-		const css::Width& getCssMargin(css::Side n) const { return margin_[static_cast<int>(n)]; }
-		const css::Length& getCssBorder(css::Side n) const { return border_[static_cast<int>(n)]; }
-		const css::Length& getCssPadding(css::Side n) const { return padding_[static_cast<int>(n)]; }
+		const css::Width& getCssLeft() const { return *css_sides_[1]; }
+		const css::Width& getCssTop() const { return *css_sides_[0]; }
+		const css::Width& getCssRight() const { return *css_sides_[3]; }
+		const css::Width& getCssBottom() const { return *css_sides_[2]; }
+		const css::Width& getCssWidth() const { return *css_width_; }
+		const css::Width& getCssHeight() const { return *css_height_; }
+		const css::Width& getCssMargin(css::Side n) const { return *margin_[static_cast<int>(n)]; }
+		const css::Length& getCssBorder(css::Side n) const { return *border_[static_cast<int>(n)]; }
+		const css::Length& getCssPadding(css::Side n) const { return *padding_[static_cast<int>(n)]; }
 		const KRE::Color& getColor() const { return color_; }
 
-		css::CssVerticalAlign getVerticalAlign() const { return vertical_align_; }
-		css::CssTextAlign getTextAlign() const { return text_align_; }
+		std::shared_ptr<css::VerticalAlign> getVerticalAlign() const { return vertical_align_; }
+		css::TextAlign getTextAlign() const { return text_align_; }
 
 		BorderInfo& getBorderInfo() { return border_info_; }
 		const BorderInfo& getBorderInfo() const { return border_info_; }
@@ -211,12 +210,12 @@ namespace xhtml
 		bool isEOL() const { return end_of_line_; }
 		void setEOL(bool eol=true) { end_of_line_ = eol; }
 		virtual bool isMultiline() const { return false; }
-		bool isFloat() const { return cfloat_ != css::CssFloat::NONE; }
-		css::CssFloat getFloatValue() const { return cfloat_; }
+		bool isFloat() const { return cfloat_ != css::Float::NONE; }
+		css::Float getFloatValue() const { return cfloat_; }
 
 		virtual std::vector<NodePtr> getChildNodes() const;
 
-		css::CssDirection getCssDirection() const { return css_direction_; }
+		css::Direction getCssDirection() const { return css_direction_; }
 
 		bool isReplaceable() const { return is_replaceable_; }
 
@@ -244,26 +243,26 @@ namespace xhtml
 		Dimensions dimensions_;
 		std::vector<BoxPtr> boxes_;
 		std::vector<BoxPtr> absolute_boxes_;
-		css::CssFloat cfloat_;
+		css::Float cfloat_;
 		KRE::FontHandlePtr font_handle_;
 
 		BackgroundInfo background_info_;
 		BorderInfo border_info_;
-		css::CssPosition css_position_;
+		css::Position css_position_;
 
-		std::array<css::Length, 4> padding_;
-		std::array<css::Length,4> border_;
-		std::array<css::Width, 4> margin_;
+		std::array<std::shared_ptr<css::Length>, 4> padding_;
+		std::array<std::shared_ptr<css::Length>, 4> border_;
+		std::array<std::shared_ptr<css::Width>, 4> margin_;
 
 		KRE::Color color_;
 
-		std::array<css::Width, 4> css_sides_;
-		css::Width css_width_;
-		css::Width css_height_;
-		css::CssClear float_clear_;
-		css::CssVerticalAlign vertical_align_;
-		css::CssTextAlign text_align_;
-		css::CssDirection css_direction_;
+		std::array<std::shared_ptr<css::Width>, 4> css_sides_;
+		std::shared_ptr<css::Width> css_width_;
+		std::shared_ptr<css::Width> css_height_;
+		css::Clear float_clear_;
+		std::shared_ptr<css::VerticalAlign> vertical_align_;
+		css::TextAlign text_align_;
+		css::Direction css_direction_;
 
 		point offset_;
 

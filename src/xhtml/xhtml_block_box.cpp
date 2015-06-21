@@ -65,18 +65,18 @@ namespace xhtml
 			FixedPoint x = 0;
 
 			FixedPoint y1 = y + getOffset().y;
-			FixedPoint left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+			FixedPoint left = getFloatValue() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 			bool placed = false;
 			while(!placed) {
 				if(w >= box_w) {
-					left = left - (getFloatValue() == CssFloat::LEFT ? x : box_w) + getMBPLeft();
+					left = left - (getFloatValue() == Float::LEFT ? x : box_w) + getMBPLeft();
 					top = y + getMBPTop() + containing.content_.height;
 					placed = true;
 				} else {
 					y += lh;
 					y1 = y + getOffset().y;
-					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+					left = getFloatValue() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 				}
 			}
@@ -123,7 +123,7 @@ namespace xhtml
 
 		FixedPoint left = getMBPLeft();
 		FixedPoint top = getMBPTop() + containing.content_.height;
-		if(getPosition() == CssPosition::FIXED) {
+		if(getPosition() == Position::FIXED) {
 			const FixedPoint containing_width = containing.content_.width;
 			const FixedPoint containing_height = containing.content_.height;
 			left = containing.content_.x;

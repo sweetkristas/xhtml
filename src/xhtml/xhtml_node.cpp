@@ -61,9 +61,7 @@ namespace xhtml
 		  pclass_(css::PseudoClass::NONE),
 		  active_pclass_(css::PseudoClass::NONE),
 		  active_rect_(),
-		  dimensions_(),
-		  has_child_block_boxes_(false),
-		  is_block_box_(false)
+		  dimensions_()
 	{
 	}
 
@@ -157,32 +155,6 @@ namespace xhtml
 		return true;
 	}
 
-	// Pre-compute any nodes which have child block boxes for which we need to add an anonymous block boxes
-	// during layout.
-	void Node::processAnonBoxes()
-	{
-		std::unique_ptr<RenderContext::Manager> ctx_manager = nullptr;
-
-		if(id_ == NodeId::ELEMENT) {
-			ctx_manager.reset(new RenderContext::Manager(getProperties()));
-			RenderContext& ctx = RenderContext::get();
-			const css::CssDisplay display = ctx.getComputedValue(css::Property::DISPLAY).getValue<css::CssDisplay>();
-			const css::CssFloat cfloat = ctx.getComputedValue(css::Property::FLOAT).getValue<css::CssFloat>();
-			const css::CssPosition position = ctx.getComputedValue(css::Property::POSITION).getValue<css::CssPosition>();
-			if(cfloat == css::CssFloat::NONE 
-				&& (position == css::CssPosition::STATIC || position == css::CssPosition::RELATIVE) 
-				&& (display == css::CssDisplay::BLOCK || display == css::CssDisplay::LIST_ITEM || display == css::CssDisplay::TABLE)) {
-				is_block_box_ = true;
-			}
-		}
-		for(auto& c : children_) {
-			c->processAnonBoxes();
-			if(c->isBlockBox()) {
-				has_child_block_boxes_ = true;
-			}
-		}
-	}
-
 	bool Node::ancestralTraverse(std::function<bool(NodePtr)> fn)
 	{
 		if(fn(shared_from_this())) {
@@ -250,37 +222,6 @@ namespace xhtml
 		children_ = new_child_list;
 		for(auto& c : children_) {
 			c->normalize();
-		}
-	}
-
-	void Node::processWhitespace()
-	{
-		auto ctx = RenderContext::get();
-		css::CssWhitespace ws = ctx.getComputedValue(css::Property::WHITE_SPACE).getValue<css::CssWhitespace>();
-		bool collapse_whitespace = ws == css::CssWhitespace::NORMAL || ws == css::CssWhitespace::NOWRAP || ws == css::CssWhitespace::PRE_LINE;
-		if(collapse_whitespace) {
-			std::vector<NodePtr> removal_list;
-			for(auto& child : children_) {
-				if(child->id() == NodeId::TEXT) {
-					auto& txt = child->getValue();
-					bool non_empty = false;
-					for(auto& ch : txt) {
-						if(ch != '\t' && ch != '\r' && ch != '\n' && ch != ' ') {
-							non_empty = true;
-						}
-					}
-					if(!non_empty) {
-						removal_list.emplace_back(child);
-					}
-				}
-			}
-			for(auto& child : removal_list) {
-				removeChild(child);
-			}
-		}
-
-		for(auto& child : children_) {
-			child->processWhitespace();
 		}
 	}
 

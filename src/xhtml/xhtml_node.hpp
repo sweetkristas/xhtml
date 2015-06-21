@@ -31,9 +31,9 @@
 #include "SceneFwd.hpp"
 
 #include "css_stylesheet.hpp"
+#include "css_transition.hpp"
 #include "xhtml.hpp"
 #include "xhtml_element_id.hpp"
-#include "variant_object.hpp"
 
 namespace xhtml
 {
@@ -106,12 +106,7 @@ namespace xhtml
 		void normalize();
 		void mergeProperties(const css::Specificity& specificity, const css::PropertyList& plist);
 		const css::PropertyList& getProperties() const { return properties_; }
-		void processWhitespace();
 		
-		void processAnonBoxes();
-		bool hasChildBlockBox() const { return has_child_block_boxes_; }
-		bool isBlockBox() const { return is_block_box_; }
-
 		void addPseudoClass(css::PseudoClass pclass) { pclass_ = pclass_ | pclass; }
 		bool hasPseudoClass(css::PseudoClass pclass) { return (pclass_ & pclass) != css::PseudoClass::NONE; }
 		bool hasPsuedoClassActive(css::PseudoClass pclass) { return (active_pclass_ & pclass) != css::PseudoClass::NONE; }
@@ -160,8 +155,6 @@ namespace xhtml
 		rect active_rect_;
 
 		rect dimensions_;
-		bool has_child_block_boxes_;
-		bool is_block_box_;
 	};
 
 	class Document : public Node

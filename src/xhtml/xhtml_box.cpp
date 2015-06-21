@@ -58,11 +58,11 @@ namespace xhtml
 		  dimensions_(),
 		  boxes_(),
 		  absolute_boxes_(),
-		  cfloat_(CssFloat::NONE),
+		  cfloat_(Float::NONE),
 		  font_handle_(nullptr),
 		  background_info_(),
 		  border_info_(),
-		  css_position_(CssPosition::STATIC),
+		  css_position_(Position::STATIC),
 		  padding_{},
 		  border_{},
 		  margin_{},
@@ -70,10 +70,10 @@ namespace xhtml
 		  css_sides_(),
 		  css_width_(),
 		  css_height_(),
-		  float_clear_(CssClear::NONE),
-		  vertical_align_(CssVerticalAlign::BASELINE),
-		  text_align_(CssTextAlign::NORMAL),
-		  css_direction_(CssDirection::LTR),
+		  float_clear_(Clear::NONE),
+		  vertical_align_(nullptr),
+		  text_align_(TextAlign::NORMAL),
+		  css_direction_(Direction::LTR),
 		  offset_(),
 		  line_height_(0),
 		  end_of_line_(false),
@@ -94,49 +94,49 @@ namespace xhtml
 		}
 
 		RenderContext& ctx = RenderContext::get();
-		color_ = ctx.getComputedValue(Property::COLOR).getValue<CssColor>().compute();
+		color_ = ctx.getComputedValue(Property::COLOR)->asType<CssColor>()->compute();
 
 		font_handle_ = ctx.getFontHandle();
 
-		background_info_.setColor(ctx.getComputedValue(Property::BACKGROUND_COLOR).getValue<CssColor>().compute());
+		background_info_.setColor(ctx.getComputedValue(Property::BACKGROUND_COLOR)->asType<CssColor>()->compute());
 		// We set repeat before the filename so we can correctly set the background texture wrap mode.
-		background_info_.setRepeat(ctx.getComputedValue(Property::BACKGROUND_REPEAT).getValue<CssBackgroundRepeat>());
-		background_info_.setPosition(ctx.getComputedValue(Property::BACKGROUND_POSITION).getValue<BackgroundPosition>());
-		auto uri = ctx.getComputedValue(Property::BACKGROUND_IMAGE).getValue<UriStyle>();
-		if(!uri.isNone()) {
-			background_info_.setFile(uri.getUri());
+		background_info_.setRepeat(ctx.getComputedValue(Property::BACKGROUND_REPEAT)->getEnum<BackgroundRepeat>());
+		background_info_.setPosition(ctx.getComputedValue(Property::BACKGROUND_POSITION)->asType<BackgroundPosition>());
+		auto uri = ctx.getComputedValue(Property::BACKGROUND_IMAGE)->asType<UriStyle>();
+		if(!uri->isNone()) {
+			background_info_.setFile(uri->getUri());
 		}
-		css_position_ = ctx.getComputedValue(Property::POSITION).getValue<CssPosition>();
+		css_position_ = ctx.getComputedValue(Property::POSITION)->getEnum<Position>();
 
 		const Property b[4]  = { Property::BORDER_TOP_WIDTH, Property::BORDER_LEFT_WIDTH, Property::BORDER_BOTTOM_WIDTH, Property::BORDER_RIGHT_WIDTH };
 		const Property p[4]  = { Property::PADDING_TOP, Property::PADDING_LEFT, Property::PADDING_BOTTOM, Property::PADDING_RIGHT };
 		const Property m[4]  = { Property::MARGIN_TOP, Property::MARGIN_LEFT, Property::MARGIN_BOTTOM, Property::MARGIN_RIGHT };
 
 		for(int n = 0; n != 4; ++n) {
-			border_[n] = ctx.getComputedValue(b[n]).getValue<Length>();
-			padding_[n] = ctx.getComputedValue(p[n]).getValue<Length>();
-			margin_[n] = ctx.getComputedValue(m[n]).getValue<Width>();
+			border_[n] = ctx.getComputedValue(b[n])->asType<Length>();
+			padding_[n] = ctx.getComputedValue(p[n])->asType<Length>();
+			margin_[n] = ctx.getComputedValue(m[n])->asType<Width>();
 		}
 
-		css_sides_[0] = ctx.getComputedValue(Property::TOP).getValue<Width>();
-		css_sides_[1] = ctx.getComputedValue(Property::LEFT).getValue<Width>();
-		css_sides_[2] = ctx.getComputedValue(Property::BOTTOM).getValue<Width>();
-		css_sides_[3] = ctx.getComputedValue(Property::RIGHT).getValue<Width>();
+		css_sides_[0] = ctx.getComputedValue(Property::TOP)->asType<Width>();
+		css_sides_[1] = ctx.getComputedValue(Property::LEFT)->asType<Width>();
+		css_sides_[2] = ctx.getComputedValue(Property::BOTTOM)->asType<Width>();
+		css_sides_[3] = ctx.getComputedValue(Property::RIGHT)->asType<Width>();
 
-		css_width_ = ctx.getComputedValue(Property::WIDTH).getValue<Width>();
-		css_height_ = ctx.getComputedValue(Property::HEIGHT).getValue<Width>();
+		css_width_ = ctx.getComputedValue(Property::WIDTH)->asType<Width>();
+		css_height_ = ctx.getComputedValue(Property::HEIGHT)->asType<Width>();
 
-		float_clear_ = ctx.getComputedValue(Property::CLEAR).getValue<css::Clear>().clr_;
+		float_clear_ = ctx.getComputedValue(Property::CLEAR)->getEnum<Clear>();
 
-		css_direction_ = ctx.getComputedValue(Property::DIRECTION).getValue<CssDirection>();
+		css_direction_ = ctx.getComputedValue(Property::DIRECTION)->getEnum<Direction>();
 
-		text_align_ = ctx.getComputedValue(Property::TEXT_ALIGN).getValue<CssTextAlign>();
+		text_align_ = ctx.getComputedValue(Property::TEXT_ALIGN)->getEnum<TextAlign>();
 
-		cfloat_ = ctx.getComputedValue(Property::FLOAT).getValue<CssFloat>();
+		cfloat_ = ctx.getComputedValue(Property::FLOAT)->getEnum<Float>();
 		
-		const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT).getValue<Length>();
-		line_height_ = lh.compute();
-		if(lh.isPercent() || lh.isNumber()) {
+		const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT)->asType<Length>();
+		line_height_ = lh->compute();
+		if(lh->isPercent() || lh->isNumber()) {
 			line_height_ = static_cast<FixedPoint>(line_height_ * font_handle_->getFontSize() * 96.0/72.0);
 		}
 	}
@@ -320,7 +320,7 @@ namespace xhtml
 		point offs = offset;
 		offs += point(dimensions_.content_.x, dimensions_.content_.y);
 
-		if(css_position_ == CssPosition::RELATIVE) {
+		if(css_position_ == Position::RELATIVE) {
 			if(getCssLeft().isAuto()) {
 				if(!getCssRight().isAuto()) {
 					offs.x -= getCssRight().getLength().compute(getParent()->getWidth());
@@ -331,7 +331,7 @@ namespace xhtml
 					offs.x += getCssLeft().getLength().compute(getParent()->getWidth());
 				} else {
 					// over-constrained.
-					if(css_direction_ == CssDirection::LTR) {
+					if(css_direction_ == Direction::LTR) {
 						// left wins
 						offs.x += getCssLeft().getLength().compute(getParent()->getWidth());
 					} else {

@@ -48,7 +48,7 @@ namespace xhtml
 		// Find the first ancestor with non-static position
 		auto parent = getParent();
 		if(parent != nullptr && !parent->ancestralTraverse([&container](const ConstBoxPtr& box) {
-			if(box->getPosition() != CssPosition::STATIC) {
+			if(box->getPosition() != Position::STATIC) {
 				container = box->getDimensions().content_;
 				return true;
 			}

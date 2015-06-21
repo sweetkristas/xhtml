@@ -50,7 +50,7 @@ namespace xhtml
 
 		bool hasFloatsAtPosition(FixedPoint y1, FixedPoint y2) const;
 
-		void moveCursorToClearFloats(css::CssClear float_clear, point& cursor);
+		void moveCursorToClearFloats(css::Clear float_clear, point& cursor);
 
 		const Dimensions& getDimensions() const { return dims_; }
 

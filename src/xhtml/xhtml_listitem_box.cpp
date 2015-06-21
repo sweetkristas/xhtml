@@ -67,65 +67,65 @@ namespace xhtml
 	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
 	{
 		RenderContext& ctx = RenderContext::get();
-		CssListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE).getValue<CssListStyleType>();
+		ListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE)->getEnum<ListStyleType>();
 		switch(lst) {
-			case CssListStyleType::DISC: /* is the default */ break;
-			case CssListStyleType::CIRCLE:
+			case ListStyleType::DISC: /* is the default */ break;
+			case ListStyleType::CIRCLE:
 				marker_ = utils::codepoint_to_utf8(marker_circle);
 				break;
-			case CssListStyleType::SQUARE:
+			case ListStyleType::SQUARE:
 				marker_ = utils::codepoint_to_utf8(marker_square);
 				break;
-			case CssListStyleType::DECIMAL: {
+			case ListStyleType::DECIMAL: {
 				std::ostringstream ss;
 				ss << std::dec << count_ << ".";
 				marker_ = ss.str();
 				break;
 			}
-			case CssListStyleType::DECIMAL_LEADING_ZERO: {
+			case ListStyleType::DECIMAL_LEADING_ZERO: {
 				std::ostringstream ss;
 				ss << std::dec << std::setfill('0') << std::setw(2) << count_ << ".";
 				marker_ = ss.str();
 				break;
 			}
-			case CssListStyleType::LOWER_ROMAN:
+			case ListStyleType::LOWER_ROMAN:
 				if(count_ < 4000) {
 					marker_ = to_roman(count_, true) + ".";
 				}
 				break;
-			case CssListStyleType::UPPER_ROMAN:
+			case ListStyleType::UPPER_ROMAN:
 				if(count_ < 4000) {
 					marker_ = to_roman(count_, false) + ".";
 				}
 				break;
-			case CssListStyleType::LOWER_GREEK:
+			case ListStyleType::LOWER_GREEK:
 				if(count_ <= (marker_lower_greek_end - marker_lower_greek + 1)) {
 					marker_ = utils::codepoint_to_utf8(marker_lower_greek + count_) + ".";
 				}
 				break;
-			case CssListStyleType::LOWER_ALPHA:
-			case CssListStyleType::LOWER_LATIN:
+			case ListStyleType::LOWER_ALPHA:
+			case ListStyleType::LOWER_LATIN:
 				if(count_ <= (marker_lower_latin_end - marker_lower_latin + 1)) {
 					marker_ = utils::codepoint_to_utf8(marker_lower_latin + count_) + ".";
 				}
 				break;
-			case CssListStyleType::UPPER_ALPHA:
-			case CssListStyleType::UPPER_LATIN:
+			case ListStyleType::UPPER_ALPHA:
+			case ListStyleType::UPPER_LATIN:
 				if(count_ <= (marker_upper_latin_end - marker_upper_latin + 1)) {
 					marker_ = utils::codepoint_to_utf8(marker_upper_latin + count_) + ".";
 				}
 				break;
-			case CssListStyleType::ARMENIAN:
+			case ListStyleType::ARMENIAN:
 				if(count_ <= (marker_armenian_end - marker_armenian + 1)) {
 					marker_ = utils::codepoint_to_utf8(marker_armenian + count_) + ".";
 				}
 				break;
-			case CssListStyleType::GEORGIAN:
+			case ListStyleType::GEORGIAN:
 				if(count_ <= (marker_georgian_end - marker_georgian + 1)) {
 					marker_ = utils::codepoint_to_utf8(marker_georgian + count_) + ".";
 				}
 				break;
-			case CssListStyleType::NONE:
+			case ListStyleType::NONE:
 			default: 
 				marker_.clear();
 				break;
@@ -143,18 +143,18 @@ namespace xhtml
 			FixedPoint x = getMBPLeft();
 
 			FixedPoint y1 = y + getOffset().y;
-			left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+			left = getFloatValue() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 			bool placed = false;
 			while(!placed) {
 				if(w >= box_w) {
-					left = left - (getFloatValue() == CssFloat::LEFT ? x : box_w);
+					left = left - (getFloatValue() == Float::LEFT ? x : box_w);
 					top = y;
 					placed = true;
 				} else {
 					y += lh;
 					y1 = y + getOffset().y;
-					left = getFloatValue() == CssFloat::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+					left = getFloatValue() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 				}
 			}

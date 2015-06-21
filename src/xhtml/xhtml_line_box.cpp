@@ -185,7 +185,8 @@ namespace xhtml
 		for(auto& child : getChildren()) {
 			FixedPoint child_y = child->getDimensions().content_.y;
 			// XXX we should implement this fully.
-			switch(child->getVerticalAlign()) {
+			css::CssVerticalAlign va = child->getVerticalAlign()->getAlign();
+			switch(va) {
 				case css::CssVerticalAlign::BASELINE:
 					// Align the baseline of the box with the baseline of the parent box. 
 					// If the box does not have a baseline, align the bottom margin edge 
@@ -213,7 +214,13 @@ namespace xhtml
 					// Align the top of the box with the top of the parent's content area
 				case css::CssVerticalAlign::TEXT_BOTTOM:
 					// Align the bottom of the box with the bottom of the parent's content area
-				case css::CssVerticalAlign::LENGTH:
+					break;
+				case css::CssVerticalAlign::LENGTH: {
+					// Offset align by length value. Percentages reference the line-height of the element.
+					FixedPoint len = child->getVerticalAlign()->getLength().compute(child->getLineHeight());
+					// 0 for len is the baseline.
+					child_y += child->getBaselineOffset() - len;
+				}
 				default:  break;
 			}
 
@@ -224,21 +231,21 @@ namespace xhtml
 	void LineBox::postParentLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		const FixedPoint containing_width = containing.content_.width;
-		const css::CssTextAlign ta = getParent()->getTextAlign();
+		const css::TextAlign ta = getParent()->getTextAlign();
 
 		// computer&set children X offsets
 		for(auto& child : getChildren()) {
 			FixedPoint child_x = child->getLeft();
 			switch(ta) {
-				case css::CssTextAlign::RIGHT:		child_x = containing_width - child->getWidth(); break;
-				case css::CssTextAlign::CENTER:		child_x = (containing_width - child->getWidth() - child_x) / 2; break;
-				case css::CssTextAlign::JUSTIFY:	child->justify(containing_width); break;
-				case css::CssTextAlign::NORMAL:	
-					if(getParent()->getCssDirection() == css::CssDirection::RTL) {
+				case css::TextAlign::RIGHT:		child_x = containing_width - child->getWidth(); break;
+				case css::TextAlign::CENTER:		child_x = (containing_width - child->getWidth() - child_x) / 2; break;
+				case css::TextAlign::JUSTIFY:	child->justify(containing_width); break;
+				case css::TextAlign::NORMAL:	
+					if(getParent()->getCssDirection() == css::Direction::RTL) {
 						child_x = containing_width - child->getWidth();
 					}
 					break;
-				case css::CssTextAlign::LEFT:
+				case css::TextAlign::LEFT:
 				default:
 					// use default value.
 					break;

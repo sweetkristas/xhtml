@@ -52,14 +52,30 @@ namespace css
 		}
 	}
 
+	bool Style::operator==(const StylePtr& style) const
+	{
+		if(id_ != style->id_) {
+			return false;
+		}
+		return isEqual(style);
+	}
+
+	bool Style::isEqual(const StylePtr& style) const
+	{
+		ASSERT_LOG(stored_enum_ != false, "Called Style::isEqual and stored_enum_==false, this is a bug.");
+		return enumeration_ == style->enumeration_;
+	}
+	
 	CssColor::CssColor()
-		: param_(CssColorParam::VALUE),
+		: Style(StyleId::COLOR),
+		  param_(CssColorParam::VALUE),
 		  color_(KRE::Color::colorWhite())
 	{
 	}
 
 	CssColor::CssColor(CssColorParam param, const KRE::Color& color)
-		: param_(param),
+		: Style(StyleId::COLOR),
+		  param_(param),
 		  color_(color)
 	{
 	}
@@ -84,20 +100,22 @@ namespace css
 			return color_;
 		} else if(param_ == CssColorParam::CURRENT) {
 			auto& ctx = xhtml::RenderContext::get();
-			auto current_color = ctx.getComputedValue(Property::COLOR).getValue<CssColor>();
-			ASSERT_LOG(current_color.getParam() != CssColorParam::CURRENT, "Computing color of current color would cause infinite loop.");
-			return current_color.compute();
+			auto current_color = ctx.getComputedValue(Property::COLOR)->asType<CssColor>();
+			ASSERT_LOG(current_color->getParam() != CssColorParam::CURRENT, "Computing color of current color would cause infinite loop.");
+			return current_color->compute();
 		}
 		return KRE::Color(0, 0, 0, 0);
 	}
 
-	Object CssColor::evaluate(const xhtml::RenderContext& ctx) const
-	{
-		return Object(*this);
+	bool CssColor::isEqual(const StylePtr& a) const
+	{		
+		auto p = std::dynamic_pointer_cast<CssColor>(a);
+		return color_ == p->color_;
 	}
 
 	Length::Length(xhtml::FixedPoint value, const std::string& units) 
-		: value_(value), 
+		: Style(StyleId::LENGTH),
+		  value_(value), 
 		  units_(LengthUnits::NUMBER) 
 	{
 		if(units == "em") {
@@ -123,15 +141,6 @@ namespace css
 		} else {
 			LOG_ERROR("unrecognised units value: '" << units << "'");
 		}
-	}
-
-	Object Width::evaluate(const xhtml::RenderContext& ctx) const
-	{
-		//if(is_auto_) {
-		//	return Object(Length(0));
-		//}
-		//return Object(width_);
-		return Object(*this);
 	}
 
 	xhtml::FixedPoint Length::compute(xhtml::FixedPoint scale) const
@@ -179,17 +188,22 @@ namespace css
 		return res;
 	}
 
-	Object Length::evaluate(const xhtml::RenderContext& ctx) const
+	bool Length::operator==(const Length& a) const
 	{
-		return Object(*this);
+		return units_ == a.units_ && value_ == a.value_;
 	}
 
-	Object FontSize::evaluate(const xhtml::RenderContext& ctx) const
+	bool Length::isEqual(const StylePtr& a) const
+	{		
+		auto p = std::dynamic_pointer_cast<Length>(a);
+		return units_ == p->units_ && value_ == p->value_;
+	}
+
+	xhtml::FixedPoint FontSize::compute(xhtml::FixedPoint parent_fs, int dpi) const
 	{
 		float res = 0;
-		xhtml::FixedPoint parent_fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<Length>().compute();
 		if(is_absolute_) {
-			res = get_font_size_table(static_cast<float>(ctx.getDPI()))[static_cast<int>(absolute_)];
+			res = get_font_size_table(static_cast<float>(dpi))[static_cast<int>(absolute_)];
 		} else if(is_relative_) {
 			// XXX hack
 			if(relative_ == FontSizeRelative::LARGER) {
@@ -198,58 +212,29 @@ namespace css
 				res = parent_fs / 1.15f;
 			}
 		} else if(is_length_) {
-			return Object(length_);
+			return length_.compute(parent_fs);
 		} else {
 			ASSERT_LOG(false, "FontSize has no definite size defined!");
 		}
-		return Object(Length(xhtml::FixedPoint(res * fixed_point_scale)));
+		return static_cast<xhtml::FixedPoint>(res * fixed_point_scale);
 	}
 
 	FontFamily::FontFamily() 
-		: fonts_() 
+		: Style(StyleId::FONT_FAMILY), 
+		  fonts_() 
 	{ 
 		fonts_.emplace_back("sans-serif");
 	}
 
-	Object BorderStyle::evaluate(const xhtml::RenderContext& rc) const
+	bool FontFamily::isEqual(const StylePtr& a) const
 	{
-		return Object(border_style_);
+		auto p = std::dynamic_pointer_cast<FontFamily>(a);
+		return fonts_ == p->fonts_;
 	}
 
-	Object FontFamily::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(fonts_);
-	}
-
-	Object Float::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(float_);
-	}
-
-	Object Display::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(display_);
-	}
-
-	Object Whitespace::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(whitespace_);
-	}
-
-	Object FontStyle::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(fs_);
-	}
-
-	Object FontVariant::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(fv_);
-	}
-
-	Object FontWeight::evaluate(const xhtml::RenderContext& ctx) const
+	int FontWeight::compute(int fw) const
 	{
 		if(is_relative_) {
-			int fw = ctx.getComputedValue(Property::FONT_WEIGHT).getValue<int>();
 			if(relative_ == FontWeightRelative::BOLDER) {
 				// bolder
 				fw += 100;
@@ -263,48 +248,20 @@ namespace css
 				fw = 100;
 			}
 			fw = (fw / 100) * 100;
-			return Object(fw);
+			return fw;
 		}		
-		return Object(weight_);
+		return weight_;
 	}
 
-	Object TextAlign::evaluate(const xhtml::RenderContext& rc) const
+	bool FontWeight::isEqual(const StylePtr& a) const
 	{
-		return Object(ta_);
-	}
-
-	Object Direction::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(dir_);
-	}
-
-	Object TextTransform::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(tt_);
-	}
-
-	Object Overflow::evaluate(const xhtml::RenderContext& ctx) const
-	{
-		return Object(overflow_);
-	}
-
-	Object Position::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(position_);
-	}
-
-	Object UriStyle::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(*this);
-	}
-
-	Object BackgroundRepeat::evaluate(const xhtml::RenderContext& rc) const
-	{
-		return Object(repeat_);
+		auto p = std::dynamic_pointer_cast<FontWeight>(a);
+		return is_relative_ == p->is_relative_ ? is_relative_ ? relative_ == p->relative_ : weight_ == weight_ : false;
 	}
 
 	BackgroundPosition::BackgroundPosition() 
-		: left_(0, true),
+		: Style(StyleId::BACKGROUND_POSITION),
+		  left_(0, true),
 		  top_(0, true)
 	{
 	}
@@ -319,14 +276,10 @@ namespace css
 		top_ = top;
 	}
 
-	Object BackgroundPosition::evaluate(const xhtml::RenderContext& rc) const 
+	bool BackgroundPosition::isEqual(const StylePtr& a) const
 	{
-		return Object(*this);
-	}
-
-	Object ListStyleType::evaluate(const xhtml::RenderContext& rc) const 
-	{
-		return Object(list_style_type_);
+		auto p = std::dynamic_pointer_cast<BackgroundPosition>(a);
+		return left_ == p->left_ && top_ == p->top_;
 	}
 
 	ContentType::ContentType(CssContentType type)
@@ -335,7 +288,7 @@ namespace css
 		  uri_(),
 		  counter_name_(),
 		  counter_seperator_(),
-		  counter_style_(CssListStyleType::DISC),
+		  counter_style_(ListStyleType::DISC),
 		  attr_()
 	{
 	}
@@ -346,7 +299,7 @@ namespace css
 		  uri_(),
 		  counter_name_(),
 		  counter_seperator_(),
-		  counter_style_(CssListStyleType::DISC),
+		  counter_style_(ListStyleType::DISC),
 		  attr_()
 	{
 		switch(type)
@@ -358,7 +311,7 @@ namespace css
 		}
 	}
 
-	ContentType::ContentType(CssListStyleType lst, const std::string& name)
+	ContentType::ContentType(ListStyleType lst, const std::string& name)
 		: type_(CssContentType::COUNTER),
 		  str_(),
 		  uri_(),
@@ -369,7 +322,7 @@ namespace css
 	{
 	}
 
-	ContentType::ContentType(CssListStyleType lst, const std::string& name, const std::string& sep)
+	ContentType::ContentType(ListStyleType lst, const std::string& name, const std::string& sep)
 		: type_(CssContentType::COUNTERS),
 		  str_(),
 		  uri_(),
@@ -401,16 +354,18 @@ namespace css
 	}
 
 	WidthList::WidthList(const std::vector<Width>& widths)
-		: widths_{}
+		: Style(StyleId::WIDTH_LIST),
+		  widths_{}
 	{
 		setWidths(widths);
 	}
 
 	WidthList::WidthList(float value)
-		: widths_{}
+		: Style(StyleId::WIDTH_LIST),
+		  widths_{}
 	{
 		for(int side = 0; side != 4; ++side) {
-			widths_[side] = Width(Length(static_cast<int>(value * fixed_point_scale_float)));
+			widths_[side] = Width(static_cast<int>(value * fixed_point_scale_float, false));
 		}
 	}
 
@@ -418,7 +373,7 @@ namespace css
 	{
 		switch(widths.size()) {
 			case 0:
-				widths_[0] = widths_[1] = widths_[2] = widths_[3] = Width(Length(fixed_point_scale));
+				widths_[0] = widths_[1] = widths_[2] = widths_[3] = Width(fixed_point_scale, false);
 				break;
 			case 1:
 				for(int n = 0; n != 4; ++n) {
@@ -444,11 +399,17 @@ namespace css
 		}
 	}
 
+	bool WidthList::isEqual(const StylePtr& a) const
+	{
+		auto p = std::dynamic_pointer_cast<WidthList>(a);
+		return widths_ == p->widths_;
+	}
+
 	void BorderImageSlice::setWidths(const std::vector<Width>& widths)
 	{
 		switch(widths.size()) {
 			case 0:
-				slices_[0] = slices_[1] = slices_[2] = slices_[3] = Width(Length(100, true));
+				slices_[0] = slices_[1] = slices_[2] = slices_[3] = Width(100, true);
 				break;
 			case 1:
 				for(int n = 0; n != 4; ++n) {
@@ -475,10 +436,17 @@ namespace css
 	}
 
 	BorderImageSlice::BorderImageSlice(const std::vector<Width>& widths, bool fill)
-		: slices_(),
+		: Style(StyleId::BORDER_IMAGE_SLICE),
+		  slices_(),
 		  fill_(fill)
 	{
 		setWidths(widths);
+	}
+
+	bool BorderImageSlice::isEqual(const StylePtr& a) const
+	{
+		auto p = std::dynamic_pointer_cast<BorderImageSlice>(a);
+		return slices_ == p->slices_ && fill_ == p->fill_;
 	}
 
 	Angle::Angle(float angle, const std::string& units)
@@ -571,6 +539,114 @@ namespace css
 		return time_value;
 	}
 
+	bool Width::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<Width>(style);
+		return false;
+	}
+
+	bool UriStyle::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<UriStyle>(style);
+		return false;
+	}
+
+	bool FontSize::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<FontSize>(style);
+		return false;
+	}
+
+	bool Clip::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<Clip>(style);
+		return false;
+	}
+
+	bool Cursor::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<Cursor>(style);
+		return false;
+	}
+	bool Content::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<Content>(style);
+		return false;
+	}
+
+	bool Counter::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<Counter>(style);
+		return false;
+	}
+
+	bool ListStyleImage::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<ListStyleImage>(style);
+		return false;
+	}
+
+	bool Quotes::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<Quotes>(style);
+		return false;
+	}
+
+	bool VerticalAlign::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<VerticalAlign>(style);
+		return false;
+	}
+
+	bool Zindex::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<Zindex>(style);
+		return false;
+	}
+
+	bool BoxShadowStyle::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<BoxShadowStyle>(style);
+		return false;
+	}
+
+	bool BorderImageRepeat::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<BorderImageRepeat>(style);
+		return false;
+	}
+
+	bool BorderRadius::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<BorderRadius>(style);
+		return false;
+	}
+
+	bool LinearGradient::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<LinearGradient>(style);
+		return false;
+	}
+
+	bool TransitionProperties::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<TransitionProperties>(style);
+		return false;
+	}
+
+	bool TransitionTiming::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<TransitionTiming>(style);
+		return false;
+	}
+
+	bool TransitionTimingFunctions::isEqual(const StylePtr& style) const
+	{
+		auto p = std::dynamic_pointer_cast<TransitionTimingFunctions>(style);
+		return false;
+	}
+
+
 	/*
 		// XXX roughly compute what the stops should be, there doesn't seem to be an algorithm specfied for this, so we
 		// make one up.
@@ -594,4 +670,10 @@ namespace css
 			}
 		}
 	*/
+}
+
+void test()
+{
+	using namespace css;
+	auto p = Style::create<Display>(StyleId::DISPLAY, Display::BLOCK);
 }

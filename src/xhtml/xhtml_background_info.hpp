@@ -49,16 +49,16 @@ namespace xhtml
 		BackgroundInfo();
 		void setColor(const KRE::Color& color) { color_ = color; }
 		void setFile(const std::string& filename);
-		void setPosition(const css::BackgroundPosition& pos) { position_ = pos; }
-		void setRepeat(css::CssBackgroundRepeat repeat) { repeat_ = repeat; }
+		void setPosition(const std::shared_ptr<css::BackgroundPosition>& pos) { position_ = pos; }
+		void setRepeat(css::BackgroundRepeat repeat) { repeat_ = repeat; }
 		void render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
 		void init(const Dimensions& dims);
 	private:
 		void renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
 		KRE::Color color_;
 		KRE::TexturePtr texture_;
-		css::CssBackgroundRepeat repeat_;
-		css::BackgroundPosition position_;
+		css::BackgroundRepeat repeat_;
+		std::shared_ptr<css::BackgroundPosition> position_;
 
 		std::array<FixedPoint, 4> border_radius_horiz_;
 		std::array<FixedPoint, 4> border_radius_vert_;
@@ -67,7 +67,7 @@ namespace xhtml
 		std::vector<BgBoxShadow> box_shadows_;
 
 		// background-clip
-		css::CssBackgroundClip background_clip_; 
+		css::BackgroundClip background_clip_; 
 
 		bool has_border_radius_;
 	};

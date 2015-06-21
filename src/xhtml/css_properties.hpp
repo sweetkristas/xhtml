@@ -27,17 +27,16 @@
 
 #include "css_styles.hpp"
 #include "css_lexer.hpp"
-#include "variant_object.hpp"
 
 namespace css
 {
 	struct PropertyInfo
 	{
 		PropertyInfo() : name(), inherited(false), obj(), is_default(false) {}
-		PropertyInfo(const std::string& n, bool inh, Object def) : name(n), inherited(inh), obj(def), is_default(false) {}
+		PropertyInfo(const std::string& n, bool inh, StylePtr def) : name(n), inherited(inh), obj(def), is_default(false) {}
 		std::string name;
 		bool inherited;
-		Object obj;
+		StylePtr obj;
 		bool is_default;
 	};
 
@@ -163,7 +162,7 @@ namespace css
 		StylePtr parseBorderStyleInternal();
 		StylePtr parseLinearGradient(const std::vector<TokenPtr>& tokens);
 		void parseColor2(std::shared_ptr<CssColor> color);
-		CssListStyleType parseListStyleTypeInt(const std::string& lst);
+		ListStyleType parseListStyleTypeInt(const std::string& lst);
 		CssBorderImageRepeat parseBorderImageRepeatInteral(const std::string& ref);
 
 		struct IteratorContext

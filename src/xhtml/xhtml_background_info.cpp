@@ -266,14 +266,14 @@ namespace xhtml
 	BackgroundInfo::BackgroundInfo()
 		: color_(0, 0, 0, 0),
 		  texture_(),
-		  repeat_(CssBackgroundRepeat::REPEAT),
+		  repeat_(BackgroundRepeat::REPEAT),
 		  position_(),
-		  background_clip_(CssBackgroundClip::BORDER_BOX),
+		  background_clip_(BackgroundClip::BORDER_BOX),
 		  has_border_radius_(false)
 	{
 		RenderContext& ctx = RenderContext::get();
 
-		auto& shadows = ctx.getComputedValue(Property::BOX_SHADOW).getValue<BoxShadowStyle>().getShadows();
+		auto& shadows = ctx.getComputedValue(Property::BOX_SHADOW)->asType<BoxShadowStyle>()->getShadows();
 
 		for(auto it = shadows.rbegin(); it != shadows.rend(); ++it) {
 			auto& shadow = *it;
@@ -285,7 +285,7 @@ namespace xhtml
 				shadow.getColor().compute());
 		}
 
-		background_clip_ = ctx.getComputedValue(Property::BACKGROUND_CLIP).getValue<CssBackgroundClip>();
+		background_clip_ = ctx.getComputedValue(Property::BACKGROUND_CLIP)->getEnum<BackgroundClip>();
 	}
 
 	void BackgroundInfo::init(const Dimensions& dims)
@@ -298,9 +298,9 @@ namespace xhtml
 
 		Property props[4]  = { Property::BORDER_TOP_LEFT_RADIUS, Property::BORDER_TOP_RIGHT_RADIUS, Property::BORDER_BOTTOM_LEFT_RADIUS, Property::BORDER_BOTTOM_RIGHT_RADIUS };
 		for(int n = 0; n != 4; ++n) {
-			auto br = ctx.getComputedValue(props[n]).getValue<css::BorderRadius>();
-			border_radius_horiz_[n] = br.getHoriz().compute(bbox_width);
-			border_radius_vert_[n]  = br.getVert().compute(bbox_height);
+			auto br = ctx.getComputedValue(props[n])->asType<BorderRadius>();
+			border_radius_horiz_[n] = br->getHoriz().compute(bbox_width);
+			border_radius_vert_[n]  = br->getVert().compute(bbox_height);
 			if(border_radius_horiz_[n] != 0 || border_radius_vert_[n] != 0) {
 				has_border_radius_ = true;
 			}
@@ -311,16 +311,16 @@ namespace xhtml
 	{
 		texture_ = KRE::Texture::createTexture(filename);
 		switch(repeat_) {
-			case CssBackgroundRepeat::REPEAT:
+			case BackgroundRepeat::REPEAT:
 				texture_->setAddressModes(0, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::WRAP);
 				break;
-			case CssBackgroundRepeat::REPEAT_X:
+			case BackgroundRepeat::REPEAT_X:
 				texture_->setAddressModes(0, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::BORDER, KRE::Texture::AddressMode::BORDER, KRE::Color(0,0,0,0));
 				break;
-			case CssBackgroundRepeat::REPEAT_Y:
+			case BackgroundRepeat::REPEAT_Y:
 				texture_->setAddressModes(0, KRE::Texture::AddressMode::BORDER, KRE::Texture::AddressMode::WRAP, KRE::Texture::AddressMode::BORDER, KRE::Color(0,0,0,0));
 				break;
-			case CssBackgroundRepeat::NO_REPEAT:
+			case BackgroundRepeat::NO_REPEAT:
 				texture_->setAddressModes(0, KRE::Texture::AddressMode::BORDER, KRE::Texture::AddressMode::BORDER, KRE::Texture::AddressMode::BORDER, KRE::Color(0,0,0,0));
 				break;
 		}
@@ -401,21 +401,21 @@ namespace xhtml
 
 		KRE::RenderablePtr clip_shape = nullptr;
 		switch(background_clip_) {
-			case CssBackgroundClip::BORDER_BOX:
+			case BackgroundClip::BORDER_BOX:
 				// don't do anything unless border-radius is specified
 				if(has_border_radius_) {
 					clip_shape = create_border_mask(border_radius_horiz_, border_radius_vert_, 0, 0, rw, rh);
 					clip_shape->setPosition(rx / LayoutEngine::getFixedPointScale(), ry / LayoutEngine::getFixedPointScale());
 				}
 				break;
-			case CssBackgroundClip::PADDING_BOX:
+			case BackgroundClip::PADDING_BOX:
 				clip_shape = std::make_shared<SolidRenderable>(rect(
 					offset.x - dims.padding_.left,
 					offset.y - dims.padding_.top,
 					dims.content_.width + dims.padding_.left + dims.padding_.right,
 					dims.content_.height + dims.padding_.top + dims.padding_.bottom), KRE::Color::colorWhite());
 				break;
-			case CssBackgroundClip::CONTENT_BOX:
+			case BackgroundClip::CONTENT_BOX:
 				clip_shape = std::make_shared<SolidRenderable>(rect(
 					offset.x,
 					offset.y,
@@ -442,15 +442,15 @@ namespace xhtml
 			int sw_offs = 0;
 			int sh_offs = 0;
 
-			if(position_.getLeft().isPercent()) {
-				sw_offs = position_.getLeft().compute(sw * LayoutEngine::getFixedPointScale());
+			if(position_->getLeft().isPercent()) {
+				sw_offs = position_->getLeft().compute(sw * LayoutEngine::getFixedPointScale());
 			}
-			if(position_.getTop().isPercent()) {
-				sh_offs = position_.getTop().compute(sh * LayoutEngine::getFixedPointScale());
+			if(position_->getTop().isPercent()) {
+				sh_offs = position_->getTop().compute(sh * LayoutEngine::getFixedPointScale());
 			}
 
-			const int rw_offs = position_.getLeft().compute(rw);
-			const int rh_offs = position_.getTop().compute(rh);
+			const int rw_offs = position_->getLeft().compute(rw);
+			const int rh_offs = position_->getTop().compute(rh);
 			
 			const float rxf = static_cast<float>(rx) / LayoutEngine::getFixedPointScaleFloat();
 			const float ryf = static_cast<float>(ry) / LayoutEngine::getFixedPointScaleFloat();
@@ -464,19 +464,19 @@ namespace xhtml
 			auto ptr = std::make_shared<KRE::Blittable>(tex);
 			ptr->setCentre(KRE::Blittable::Centre::TOP_LEFT);
 			switch(repeat_) {
-				case CssBackgroundRepeat::REPEAT:
+				case BackgroundRepeat::REPEAT:
 					tex->setSourceRect(0, rect(-left, -top, width, height));
 					ptr->setDrawRect(rectf(rxf, ryf, width, height));
 					break;
-				case CssBackgroundRepeat::REPEAT_X:
+				case BackgroundRepeat::REPEAT_X:
 					tex->setSourceRect(0, rect(-left, 0, width, sh));
 					ptr->setDrawRect(rectf(rxf, top, width, static_cast<float>(sh)));
 					break;
-				case CssBackgroundRepeat::REPEAT_Y:
+				case BackgroundRepeat::REPEAT_Y:
 					tex->setSourceRect(0, rect(0, -top, sw, height));
 					ptr->setDrawRect(rectf(left, ryf, static_cast<float>(sw), height));
 					break;
-				case CssBackgroundRepeat::NO_REPEAT:
+				case BackgroundRepeat::NO_REPEAT:
 					tex->setSourceRect(0, rect(0, 0, sw, sh));
 					ptr->setDrawRect(rectf(left, top, static_cast<float>(sw), static_cast<float>(sh)));
 					break;

@@ -231,7 +231,6 @@
     <ClInclude Include="..\src\xhtml\font_freetype.hpp" />
     <ClInclude Include="..\src\xhtml\solid_renderable.hpp" />
     <ClInclude Include="..\src\xhtml\to_roman.hpp" />
-    <ClInclude Include="..\src\xhtml\variant_object.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_absolute_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_background_info.hpp" />

@@ -107,10 +107,10 @@ namespace xhtml
 		auto ctx = RenderContext::get();
 
 		// Apply transform text_ based on "text-transform" property		
-		css::CssTextTransform text_transform = ctx.getComputedValue(css::Property::TEXT_TRANSFORM).getValue<css::CssTextTransform>();
+		css::TextTransform text_transform = ctx.getComputedValue(css::Property::TEXT_TRANSFORM)->getEnum<css::TextTransform>();
 		std::string transformed_text = text_;
 		switch(text_transform) {
-			case css::CssTextTransform::CAPITALIZE: {
+			case css::TextTransform::CAPITALIZE: {
 				bool first_letter = true;
 				transformed_text.clear();
 				for(auto cp : utils::utf8_to_codepoint(text_)) {
@@ -128,25 +128,25 @@ namespace xhtml
 				}
 				break;
 			}
-			case css::CssTextTransform::UPPERCASE:
+			case css::TextTransform::UPPERCASE:
 				transformed_text = boost::locale::to_upper(text_);
 				break;
-			case css::CssTextTransform::LOWERCASE:
+			case css::TextTransform::LOWERCASE:
 				transformed_text = boost::locale::to_lower(text_);
 				break;
-			case css::CssTextTransform::NONE:
+			case css::TextTransform::NONE:
 			default: break;
 		}
 
-		css::CssWhitespace ws = ctx.getComputedValue(css::Property::WHITE_SPACE).getValue<css::CssWhitespace>();
+		css::Whitespace ws = ctx.getComputedValue(css::Property::WHITE_SPACE)->getEnum<css::Whitespace>();
 
 		// indicates whitespace should be collapsed together.
-		bool collapse_whitespace = ws == css::CssWhitespace::NORMAL || ws == css::CssWhitespace::NOWRAP || ws == css::CssWhitespace::PRE_LINE;
+		bool collapse_whitespace = ws == css::Whitespace::NORMAL || ws == css::Whitespace::NOWRAP || ws == css::Whitespace::PRE_LINE;
 		// indicates we should break at the boxes line width
 		break_at_line_ = non_zero_width &&
-			(ws == css::CssWhitespace::NORMAL || ws == css::CssWhitespace::PRE_LINE || ws == css::CssWhitespace::PRE_WRAP);
+			(ws == css::Whitespace::NORMAL || ws == css::Whitespace::PRE_LINE || ws == css::Whitespace::PRE_WRAP);
 		// indicates we should break on newline characters.
-		bool break_at_newline = ws == css::CssWhitespace::PRE || ws == css::CssWhitespace::PRE_LINE || ws == css::CssWhitespace::PRE_WRAP;
+		bool break_at_newline = ws == css::Whitespace::PRE || ws == css::Whitespace::PRE_LINE || ws == css::Whitespace::PRE_WRAP;
 
 		// Apply letter-spacing and word-spacing here.
 		xhtml::tokenize_text(transformed_text, collapse_whitespace, break_at_newline, line_);
@@ -162,15 +162,15 @@ namespace xhtml
 		auto ctx = RenderContext::get();
 
 		line_.space_advance = font_handle->calculateCharAdvance(' ');
-		FixedPoint word_spacing = ctx.getComputedValue(css::Property::WORD_SPACING).getValue<css::Length>().compute();
+		FixedPoint word_spacing = ctx.getComputedValue(css::Property::WORD_SPACING)->asType<css::Length>()->compute();
 		line_.space_advance += word_spacing;
-		FixedPoint letter_spacing = ctx.getComputedValue(css::Property::LETTER_SPACING).getValue<css::Length>().compute();
+		FixedPoint letter_spacing = ctx.getComputedValue(css::Property::LETTER_SPACING)->asType<css::Length>()->compute();
 		line_.space_advance += letter_spacing;
 		
-		css::CssDirection dir = ctx.getComputedValue(css::Property::DIRECTION).getValue<css::CssDirection>();
-		css::CssTextAlign text_align = ctx.getComputedValue(css::Property::TEXT_ALIGN).getValue<css::CssTextAlign>();
-		if(text_align == css::CssTextAlign::NORMAL) {
-			text_align = dir == css::CssDirection::LTR ? css::CssTextAlign::LEFT : css::CssTextAlign::RIGHT;
+		css::Direction dir = ctx.getComputedValue(css::Property::DIRECTION)->getEnum<css::Direction>();
+		css::TextAlign text_align = ctx.getComputedValue(css::Property::TEXT_ALIGN)->getEnum<css::TextAlign>();
+		if(text_align == css::TextAlign::NORMAL) {
+			text_align = dir == css::Direction::LTR ? css::TextAlign::LEFT : css::TextAlign::RIGHT;
 		}
 
 		// XXX padding-left is applied to the start of the first word

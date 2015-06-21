@@ -51,7 +51,7 @@ namespace xhtml
 		int getDPI() const { return dpi_scale_; }
 		void setDPI(int dpi) { dpi_scale_ = dpi; }
 
-		Object getComputedValue(css::Property p) const;
+		const css::StylePtr& getComputedValue(css::Property p) const;
 
 		// We need special case handling for the font.
 		KRE::FontHandlePtr getFontHandle() const;

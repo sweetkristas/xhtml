@@ -647,9 +647,6 @@
     <ClInclude Include="..\src\xhtml\css_properties.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\xhtml\variant_object.hpp">
-      <Filter>Header Files\xhtml</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\xhtml\css_styles.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>

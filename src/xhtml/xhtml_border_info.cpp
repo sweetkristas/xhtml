@@ -293,11 +293,11 @@ namespace xhtml
 	}
 
 	BorderInfo::BorderInfo()
-		: uri_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SOURCE).getValue<UriStyle>()),
-		  border_width_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_WIDTH).getValue<WidthList>()),
-		  border_outset_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_OUTSET).getValue<WidthList>()),
-		  border_slice_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SLICE).getValue<BorderImageSlice>()),
-		  border_repeat_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_REPEAT).getValue<BorderImageRepeat>()),
+		: uri_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SOURCE)->asType<UriStyle>()->getUri()),
+		  border_width_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_WIDTH)->asType<WidthList>()),
+		  border_outset_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_OUTSET)->asType<WidthList>()),
+		  border_slice_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SLICE)->asType<BorderImageSlice>()),
+		  border_repeat_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_REPEAT)->asType<BorderImageRepeat>()),
 		  image_(),
 		  fill_(false),
 		  slice_{},
@@ -312,8 +312,8 @@ namespace xhtml
 		const Property bs[4]  = { Property::BORDER_TOP_STYLE, Property::BORDER_LEFT_STYLE, Property::BORDER_BOTTOM_STYLE, Property::BORDER_RIGHT_STYLE };
 		const Property bc[4] = { Property::BORDER_TOP_COLOR, Property::BORDER_LEFT_COLOR, Property::BORDER_BOTTOM_COLOR, Property::BORDER_RIGHT_COLOR };
 		for(int n = 0; n != 4; ++n) {
-			border_color_[n] = ctx.getComputedValue(bc[n]).getValue<CssColor>().compute();
-			border_style_[n] = ctx.getComputedValue(bs[n]).getValue<CssBorderStyle>();
+			border_color_[n] = ctx.getComputedValue(bc[n])->asType<CssColor>()->compute();
+			border_style_[n] = ctx.getComputedValue(bs[n])->getEnum<BorderStyle>();
 		}
 	}
 
@@ -331,7 +331,7 @@ namespace xhtml
 			setFile(uri_.getUri());
 		}
 
-		auto& outset = border_outset_.getWidths();
+		auto& outset = border_outset_->getWidths();
 		for(auto side = 0; side != 4; ++side) {
 			if(outset[side].getLength().isNumber()) {
 				// If the outset is a plain number, it is take as the multiple of border_widths
@@ -357,7 +357,7 @@ namespace xhtml
 			+ dims.border_.right 
 			+ static_cast<FixedPoint>((outset_[0] + outset_[2]) * LayoutEngine::getFixedPointScale());
 
-		auto& slices = border_slice_.getWidths();
+		auto& slices = border_slice_->getWidths();
 		for(auto side = 0; side != 4; ++side) {
 			const Length& slice_length = slices[side].getLength();
 			if(slice_length.isNumber()) {
@@ -374,7 +374,7 @@ namespace xhtml
 			ASSERT_LOG(slice_[side] >= 0, "Negative values for slices are illegal");
 		}
 
-		auto& widths = border_width_.getWidths();
+		auto& widths = border_width_->getWidths();
 		for(auto side = 0; side != 4; ++side) {
 			if(widths[side].isAuto()) {
 				// intrinsic width of corrsponding slice.
@@ -404,9 +404,9 @@ namespace xhtml
 			}
 		}
 
-		setRepeat(border_repeat_.image_repeat_horiz_, border_repeat_.image_repeat_vert_);
+		setRepeat(border_repeat_->image_repeat_horiz_, border_repeat_->image_repeat_vert_);
 
-		setFill(border_slice_.isFilled());
+		setFill(border_slice_->isFilled());
 	}
 
 	void BorderInfo::renderNormal(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
@@ -437,7 +437,7 @@ namespace xhtml
 			// only drawing border if width > 0, alpha != 0
 			if(bw[side] > 0 && border_color_[side].ai() != 0) {
 				switch(border_style_[side]) {
-					case CssBorderStyle::SOLID:
+					case BorderStyle::SOLID:
 						switch(side) {
 							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
 							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color_[side].as_u8vec4()); break;
@@ -445,7 +445,7 @@ namespace xhtml
 							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
 						}
 						break;
-					case CssBorderStyle::INSET: {
+					case BorderStyle::INSET: {
 						glm::u8vec4 inset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
 						switch(side) {
 							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, inset); break;
@@ -455,7 +455,7 @@ namespace xhtml
 						}
 						break;
 					}
-					case CssBorderStyle::OUTSET: {
+					case BorderStyle::OUTSET: {
 						glm::u8vec4 outset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
 						switch(side) {
 							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
@@ -465,7 +465,7 @@ namespace xhtml
 						}
 						break;
 					}
-					case CssBorderStyle::DOUBLE:
+					case BorderStyle::DOUBLE:
 						switch(side) {
 							case 0: 
 								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
@@ -485,7 +485,7 @@ namespace xhtml
 								break;
 						}
 						break;
-					case CssBorderStyle::GROOVE: {
+					case BorderStyle::GROOVE: {
 						glm::u8vec4 inset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
 						glm::u8vec4 outset(border_color_[side].as_u8vec4());
 						switch(side) {
@@ -508,7 +508,7 @@ namespace xhtml
 						}
 						break;
 					}
-					case CssBorderStyle::RIDGE: {
+					case BorderStyle::RIDGE: {
 						glm::u8vec4 outset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
 						glm::u8vec4 inset(border_color_[side].as_u8vec4());
 						switch(side) {
@@ -531,12 +531,12 @@ namespace xhtml
 						}
 						break;
 					}
-					case CssBorderStyle::DOTTED:
-					case CssBorderStyle::DASHED:
+					case BorderStyle::DOTTED:
+					case BorderStyle::DASHED:
 						ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(border_style_[side]));
 						break;
-					case CssBorderStyle::HIDDEN:
-					case CssBorderStyle::NONE:
+					case BorderStyle::HIDDEN:
+					case BorderStyle::NONE:
 					default:
 						// these skip drawing.
 						break;

@@ -44,14 +44,15 @@ namespace xhtml
 		KRE::FontHandlePtr get_font_handle()
 		{
 			RenderContext& ctx = RenderContext::get();
-			auto ff = ctx.getComputedValue(Property::FONT_FAMILY).getValue<std::vector<std::string>>();
-			auto fs = ctx.getComputedValue(Property::FONT_SIZE).getValue<Length>().compute();
-			auto fw = ctx.getComputedValue(Property::FONT_WEIGHT).getValue<int>();
-			auto ft = ctx.getComputedValue(Property::FONT_STYLE).getValue<CssFontStyle>();
-			return KRE::FontDriver::getFontHandle(ff, static_cast<float>(fs)/65536.0f*72.0f/96.0f/*, fw, ft*/);
+			KRE::FontHandlePtr parent_font = get_font_handle_stack().empty() ? nullptr : get_font_handle_stack().top();
+			auto ff = ctx.getComputedValue(Property::FONT_FAMILY)->asType<FontFamily>()->getFontList();
+			auto fs = ctx.getComputedValue(Property::FONT_SIZE)->asType<FontSize>()->compute(static_cast<FixedPoint>((parent_font ? parent_font->getFontSize() : 12.0f) * 65536.0f), ctx.getDPI());
+			auto fw = ctx.getComputedValue(Property::FONT_WEIGHT)->asType<FontWeight>()->compute(400/*parent_font ? parent_font->getFontWeight() : 400*/);
+			auto ft = ctx.getComputedValue(Property::FONT_STYLE)->getEnum<FontStyle>();
+			return KRE::FontDriver::getFontHandle(ff, static_cast<float>(fs)/65536.0f*72.0f/static_cast<float>(ctx.getDPI())/*, fw, ft*/);
 		}
 
-		typedef std::vector<std::stack<Object>> stack_array;
+		typedef std::vector<std::stack<StylePtr>> stack_array;
 		stack_array& get_stack_array()
 		{
 			static stack_array res;
@@ -96,7 +97,7 @@ namespace xhtml
 		return res;
 	}
 
-	Object RenderContext::getComputedValue(css::Property p) const
+	const StylePtr& RenderContext::getComputedValue(css::Property p) const
 	{
 		int ndx = static_cast<int>(p);
 		ASSERT_LOG(ndx < max_properties, "Index in property list: " << ndx << " is outside of legal bounds: 0-" << (max_properties-1));
@@ -117,7 +118,7 @@ namespace xhtml
 		for(int n = 0; n != max_properties; ++n) {
 			const Property p = static_cast<Property>(n);
 			auto& stk = get_stack_array()[n];
-			const auto style = plist.getProperty(p);
+			const StylePtr style = plist.getProperty(p);
 			if(style == nullptr) {
 				// get default property
 				auto& pinfo = get_default_property_info(p);
@@ -131,11 +132,12 @@ namespace xhtml
 				}
 			} else if(!style->isInherited()) {
 				// Is the property isn't marked as being inherited, we handle it here.
-				update_list.emplace_back(n);
-				Object o = style->evaluate(RenderContext::get());
-				get_stack_array()[n].emplace(o);
-				if(is_font_property(p)) {
-					pushed_font_change_ = true;
+				if(style != get_stack_array()[n].top()) {
+					update_list.emplace_back(n);				
+					get_stack_array()[n].emplace(style);
+					if(is_font_property(p)) {
+						pushed_font_change_ = true;
+					}
 				}
 			}
 		}

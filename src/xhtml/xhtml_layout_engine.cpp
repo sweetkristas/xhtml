@@ -41,23 +41,23 @@ namespace xhtml
 
 	namespace 
 	{
-		std::string display_string(CssDisplay disp) {
+		std::string display_string(Display disp) {
 			switch(disp) {
-				case CssDisplay::BLOCK:					return "block";
-				case CssDisplay::INLINE:				return "inline";
-				case CssDisplay::INLINE_BLOCK:			return "inline-block";
-				case CssDisplay::LIST_ITEM:				return "list-item";
-				case CssDisplay::TABLE:					return "table";
-				case CssDisplay::INLINE_TABLE:			return "inline-table";
-				case CssDisplay::TABLE_ROW_GROUP:		return "table-row-group";
-				case CssDisplay::TABLE_HEADER_GROUP:	return "table-header-group";
-				case CssDisplay::TABLE_FOOTER_GROUP:	return "table-footer-group";
-				case CssDisplay::TABLE_ROW:				return "table-row";
-				case CssDisplay::TABLE_COLUMN_GROUP:	return "table-column-group";
-				case CssDisplay::TABLE_COLUMN:			return "table-column";
-				case CssDisplay::TABLE_CELL:			return "table-cell";
-				case CssDisplay::TABLE_CAPTION:			return "table-caption";
-				case CssDisplay::NONE:					return "none";
+				case Display::BLOCK:					return "block";
+				case Display::INLINE:				return "inline";
+				case Display::INLINE_BLOCK:			return "inline-block";
+				case Display::LIST_ITEM:				return "list-item";
+				case Display::TABLE:					return "table";
+				case Display::INLINE_TABLE:			return "inline-table";
+				case Display::TABLE_ROW_GROUP:		return "table-row-group";
+				case Display::TABLE_HEADER_GROUP:	return "table-header-group";
+				case Display::TABLE_FOOTER_GROUP:	return "table-footer-group";
+				case Display::TABLE_ROW:				return "table-row";
+				case Display::TABLE_COLUMN_GROUP:	return "table-column-group";
+				case Display::TABLE_COLUMN:			return "table-column";
+				case Display::TABLE_CELL:			return "table-cell";
+				case Display::TABLE_CAPTION:			return "table-caption";
+				case Display::NONE:					return "none";
 				default: 
 					ASSERT_LOG(false, "illegal display value: " << static_cast<int>(disp));
 					break;
@@ -127,33 +127,33 @@ namespace xhtml
 					++top;
 				}
 
-				const CssDisplay display = ctx_.getComputedValue(Property::DISPLAY).getValue<CssDisplay>();
-				const CssFloat cfloat = ctx_.getComputedValue(Property::FLOAT).getValue<CssFloat>();
-				const CssPosition position = ctx_.getComputedValue(Property::POSITION).getValue<CssPosition>();
+				const Display display = ctx_.getComputedValue(Property::DISPLAY)->getEnum<Display>();
+				const Float cfloat = ctx_.getComputedValue(Property::FLOAT)->getEnum<Float>();
+				const Position position = ctx_.getComputedValue(Property::POSITION)->getEnum<Position>();
 
-				if(display == CssDisplay::NONE) {
+				if(display == Display::NONE) {
 					// Do not create a box for this or it's children
 					// early return
 					continue;
 				}
 
-				if(position == CssPosition::ABSOLUTE) {
+				if(position == Position::ABSOLUTE) {
 					// absolute positioned elements are taken out of the normal document flow
 					parent->addAbsoluteElement(*this, parent->getDimensions(), std::make_shared<AbsoluteBox>(parent, child));
-				} else if(position == CssPosition::FIXED) {
+				} else if(position == Position::FIXED) {
 					// fixed positioned elements are taken out of the normal document flow
 					root_->addFixed(std::make_shared<BlockBox>(parent, child));
 				} else {
-					if(cfloat != CssFloat::NONE) {
+					if(cfloat != Float::NONE) {
 						// XXX need to add an offset to position for the float box based on body margin.
 						// N.B. if the current display is one of the CssDisplay::TABLE* styles then this should be
 						// a table box rather than a block box. Inline boxes are going to get wrapped in a BlockBox
 						
-						if(display == CssDisplay::BLOCK) {
+						if(display == Display::BLOCK) {
 							res.emplace_back(std::make_shared<BlockBox>(parent, child));
-						} else if(display == CssDisplay::LIST_ITEM) {
+						} else if(display == Display::LIST_ITEM) {
 							res.emplace_back(std::make_shared<ListItemBox>(parent, child, list_item_counter_.top()));
-						} else if(display == CssDisplay::TABLE) {
+						} else if(display == Display::TABLE) {
 							//root_->addFloatBox(*this, std::make_shared<TableBox>(parent, child), cfloat, offset_.top().x, offset_.top().y + (open_box != nullptr ? open_box->getCursor().y : 0));
 							ASSERT_LOG(false, "Implement Table display");
 						} else {
@@ -163,10 +163,10 @@ namespace xhtml
 						continue;
 					}
 					switch(display) {
-						case CssDisplay::NONE:
+						case Display::NONE:
 							// Do not create a box for this or it's children
 							break;
-						case CssDisplay::INLINE: {
+						case Display::INLINE: {
 							if(child->isReplaced()) {
 								// replaced elements should generate a box.
 								// XXX should these go into open_box?
@@ -183,7 +183,7 @@ namespace xhtml
 							}
 							break;
 						}
-						case CssDisplay::BLOCK: {
+						case Display::BLOCK: {
 							if(open_box) {
 								if(!open_box->getChildren().empty()) {
 									res.emplace_back(open_box);
@@ -193,7 +193,7 @@ namespace xhtml
 							res.emplace_back(std::make_shared<BlockBox>(parent, child));
 							break;
 						}
-						case CssDisplay::INLINE_BLOCK: {
+						case Display::INLINE_BLOCK: {
 							if(open_box == nullptr) {
 								open_box = std::make_shared<LineBox>(parent);
 							}
@@ -202,7 +202,7 @@ namespace xhtml
 							open_box->addChild(ibb);
 							break;
 						}
-						case CssDisplay::LIST_ITEM: {
+						case Display::LIST_ITEM: {
 							if(open_box) {
 								if(!open_box->getChildren().empty()) {
 									res.emplace_back(open_box);
@@ -212,16 +212,16 @@ namespace xhtml
 							res.emplace_back(std::make_shared<ListItemBox>(parent, child, list_item_counter_.top()));
 							break;
 						}
-						case CssDisplay::TABLE:
-						case CssDisplay::INLINE_TABLE:
-						case CssDisplay::TABLE_ROW_GROUP:
-						case CssDisplay::TABLE_HEADER_GROUP:
-						case CssDisplay::TABLE_FOOTER_GROUP:
-						case CssDisplay::TABLE_ROW:
-						case CssDisplay::TABLE_COLUMN_GROUP:
-						case CssDisplay::TABLE_COLUMN:
-						case CssDisplay::TABLE_CELL:
-						case CssDisplay::TABLE_CAPTION:
+						case Display::TABLE:
+						case Display::INLINE_TABLE:
+						case Display::TABLE_ROW_GROUP:
+						case Display::TABLE_HEADER_GROUP:
+						case Display::TABLE_FOOTER_GROUP:
+						case Display::TABLE_ROW:
+						case Display::TABLE_COLUMN_GROUP:
+						case Display::TABLE_COLUMN:
+						case Display::TABLE_CELL:
+						case Display::TABLE_CAPTION:
 							ASSERT_LOG(false, "FIXME: LayoutEngine::formatNode(): " << display_string(display));
 							break;
 						default:
@@ -255,7 +255,7 @@ namespace xhtml
 	void LayoutEngine::addFloat(BoxPtr float_box)
 	{
 		ASSERT_LOG(!float_list_.empty(), "Empty float list.");
-		if(float_box->getFloatValue() == CssFloat::LEFT) {
+		if(float_box->getFloatValue() == Float::LEFT) {
 			float_list_.top().left_.emplace_back(float_box);
 		} else {
 			float_list_.top().right_.emplace_back(float_box);
@@ -318,15 +318,15 @@ namespace xhtml
 		return offset_.top();
 	}
 
-	void LayoutEngine::moveCursorToClearFloats(CssClear float_clear, point& cursor)
+	void LayoutEngine::moveCursorToClearFloats(Clear float_clear, point& cursor)
 	{
 		FixedPoint new_y = cursor.y;
-		if(float_clear == CssClear::LEFT || float_clear == CssClear::BOTH) {
+		if(float_clear == Clear::LEFT || float_clear == Clear::BOTH) {
 			for(auto& lf : getFloatList().left_) {
 				new_y = std::max(new_y, lf->getMBPHeight() + lf->getOffset().y + lf->getDimensions().content_.y + lf->getDimensions().content_.height);
 			}
 		}
-		if(float_clear == CssClear::RIGHT || float_clear == CssClear::BOTH) {
+		if(float_clear == Clear::RIGHT || float_clear == Clear::BOTH) {
 			for(auto& rf : getFloatList().right_) {
 				new_y = std::max(new_y, rf->getMBPHeight() + rf->getOffset().y + rf->getDimensions().content_.y + rf->getDimensions().content_.height);
 			}

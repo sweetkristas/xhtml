@@ -25,6 +25,7 @@
 
 #include "asserts.hpp"
 #include "css_transition.hpp"
+#include "profile_timer.hpp"
 #include "unit_test.hpp"
 
 namespace css
@@ -34,11 +35,6 @@ namespace css
 		inline bool flt_equal(const float t, const float value) 
 		{
 			return std::abs(t - value) < FLT_EPSILON;
-		}
-
-		glm::vec2 evaluate_cubic_bezier(float t, const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& p3)
-		{
-			return p0;
 		}
 
 		float recurse_cubic_bezier(float x, const glm::vec2& p0, const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& p3)
@@ -109,21 +105,62 @@ namespace css
 			const int step = (start ? 1 : 0) + static_cast<int>(t /  step_incr);
 			return (step > nintervals ? nintervals : step) * step_incr;
 		}
+
+		float mix(float a, float s, float e) 
+		{
+			return (1.0f - a) * s + a * e;
+		}
 	}
 
-	Transition::Transition()
+	ColorTransition::ColorTransition(const TimingFunction& fn, float duration, float delay)
+		: ttfn_(fn),
+		  started_(false),
+		  stopped_(false),
+		  duration_(duration),
+		  delay_(delay),
+		  start_time_(0),
+		  start_color_(),
+		  end_color_(),
+		  mix_color_()
 	{
 	}
 
-	Transition::~Transition()
+	void ColorTransition::process(float t)
 	{
+		if(started_ && !stopped_) {
+			if(t > (start_time_ + duration_)) {
+				stopped_ = true;
+			} else if(t >= start_time_) {
+				float frac = 1.0f - (t - start_time_) / duration_;
+				if(frac > 1.0f) {
+					frac = 1.0f;
+				}
+				float outp = 0.0f;
+				if(ttfn_.getFunction() == CssTransitionTimingFunction::STEPS) {
+					// steps
+					outp = evaluate_step(frac, ttfn_.getIntervals(), ttfn_.getStepChangePoint() == StepChangePoint::START);
+				} else {
+					// cubic bezier
+					outp = evaluate_cubic_bezier(frac, ttfn_.getP1(), ttfn_.getP2());
+				}
+				mix_color_.setRed(mix(outp, start_color_.r(), end_color_.r()));
+				mix_color_.setGreen(mix(outp, start_color_.g(), end_color_.g()));
+				mix_color_.setBlue(mix(outp, start_color_.b(), end_color_.b()));
+				mix_color_.setAlpha(mix(outp, start_color_.a(), end_color_.a()));
+
+				if(flt_equal(t, (start_time_ + duration_))) {
+					stopped_ = true;
+				}
+			}
+		}
 	}
 }
 
 UNIT_TEST(cubic_bezier) 
 {
 	for(float x = 0.0f; x <= 1.0f; x += 0.1f) {
+		profile::manager pman("css::evaluate_cubic_bezier");
 		float y = css::evaluate_cubic_bezier(x, glm::vec2(0.25f, 0.1f), glm::vec2(0.25f, 1.0f));
-		LOG_DEBUG("'ease' x: " << x << ", y: " << y);
+		//LOG_DEBUG("'ease' x: " << x << ", y: " << y);
 	}
 }
