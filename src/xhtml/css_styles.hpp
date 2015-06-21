@@ -229,7 +229,6 @@ namespace css
 	class Style : public std::enable_shared_from_this<Style>
 	{
 	public:
-		MAKE_FACTORY(Style);
 		template<typename T> explicit Style(StyleId id, T value) 
 			: id_(id), 
 			  is_important_(false), 
@@ -308,7 +307,7 @@ namespace css
 	public:
 		MAKE_FACTORY(Length);
 		Length() : Style(StyleId::LENGTH), value_(0), units_(LengthUnits::NUMBER) {}
-		explicit Length(xhtml::FixedPoint value, bool is_percent=false) : Style(StyleId::LENGTH), value_(value), units_(is_percent ? LengthUnits::PERCENT : LengthUnits::NUMBER) {}
+		explicit Length(xhtml::FixedPoint value, bool is_percent) : Style(StyleId::LENGTH), value_(value), units_(is_percent ? LengthUnits::PERCENT : LengthUnits::NUMBER) {}
 		explicit Length(xhtml::FixedPoint value, LengthUnits units) : Style(StyleId::LENGTH), value_(value), units_(units) {}
 		explicit Length(xhtml::FixedPoint value, const std::string& units);
 		bool isNumber() const { return units_ == LengthUnits::NUMBER; }
@@ -363,10 +362,10 @@ namespace css
 	class Width : public Style
 	{
 	public:
+		MAKE_FACTORY(Width);
 		Width() : Style(StyleId::WIDTH), is_auto_(false), width_() {}
 		explicit Width(bool a) : Style(StyleId::WIDTH), is_auto_(a), width_() {}
-		explicit Width(xhtml::FixedPoint value, LengthUnits units) : Style(StyleId::WIDTH), is_auto_(false), width_(value, units) {}
-		explicit Width(xhtml::FixedPoint value, bool percent) : Style(StyleId::WIDTH), is_auto_(false), width_(value, percent) {}
+		explicit Width(const Length& len) : Style(StyleId::WIDTH), is_auto_(false), width_(len) {}
 		bool isAuto() const { return is_auto_; }
 		const Length& getLength() const { return width_; }
 		bool isEqual(const StylePtr& style) const override;
@@ -395,7 +394,7 @@ namespace css
 	{
 	public:
 		MAKE_FACTORY(UriStyle);
-		UriStyle() : Style(StyleId::URI), is_none_(false), uri_() {}
+		UriStyle() : Style(StyleId::URI), is_none_(true), uri_() {}
 		explicit UriStyle(bool none) : Style(StyleId::URI), is_none_(none), uri_() {}
 		explicit UriStyle(const std::string uri) : Style(StyleId::URI), is_none_(false), uri_(uri) {}
 		bool isNone() const { return is_none_; }
@@ -960,7 +959,7 @@ namespace css
 	{
 	public:
 		MAKE_FACTORY(BorderRadius);
-		BorderRadius() : Style(StyleId::BORDER_RADIUS), horiz_(0), vert_(0) {}
+		BorderRadius() : Style(StyleId::BORDER_RADIUS), horiz_(0, false), vert_(0, false) {}
 		explicit BorderRadius(const Length& horiz, const Length& vert) : Style(StyleId::BORDER_RADIUS), horiz_(horiz), vert_(vert) {}
 		const Length& getHoriz() const { return horiz_; }
 		const Length& getVert() const { return vert_; }

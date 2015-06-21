@@ -293,7 +293,7 @@ namespace xhtml
 	}
 
 	BorderInfo::BorderInfo()
-		: uri_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SOURCE)->asType<UriStyle>()->getUri()),
+		: uri_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SOURCE)->asType<UriStyle>()),
 		  border_width_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_WIDTH)->asType<WidthList>()),
 		  border_outset_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_OUTSET)->asType<WidthList>()),
 		  border_slice_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SLICE)->asType<BorderImageSlice>()),
@@ -327,8 +327,8 @@ namespace xhtml
 	{
 		std::array<FixedPoint, 4> border = { dims.border_.top, dims.border_.left, dims.border_.bottom, dims.border_.right };
 
-		if(!uri_.isNone()) {
-			setFile(uri_.getUri());
+		if(!uri_->isNone()) {
+			setFile(uri_->getUri());
 		}
 
 		auto& outset = border_outset_->getWidths();

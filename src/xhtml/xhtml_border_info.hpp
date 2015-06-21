@@ -44,7 +44,7 @@ namespace xhtml
 		void setSlice(const std::array<float,4>& slice) { slice_ = slice; }
 		void setFill(bool fill) { fill_ = fill; }
 		bool isValid(css::Side side) const { return (border_style_[static_cast<int>(side)] != css::BorderStyle::HIDDEN 
-			&& border_style_[static_cast<int>(side)] != css::BorderStyle::NONE) || !uri_.isNone(); }
+			&& border_style_[static_cast<int>(side)] != css::BorderStyle::NONE) || (uri_ != nullptr && !uri_->isNone()); }
 
 		void setBorderStyleTop(css::BorderStyle bs) { border_style_[0] = bs; }
 		void setBorderStyleLeft(css::BorderStyle bs) { border_style_[1] = bs; }
@@ -58,7 +58,7 @@ namespace xhtml
 
 	private:
 		// pre-compute values.
-		css::UriStyle uri_;
+		std::shared_ptr<css::UriStyle> uri_;
 		std::shared_ptr<css::WidthList> border_width_;
 		std::shared_ptr<css::WidthList> border_outset_;
 		std::shared_ptr<css::BorderImageSlice> border_slice_;

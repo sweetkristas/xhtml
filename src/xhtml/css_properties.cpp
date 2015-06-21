@@ -172,15 +172,15 @@ namespace css
 		
 		PropertyRegistrar property000("background-color", Property::BACKGROUND_COLOR, false, CssColor::create(CssColorParam::TRANSPARENT), std::bind(&PropertyParser::parseColor, _1, "background-color", ""));
 		PropertyRegistrar property001("color", Property::COLOR, true, CssColor::create(CssColorParam::VALUE), std::bind(&PropertyParser::parseColor, _1, "color", ""));
-		PropertyRegistrar property002("padding-left", Property::PADDING_LEFT, false, Length::create(0), std::bind(&PropertyParser::parseLength, _1, "padding-left", ""));
-		PropertyRegistrar property003("padding-right", Property::PADDING_RIGHT, false, Length::create(0), std::bind(&PropertyParser::parseLength, _1, "padding-right", ""));
-		PropertyRegistrar property004("padding-top", Property::PADDING_TOP, false, Length::create(0), std::bind(&PropertyParser::parseLength, _1, "padding-top", ""));
-		PropertyRegistrar property005("padding-bottom", Property::PADDING_BOTTOM, false, Length::create(0), std::bind(&PropertyParser::parseLength, _1, "padding-bottom", ""));
+		PropertyRegistrar property002("padding-left", Property::PADDING_LEFT, false, Length::create(0, false), std::bind(&PropertyParser::parseLength, _1, "padding-left", ""));
+		PropertyRegistrar property003("padding-right", Property::PADDING_RIGHT, false, Length::create(0, false), std::bind(&PropertyParser::parseLength, _1, "padding-right", ""));
+		PropertyRegistrar property004("padding-top", Property::PADDING_TOP, false, Length::create(0, false), std::bind(&PropertyParser::parseLength, _1, "padding-top", ""));
+		PropertyRegistrar property005("padding-bottom", Property::PADDING_BOTTOM, false, Length::create(0, false), std::bind(&PropertyParser::parseLength, _1, "padding-bottom", ""));
 		PropertyRegistrar property006("padding", std::bind(&PropertyParser::parseLengthList, _1, "padding", ""));
-		PropertyRegistrar property007("margin-left", Property::MARGIN_LEFT, false, Width::create(0, false), std::bind(&PropertyParser::parseWidth, _1, "margin-left", ""));
-		PropertyRegistrar property008("margin-right", Property::MARGIN_RIGHT, false, Width::create(0, false), std::bind(&PropertyParser::parseWidth, _1, "margin-right", ""));
-		PropertyRegistrar property009("margin-top", Property::MARGIN_TOP, false, Width::create(0, false), std::bind(&PropertyParser::parseWidth, _1, "margin-top", ""));
-		PropertyRegistrar property010("margin-bottom", Property::MARGIN_BOTTOM, false, Width::create(0, false), std::bind(&PropertyParser::parseWidth, _1, "margin-bottom", ""));
+		PropertyRegistrar property007("margin-left", Property::MARGIN_LEFT, false, std::make_shared<Width>(Length(0, false)), std::bind(&PropertyParser::parseWidth, _1, "margin-left", ""));
+		PropertyRegistrar property008("margin-right", Property::MARGIN_RIGHT, false, std::make_shared<Width>(Length(0, false)), std::bind(&PropertyParser::parseWidth, _1, "margin-right", ""));
+		PropertyRegistrar property009("margin-top", Property::MARGIN_TOP, false, std::make_shared<Width>(Length(0, false)), std::bind(&PropertyParser::parseWidth, _1, "margin-top", ""));
+		PropertyRegistrar property010("margin-bottom", Property::MARGIN_BOTTOM, false, std::make_shared<Width>(Length(0, false)), std::bind(&PropertyParser::parseWidth, _1, "margin-bottom", ""));
 		PropertyRegistrar property011("margin", std::bind(&PropertyParser::parseWidthList, _1, "margin", ""));
 		PropertyRegistrar property012("border-top-color", Property::BORDER_TOP_COLOR, false, CssColor::create(CssColorParam::CURRENT), std::bind(&PropertyParser::parseColor, _1, "border-top-color", ""));
 		PropertyRegistrar property013("border-left-color", Property::BORDER_LEFT_COLOR, false, CssColor::create(CssColorParam::CURRENT), std::bind(&PropertyParser::parseColor, _1, "border-left-color", ""));
@@ -206,12 +206,12 @@ namespace css
 		PropertyRegistrar property033("font-variant", Property::FONT_VARIANT, true, Style::create<FontVariant>(StyleId::FONT_VARIANT, FontVariant::NORMAL), std::bind(&PropertyParser::parseFontVariant, _1, "font-variant", ""));
 		PropertyRegistrar property034("font-weight", Property::FONT_WEIGHT, true, FontWeight::create(400), std::bind(&PropertyParser::parseFontWeight, _1, "font-weight", ""));
 		//PropertyRegistrar property035("font", std::bind(&PropertyParser::parseFont, _1, "font", ""));
-		PropertyRegistrar property036("letter-spacing", Property::LETTER_SPACING, true, Length::create(0), std::bind(&PropertyParser::parseSpacing, _1, "letter-spacing", ""));
-		PropertyRegistrar property037("word-spacing", Property::WORD_SPACING, true, Length::create(0), std::bind(&PropertyParser::parseSpacing, _1, "word-spacing", ""));
+		PropertyRegistrar property036("letter-spacing", Property::LETTER_SPACING, true, Length::create(0, false), std::bind(&PropertyParser::parseSpacing, _1, "letter-spacing", ""));
+		PropertyRegistrar property037("word-spacing", Property::WORD_SPACING, true, Length::create(0, false), std::bind(&PropertyParser::parseSpacing, _1, "word-spacing", ""));
 		PropertyRegistrar property038("text-align", Property::TEXT_ALIGN, true, Style::create<TextAlign>(StyleId::TEXT_ALIGN, TextAlign::NORMAL), std::bind(&PropertyParser::parseTextAlign, _1, "text-align", ""));
 		PropertyRegistrar property039("direction", Property::DIRECTION, true, Style::create<Direction>(StyleId::DIRECTION, Direction::LTR), std::bind(&PropertyParser::parseDirection, _1, "direction", ""));
 		PropertyRegistrar property040("text-transform", Property::TEXT_TRANSFORM, true, Style::create<TextTransform>(StyleId::TEXT_TRANSFORM, TextTransform::NONE), std::bind(&PropertyParser::parseTextTransform, _1, "text-transform", ""));
-		PropertyRegistrar property041("line-height", Property::LINE_HEIGHT, true, Length::create(line_height_scale), std::bind(&PropertyParser::parseLineHeight, _1, "line-height", ""));
+		PropertyRegistrar property041("line-height", Property::LINE_HEIGHT, true, Length::create(line_height_scale, false), std::bind(&PropertyParser::parseLineHeight, _1, "line-height", ""));
 		PropertyRegistrar property042("overflow", Property::CSS_OVERFLOW, false, Style::create<Overflow>(StyleId::CSS_OVERFLOW, Overflow::VISIBLE), std::bind(&PropertyParser::parseOverflow, _1, "overflow", ""));
 		PropertyRegistrar property043("position", Property::POSITION, false, Style::create<Position>(StyleId::POSITION, Position::STATIC), std::bind(&PropertyParser::parsePosition, _1, "position", ""));
 		PropertyRegistrar property044("float", Property::FLOAT, false, Style::create<Float>(StyleId::FLOAT, Float::NONE), std::bind(&PropertyParser::parseFloat, _1, "float", ""));
@@ -641,11 +641,7 @@ namespace css
 				return Width::create(true);
 			}
 		}
-		Length len = parseLengthInternal();
-		if(len.isPercent()) {
-			return std::make_shared<Width>(len.getValue(), true);
-		}
-		return std::make_shared<Width>(len.getValue(), len.getUnits());
+		return std::make_shared<Width>(parseLengthInternal());
 	}
 
 	Width PropertyParser::parseWidthInternal2()
@@ -658,11 +654,7 @@ namespace css
 				return Width(true);
 			}
 		}
-		Length len = parseLengthInternal();
-		if(len.isPercent()) {
-			return Width(len.getValue(), true);
-		}
-		return Width(len.getValue(), len.getUnits());
+		return Width(parseLengthInternal());
 	}
 
 	Length PropertyParser::parseLengthInternal(NumericParseOptions opts)
@@ -681,7 +673,7 @@ namespace css
 			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
 			skipWhitespace();
-			return Length(d);
+			return Length(d, false);
 		}
 		throw ParserError(formatter() << "Unrecognised value for property: "  << (*it_)->toString());
 	}
@@ -1041,7 +1033,7 @@ namespace css
 		} else if(isToken(TokenId::NUMBER)) {
 			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
-			fs.setFontSize(Length(d));
+			fs.setFontSize(Length(d, false));
 		} else {
 			throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 		}		
@@ -1093,7 +1085,7 @@ namespace css
 		} else if(isToken(TokenId::NUMBER)) {
 			xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 			advance();
-			spacing = Length(d);
+			spacing = Length(d, false);
 		} else {
 			throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 		}
@@ -1167,7 +1159,7 @@ namespace css
 
 	void PropertyParser::parseLineHeight(const std::string& prefix, const std::string& suffix)
 	{
-		Length lh(static_cast<xhtml::FixedPoint>(1.1f * fixed_point_scale));
+		Length lh(static_cast<xhtml::FixedPoint>(1.1f * fixed_point_scale), false);
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
 			advance();

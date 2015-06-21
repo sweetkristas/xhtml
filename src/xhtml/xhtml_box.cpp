@@ -139,6 +139,8 @@ namespace xhtml
 		if(lh->isPercent() || lh->isNumber()) {
 			line_height_ = static_cast<FixedPoint>(line_height_ * font_handle_->getFontSize() * 96.0/72.0);
 		}
+
+		vertical_align_ = ctx.getComputedValue(Property::VERTICAL_ALIGN)->asType<VerticalAlign>();
 	}
 
 	RootBoxPtr Box::createLayout(NodePtr node, int containing_width, int containing_height)

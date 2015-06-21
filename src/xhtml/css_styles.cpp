@@ -365,7 +365,7 @@ namespace css
 		  widths_{}
 	{
 		for(int side = 0; side != 4; ++side) {
-			widths_[side] = Width(static_cast<int>(value * fixed_point_scale_float, false));
+			widths_[side] = Width(Length(static_cast<int>(value * fixed_point_scale_float), false));
 		}
 	}
 
@@ -373,7 +373,7 @@ namespace css
 	{
 		switch(widths.size()) {
 			case 0:
-				widths_[0] = widths_[1] = widths_[2] = widths_[3] = Width(fixed_point_scale, false);
+				widths_[0] = widths_[1] = widths_[2] = widths_[3] = Width(Length(fixed_point_scale, false));
 				break;
 			case 1:
 				for(int n = 0; n != 4; ++n) {
@@ -409,7 +409,7 @@ namespace css
 	{
 		switch(widths.size()) {
 			case 0:
-				slices_[0] = slices_[1] = slices_[2] = slices_[3] = Width(100, true);
+				slices_[0] = slices_[1] = slices_[2] = slices_[3] = Width(Length(100, true));
 				break;
 			case 1:
 				for(int n = 0; n != 4; ++n) {
