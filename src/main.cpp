@@ -41,6 +41,7 @@
 #include "xhtml.hpp"
 #include "xhtml_layout_engine.hpp"
 #include "xhtml_root_box.hpp"
+#include "xhtml_style_tree.hpp"
 #include "xhtml_node.hpp"
 #include "xhtml_render_ctx.hpp"
 
@@ -64,6 +65,11 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 		{
 		profile::manager pman("apply styles");
 		doc->processStyleRules();
+		}
+
+		{
+			profile::manager pman("create style tree");
+			auto style_tree = xhtml::StyleNode::createStyleTree(doc);
 		}
 
 		xhtml::RootBoxPtr layout = nullptr;

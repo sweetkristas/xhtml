@@ -53,6 +53,8 @@ namespace xhtml
 
 		const css::StylePtr& getComputedValue(css::Property p) const;
 
+		std::vector<css::StylePtr> getCurrentStyles() const;
+
 		// We need special case handling for the font.
 		KRE::FontHandlePtr getFontHandle() const;
 	private:

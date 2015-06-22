@@ -105,6 +105,16 @@ namespace xhtml
 		return get_stack_array()[ndx].top();
 	}
 
+	std::vector<StylePtr> RenderContext::getCurrentStyles() const
+	{
+		std::vector<StylePtr> res;
+		res.resize(max_properties);
+		for(int ndx = 0; ndx != max_properties; ++ndx) {
+			res[ndx] = get_stack_array()[ndx].top();
+		}	
+		return res;
+	}
+
 	KRE::FontHandlePtr RenderContext::getFontHandle() const
 	{
 		ASSERT_LOG(!get_font_handle_stack().empty(), "Logic error, font handle stack is empty.");
