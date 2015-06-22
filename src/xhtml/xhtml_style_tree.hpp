@@ -39,16 +39,81 @@ namespace xhtml
 		StyleNode(const NodePtr& node);
 		NodePtr getNode() { return node_.lock(); }
 		void parseNode(const NodePtr& node);
-		void setStyles(std::vector<css::StylePtr>&& styles);
 		static StyleNodePtr createStyleTree(const DocumentPtr& doc);
-		css::StylePtr getStyle(css::Property p);
 
 		css::BackgroundAttachment getBackgroundAttachment() const { return background_attachment_; }
-		const KRE::Color& getBackgroundColor() { return background_color_; }
+		const KRE::Color& getBackgroundColor() const { return background_color_; }
+		// const std::shared_ptr<css::ImageSource> getBackgroundImage() const { return background_image_; }
+		// Stored as [0] top, [1] left
+		const std::array<css::Length, 2>& getBackgroundPosition() const { return background_position_; }
+		css::BackgroundRepeat getBackgroundRepeat() const { return background_repeat_; }
+		// Stored as top, left, bottom, right
+		const std::array<KRE::Color, 4>& getBorderColor() const { return border_color_; }
+		const std::array<css::BorderStyle, 4>& getBorderStyle() const { return border_style_; }
+		const std::array<std::shared_ptr<css::Length>, 4>& getBorderWidths() const { return border_width_; }
+		const std::shared_ptr<css::Width>& getTop() const { return tlbr_[0]; }
+		const std::shared_ptr<css::Width>& getLeft() const { return tlbr_[1]; }
+		const std::shared_ptr<css::Width>& getBottom() const { return tlbr_[2]; }
+		const std::shared_ptr<css::Width>& getRight() const { return tlbr_[3]; }
+		css::Clear getClear() const { return clear_; }
+		const std::shared_ptr<css::Clip>& getClip() const { return clip_; }
+		const KRE::Color& getColor() const { return color_; }
+		const std::shared_ptr<css::Content>& getContent() const { return content_; }
+		const std::shared_ptr<css::Counter>& getCounterIncr() const { return counter_increment_; }
+		const std::shared_ptr<css::Counter>& getCounterReset() const { return counter_reset_; }
+		const std::shared_ptr<css::Cursor>& getCursor() const { return cursor_; }
+		css::Direction getDirection() const { return direction_; }
+		css::Display getDisplay() const { return display_; }
+		css::Float getFloat() const { return float_; }
+		const KRE::FontHandlePtr& getFont() const { return font_handle_; }
+		const std::shared_ptr<css::Width>& getWidth() const { return width_height_[0]; }
+		const std::shared_ptr<css::Width>& getHeight() const { return width_height_[1]; }
+		const std::shared_ptr<css::Length>& getLetterSpacing() const { return letter_spacing_; }
+		//const std::shared_ptr<css::ImageSource>& getListStyleImage() const { return list_style_image_; }
+		css::ListStylePosition getListStylePosition() const { return list_style_position_; }
+		css::ListStyleType getListStyleType() const { return list_style_type_; }
+		const std::array<std::shared_ptr<css::Width>, 4>& getMargin() const { return margin_; }
+		const std::shared_ptr<css::Width>& getMinHeight() const { return minmax_height_[0]; }
+		const std::shared_ptr<css::Width>& getMaxHeight() const { return minmax_height_[1]; }
+		const std::shared_ptr<css::Width>& getMinWidth() const { return minmax_width_[0]; }
+		const std::shared_ptr<css::Width>& getMaxWidth() const { return minmax_width_[1]; }
+		const KRE::Color& getOutlineColor() const { return outline_color_; }
+		css::BorderStyle getOutlineStyle() const { return outline_style_; }
+		const std::shared_ptr<css::Length>& getOutlineWidth() const { return outline_width_; }
+		css::Overflow getOverflow() const { return overflow_; }
+		const std::array<std::shared_ptr<css::Length>, 4>& getPadding() const { return padding_; }
+		css::Position getPosition() const { return position_; }
+		const std::shared_ptr<css::Quotes>& getQuotes() const { return quotes_; }
+		css::TextAlign getTextAlign() const { return text_align_; }
+		css::TextDecoration getTextDecoration() const { return text_decoration_; }
+		const std::shared_ptr<css::Width>& getTextIndent() const { return text_indent_; }
+		css::TextTransform getTextTransform() { return text_transform_; }
+		css::UnicodeBidi getUnicodeBidi() const { return unicode_bidi_; }
+		const std::shared_ptr<css::VerticalAlign>& getVerticalAlign() const { return vertical_align_; }
+		css::Visibility getVisibility() const { return visibility_; }
+		css::Whitespace getWhitespace() const { return white_space_; }
+		const std::shared_ptr<css::Length>& getWordSpacing() const { return word_spacing_; }
+		const std::shared_ptr<css::Zindex>& getZindex() const { return zindex_; }
+
+		const std::shared_ptr<css::BoxShadowStyle>& getBoxShadow() const { return box_shadow_; }
+		//const std::shared_ptr<css::TextShadowStyle>& getTextShadow() const { return text_shadow_; }
+		const std::shared_ptr<css::TransitionProperties>& getTransitionProperties() const { return transition_properties_; }
+		const std::shared_ptr<css::TransitionTiming>& getTransitionDuration() const { return transition_duration_; }
+		const std::shared_ptr<css::TransitionTimingFunctions>& getTransitionTimingFunction() const { return transition_timing_function_; }
+		const std::shared_ptr<css::TransitionTiming>& getTransitionDelay() const { return transition_delay_; }
+		const std::array<std::shared_ptr<css::BorderRadius>, 4>& getBorderRadius() const { return border_radius_; }
+		float getOpacity() const { return opacity_; }
+		//const std::shared_ptr<css::ImageSource>& getImageSource() const { return border_image_; }
+		bool isBorderImageFilled() const { return border_image_fill_; }
+		const std::array<css::Width, 4>& getBorderImageSlice() const { return border_image_slice_; }
+		const std::array<css::Width, 4>& getBorderImageWidth() const { return border_image_width_; }
+		const std::array<css::Width, 4>& getBorderImageOutset() const { return border_image_outset_; }
+		css::CssBorderImageRepeat getBorderImageRepeatHoriz() const { return border_image_repeat_horiz_; }
+		css::CssBorderImageRepeat getBorderImageRepeatVert() const { return border_image_repeat_vert_; }
+		css::BackgroundClip getBackgroundClip() const { return background_clip_; }
 	private:
 		void processStyles();
 		WeakNodePtr node_;
-		std::vector<css::StylePtr> styles_;
 
 		//BACKGROUND_ATTACHMENT
 		css::BackgroundAttachment background_attachment_;
@@ -56,8 +121,8 @@ namespace xhtml
 		KRE::Color background_color_;
 		//BACKGROUND_IMAGE
 		//std::shared_ptr<css::ImageSource> background_image_;
-		//BACKGROUND_POSITION
-		std::shared_ptr<css::BackgroundPosition> background_position_;
+		//BACKGROUND_POSITION -- stored as top/left
+		std::array<css::Length, 2> background_position_;
 		//BACKGROUND_REPEAT
 		css::BackgroundRepeat background_repeat_;
 		//BORDER_TOP_COLOR / BORDER_LEFT_COLOR / BORDER_BOTTOM_COLOR / BORDER_RIGHT_COLOR
@@ -149,25 +214,37 @@ namespace xhtml
 		//ORPHANS
 		//TABLE_LAYOUT
 		//WIDOWS
+		//BORDER_SPACING
 
 		//BOX_SHADOW
+		std::shared_ptr<css::BoxShadowStyle> box_shadow_;
 		//TEXT_SHADOW
+		//std::shared_ptr<TextShadowStyle> text_shadow_;
 		//TRANSITION_PROPERTY
+		std::shared_ptr<css::TransitionProperties> transition_properties_;
 		//TRANSITION_DURATION
+		std::shared_ptr<css::TransitionTiming> transition_duration_;
 		//TRANSITION_TIMING_FUNCTION
+		std::shared_ptr<css::TransitionTimingFunctions> transition_timing_function_;
 		//TRANSITION_DELAY
-		//BORDER_TOP_LEFT_RADIUS
-		//BORDER_TOP_RIGHT_RADIUS
-		//BORDER_BOTTOM_LEFT_RADIUS
-		//BORDER_BOTTOM_RIGHT_RADIUS
-		//BORDER_SPACING
+		std::shared_ptr<css::TransitionTiming> transition_delay_;
+		//BORDER_TOP_LEFT_RADIUS / BORDER_TOP_RIGHT_RADIUS / BORDER_BOTTOM_RIGHT_RADIUS / BORDER_BOTTOM_LEFT_RADIUS
+		std::array<std::shared_ptr<css::BorderRadius>, 4> border_radius_;
 		//OPACITY
+		float opacity_;
 		//BORDER_IMAGE_SOURCE
+		//std::shared_ptr<css::ImageSource> border_image_;
 		//BORDER_IMAGE_SLICE
+		bool border_image_fill_;
+		std::array<css::Width, 4> border_image_slice_;
 		//BORDER_IMAGE_WIDTH
+		std::array<css::Width, 4> border_image_width_;
 		//BORDER_IMAGE_OUTSET
+		std::array<css::Width, 4> border_image_outset_;
 		//BORDER_IMAGE_REPEAT
+		css::CssBorderImageRepeat border_image_repeat_horiz_;
+		css::CssBorderImageRepeat border_image_repeat_vert_;
 		//BACKGROUND_CLIP
-
+		css::BackgroundClip background_clip_;
 	};
 }

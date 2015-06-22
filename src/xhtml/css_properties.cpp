@@ -269,6 +269,7 @@ namespace css
 		PropertyRegistrar property220("border-radius", std::bind(&PropertyParser::parseBorderRadius, _1, "border", "radius"));
 
 		PropertyRegistrar property230("background-clip", Property::BACKGROUND_CLIP, false, Style::create<BackgroundClip>(StyleId::BACKGROUND_CLIP, BackgroundClip::BORDER_BOX), std::bind(&PropertyParser::parseBackgroundClip, _1, "background-clip", ""));
+		PropertyRegistrar property231("opacity", Property::OPACITY, false, Length::create(fixed_point_scale, false), std::bind(&PropertyParser::parseLength, _1, "opacity", ""));
 
 		PropertyRegistrar property250("transition-property", Property::TRANSITION_PROPERTY, false, TransitionProperties::create(), std::bind(&PropertyParser::parseTransitionProperty, _1, "transition-property", ""));
 		PropertyRegistrar property251("transition-duration", Property::TRANSITION_DURATION, false, TransitionTiming::create(), std::bind(&PropertyParser::parseTransitionTiming, _1, "transition-duration", ""));
