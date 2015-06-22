@@ -29,7 +29,76 @@ namespace xhtml
 	using namespace css;
 
 	StyleNode::StyleNode(const NodePtr& node)
-		: node_(node)
+		: node_(node),
+		  background_attachment_(BackgroundAttachment::SCROLL),
+		  background_color_(KRE::Color(0, 0, 0, 0)),
+		  //background_image_(nullptr),
+		  background_position_{},
+		  background_repeat_(BackgroundRepeat::REPEAT),
+		  border_color_{},
+		  border_style_{},
+		  border_width_{},
+		  tlbr_{},
+		  clear_(Clear::NONE),
+		  clip_(nullptr),
+		  color_(),
+		  content_(nullptr),
+		  counter_increment_(nullptr),
+		  counter_reset_(nullptr),
+		  cursor_(nullptr),
+		  direction_(Direction::LTR),
+		  display_(Display::BLOCK),
+		  float_(Float::NONE),
+		  font_handle_(nullptr),
+		  width_height_{},
+		  letter_spacing_(nullptr),
+		  line_height_(nullptr),
+		  //list_style_image_(nullptr),
+		  list_style_position_(ListStylePosition::OUTSIDE),
+		  list_style_type_(ListStyleType::DISC),
+		  margin_{},
+		  minmax_height_{},
+		  minmax_width_{},
+		  outline_color_(),
+		  outline_style_(BorderStyle::NONE),
+		  outline_width_(nullptr),
+		  overflow_(Overflow::AUTO),
+		  padding_{},
+		  position_(Position::STATIC),
+		  quotes_(nullptr),
+		  text_align_(TextAlign::NORMAL),
+		  text_decoration_(TextDecoration::NONE),
+		  text_indent_(nullptr),
+		  text_transform_(TextTransform::NONE),
+		  unicode_bidi_(UnicodeBidi::NORMAL),
+		  vertical_align_(nullptr),
+		  visibility_(Visibility::VISIBLE),
+		  white_space_(Whitespace::NORMAL),
+		  word_spacing_(nullptr),
+		  zindex_(nullptr),
+		  //BORDER_COLLAPSE
+		  //CAPTION_SIDE
+		  //EMPTY_CELLS
+		  //ORPHANS
+		  //TABLE_LAYOUT
+		  //WIDOWS
+		  //BORDER_SPACING
+		  box_shadow_(nullptr),
+		  //text_shadow_(nullptr),
+		  transition_properties_(nullptr),
+		  transition_duration_(nullptr),
+		  transition_timing_function_(nullptr),
+		  transition_delay_(nullptr),
+		  border_radius_{},
+		  opacity_(1.0f),
+		  //border_image_(nullptr),
+		  border_image_fill_(false),
+		  border_image_slice_{},
+		  border_image_width_{},
+		  border_image_outset_{},
+		  border_image_repeat_horiz_(CssBorderImageRepeat::REPEAT),
+		  border_image_repeat_vert_(CssBorderImageRepeat::REPEAT),
+		  background_clip_(BackgroundClip::BORDER_BOX)
 	{
 	}
 
