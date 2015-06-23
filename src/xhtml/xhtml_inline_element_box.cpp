@@ -29,7 +29,7 @@ namespace xhtml
 	// This encapsulates a replaced inline element, non-replaced inline elements are
 	// dealt with elsewhere
 
-	InlineElementBox::InlineElementBox(BoxPtr parent, NodePtr node)
+	InlineElementBox::InlineElementBox(BoxPtr parent, StyleNodePtr node)
 		: Box(BoxId::INLINE_ELEMENT, parent, node)
 	{
 	}
@@ -44,15 +44,15 @@ namespace xhtml
 		setContentHeight(node->getDimensions().h() * LayoutEngine::getFixedPointScale());
 
 		// override element dimensions from css if nescessary.
-		auto css_width = getCssWidth();
-		auto css_height = getCssHeight();
-		if(!css_width.isAuto()) {
-			setContentWidth(css_width.getLength().compute(containing.content_.width));
+		auto css_width = getStyleNode()->getWidth();
+		auto css_height = getStyleNode()->getHeight();
+		if(!css_width->isAuto()) {
+			setContentWidth(css_width->getLength().compute(containing.content_.width));
 		}
-		if(!css_height.isAuto()) {
-			setContentHeight(css_height.getLength().compute(containing.content_.height));
+		if(!css_height->isAuto()) {
+			setContentHeight(css_height->getLength().compute(containing.content_.height));
 		}
-		if(!css_width.isAuto() || !css_height.isAuto()) {
+		if(!css_width->isAuto() || !css_height->isAuto()) {
 			node->setDimensions(rect(0, 0, 
 				getDimensions().content_.width/LayoutEngine::getFixedPointScale(), 
 				getDimensions().content_.height/LayoutEngine::getFixedPointScale()));

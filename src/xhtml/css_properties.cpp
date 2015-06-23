@@ -219,7 +219,7 @@ namespace css
 		PropertyRegistrar property046("top", Property::TOP, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "top", ""));
 		PropertyRegistrar property047("right", Property::RIGHT, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "right", ""));
 		PropertyRegistrar property048("bottom", Property::BOTTOM, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "bottom", ""));
-		PropertyRegistrar property049("background-image", Property::BACKGROUND_IMAGE, false, UriStyle::create(true), std::bind(&PropertyParser::parseUri, _1, "background-image", ""));
+		PropertyRegistrar property049("background-image", Property::BACKGROUND_IMAGE, false, UriStyle::create(true), std::bind(&PropertyParser::parseImageSource, _1, "background-image", ""));
 		PropertyRegistrar property050("background-repeat", Property::BACKGROUND_REPEAT, false, Style::create<BackgroundRepeat>(StyleId::BACKGROUND_REPEAT, BackgroundRepeat::REPEAT), std::bind(&PropertyParser::parseBackgroundRepeat, _1, "background-repeat", ""));
 		PropertyRegistrar property051("background-position", Property::BACKGROUND_POSITION, false, BackgroundPosition::create(), std::bind(&PropertyParser::parseBackgroundPosition, _1, "background-position", ""));
 		PropertyRegistrar property052("list-style-type", Property::LIST_STYLE_TYPE, true, Style::create<ListStyleType>(StyleId::LIST_STYLE_TYPE, ListStyleType::DISC), std::bind(&PropertyParser::parseListStyleType, _1, "list-style-type", ""));
@@ -235,7 +235,7 @@ namespace css
 		PropertyRegistrar property062("content", Property::CONTENT, false, Content::create(), std::bind(&PropertyParser::parseContent, _1, "content", ""));
 		PropertyRegistrar property063("counter-increment", Property::COUNTER_INCREMENT, false, Counter::create(), std::bind(&PropertyParser::parseCounter, _1, "counter-increment", ""));
 		PropertyRegistrar property064("counter-reset", Property::COUNTER_RESET, false, Counter::create(), std::bind(&PropertyParser::parseCounter, _1, "counter-reset", ""));
-		PropertyRegistrar property065("list-style-image", Property::LIST_STYLE_IMAGE, false, ListStyleImage::create(), std::bind(&PropertyParser::parseUri, _1, "list-style-image", ""));
+		PropertyRegistrar property065("list-style-image", Property::LIST_STYLE_IMAGE, false, UriStyle::create(true), std::bind(&PropertyParser::parseImageSource, _1, "list-style-image", ""));
 		PropertyRegistrar property066("list-style-position", Property::LIST_STYLE_POSITION, false, Style::create<ListStylePosition>(StyleId::LIST_STYLE_POSITION, ListStylePosition::OUTSIDE), std::bind(&PropertyParser::parseListStylePosition, _1, "list-style-position", ""));
 		PropertyRegistrar property067("max-height", Property::MAX_HEIGHT, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "max-height", ""));
 		PropertyRegistrar property068("max-width", Property::MAX_WIDTH, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "max-width", ""));
@@ -255,7 +255,7 @@ namespace css
 		// CSS3 provisional properties
 		PropertyRegistrar property200("box-shadow", Property::BOX_SHADOW, false, BoxShadowStyle::create(), std::bind(&PropertyParser::parseBoxShadow, _1, "box-shadow", ""));
 
-		PropertyRegistrar property210("border-image-source", Property::BORDER_IMAGE_SOURCE, false, UriStyle::create(true), std::bind(&PropertyParser::parseUri, _1, "border-image-source", ""));
+		PropertyRegistrar property210("border-image-source", Property::BORDER_IMAGE_SOURCE, false, UriStyle::create(true), std::bind(&PropertyParser::parseImageSource, _1, "border-image-source", ""));
 		PropertyRegistrar property211("border-image-repeat", Property::BORDER_IMAGE_REPEAT, false, BorderImageRepeat::create(), std::bind(&PropertyParser::parseBorderImageRepeat, _1, "border-image-repeat", ""));
 		PropertyRegistrar property212("border-image-width", Property::BORDER_IMAGE_WIDTH, false, WidthList::create(1.0f), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-width", ""));
 		PropertyRegistrar property213("border-image-outset", Property::BORDER_IMAGE_OUTSET, false, WidthList::create(0.0f), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-outset", ""));
@@ -1284,7 +1284,7 @@ namespace css
 		plist_.addProperty(prefix, Style::create<Float>(StyleId::FLOAT, p));
 	}
 
-	void PropertyParser::parseUri(const std::string& prefix, const std::string& suffix)
+	void PropertyParser::parseImageSource(const std::string& prefix, const std::string& suffix)
 	{
 		if(isToken(TokenId::IDENT)) {
 			const std::string ref = (*it_)->getStringValue();
@@ -1300,6 +1300,20 @@ namespace css
 			plist_.addProperty(prefix, UriStyle::create(uri));
 			// XXX here would be a good place to place to have a background thread working
 			// to look up the uri and download it. or look-up in cache, etc.
+		} else if(isToken(TokenId::FUNCTION)) {
+			const std::string ref = (*it_)->getStringValue();
+			auto params = (*it_)->getParameters();
+			if(ref == "linear-gradient") {
+				plist_.addProperty(prefix, parseLinearGradient(params));
+			} else if(ref == "radial-gradient") {
+				ASSERT_LOG(false, "XXX: write radial-gradient parser");
+			} else if(ref == "repeating-linear-gradient") {
+				ASSERT_LOG(false, "XXX: write repeating-linear-gradient parser");
+			} else if(ref == "repeating-radial-gradient") {
+				ASSERT_LOG(false, "XXX: write repeating-radial-gradient parser");
+			} else {
+				throw ParserError(formatter() << "Unrecognised function for image '" << prefix << "': "  << (*it_)->toString());
+			}
 		} else {
 			throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 		}
@@ -1845,7 +1859,7 @@ namespace css
 	void PropertyParser::parseCursor(const std::string& prefix, const std::string& suffix)
 	{
 		auto cursor = Cursor::create();
-		std::vector<std::string> uris;
+		std::vector<std::shared_ptr<ImageSource>> uris;
 		bool done = false;
 		while(!done) {
 			if(isToken(TokenId::IDENT)) {
@@ -1891,9 +1905,10 @@ namespace css
 			} else if(isToken(TokenId::URL)) {
 				const std::string uri = (*it_)->getStringValue();
 				advance();
-				uris.emplace_back(uri);
+				uris.emplace_back(UriStyle::create(uri));
 				// XXX here would be a good place to place to have a background thread working
 				// to look up the uri and download it. or look-up in cache, etc.
+			// XXX add gradient parser here
 			} else {
 				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 			}
@@ -1996,7 +2011,7 @@ namespace css
 		auto bc = CssColor::create(CssColorParam::TRANSPARENT);
 		auto br = BackgroundRepeat::REPEAT;
 		auto bp = BackgroundPosition::create();
-		auto bi = UriStyle::create(true);
+		ImageSourcePtr bi = UriStyle::create(true);
 
 		bool was_horiz_set = false;
 		bool was_vert_set = false;
@@ -2051,13 +2066,12 @@ namespace css
 			} else if(isToken(TokenId::URL)) {
 				const std::string uri = (*it_)->getStringValue();
 				advance();
-				bi->setURI(uri);
+				bi = UriStyle::create(uri);
 			} else if(isToken(TokenId::FUNCTION)) {
 				const std::string& ref = (*it_)->getStringValue();
 				auto& params = (*it_)->getParameters();
 				if(ref == "linear-gradient") {
-					LOG_ERROR("XXX Connect linear-gradient function up as an image source.");
-					parseLinearGradient(params);
+					bi = parseLinearGradient(params);
 					advance();
 				} else {
 					parseColor2(bc);
@@ -2119,10 +2133,9 @@ namespace css
 	{
 		ListStyleType lst = ListStyleType::DISC;
 		ListStylePosition pos = ListStylePosition::OUTSIDE;
-		auto img = UriStyle::create(true);
+		ImageSourcePtr img = nullptr;
 
 		int none_counter = 0;
-		bool set_uri = false;
 		bool set_lst = false;
 
 		bool done = false;
@@ -2147,10 +2160,21 @@ namespace css
 			} else if(isToken(TokenId::URL)) {
 				const std::string uri = (*it_)->getStringValue();
 				advance();
-				img->setURI(uri);
-				set_uri = true;
+				img = UriStyle::create(uri);
 				// XXX here would be a good place to place to have a background thread working
 				// to look up the uri and download it. or look-up in cache, etc.
+			} else if(isToken(TokenId::FUNCTION)) {
+				const std::string ref = (*it_)->getStringValue();
+				auto params = (*it_)->getParameters();
+				if(ref == "linear-gradient") {
+					img = parseLinearGradient(params);
+				} else if(ref == "radial-gradient") {
+					ASSERT_LOG(false, "XXX: write radial-gradient parser");
+				} else if(ref == "repeating-linear-gradient") {
+					ASSERT_LOG(false, "XXX: write repeating-linear-gradient parser");
+				} else if(ref == "repeating-radial-gradient") {
+					ASSERT_LOG(false, "XXX: write repeating-radial-gradient parser");
+				}				
 			} else {
 				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 			}
@@ -2335,13 +2359,26 @@ namespace css
 		std::vector<CssBorderImageRepeat> repeat;
 		std::vector<Width> outset;
 		std::vector<Width> widths;
-		std::string source;
+		ImageSourcePtr img = nullptr;
 
 		// parse source first
 		if(isToken(TokenId::URL)) {
-			source = (*it_)->getStringValue();
+			std::string uri = (*it_)->getStringValue();
+			img = UriStyle::create(uri);
 			advance();
 			skipWhitespace();
+		} else if(isToken(TokenId::FUNCTION)) {
+			const std::string ref = (*it_)->getStringValue();
+			auto params = (*it_)->getParameters();
+			if(ref == "linear-gradient") {
+				img = parseLinearGradient(params);
+			} else if(ref == "radial-gradient") {
+				ASSERT_LOG(false, "XXX: write radial-gradient parser");
+			} else if(ref == "repeating-linear-gradient") {
+				ASSERT_LOG(false, "XXX: write repeating-linear-gradient parser");
+			} else if(ref == "repeating-radial-gradient") {
+				ASSERT_LOG(false, "XXX: write repeating-radial-gradient parser");
+			}			
 		} else {
 			throw ParserError(formatter() << "expected uri, found: " << (*it_)->toString());
 		}
@@ -2415,11 +2452,7 @@ namespace css
 			repeat.push_back(repeat[0]);
 		}
 
-		if(source.empty()) {
-			plist_.addProperty("border-image-source", UriStyle::create(true));
-		} else {
-			plist_.addProperty("border-image-source", UriStyle::create(source));
-		}
+		plist_.addProperty("border-image-source", img);
 		plist_.addProperty("border-image-repeat", BorderImageRepeat::create(repeat[0], repeat[1]));
 		if(widths.empty()) {
 			plist_.addProperty("border-image-width", WidthList::create(1.0f));
@@ -2588,7 +2621,7 @@ namespace css
 		plist_.addProperty(prefix, Style::create<BackgroundClip>(StyleId::BACKGROUND_CLIP, bc));
 	}
 
-	StylePtr PropertyParser::parseLinearGradient(const std::vector<TokenPtr>& tokens)
+	ImageSourcePtr PropertyParser::parseLinearGradient(const std::vector<TokenPtr>& tokens)
 	{
 		IteratorContext ic(*this, tokens);
 		auto lingrad = LinearGradient::create();

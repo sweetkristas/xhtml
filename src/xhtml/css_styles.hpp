@@ -27,6 +27,7 @@
 
 #include "asserts.hpp"
 #include "Color.hpp"
+#include "Texture.hpp"
 #include "xhtml_fwd.hpp"
 
 #define MAKE_FACTORY(classname)																\
@@ -180,7 +181,7 @@ namespace css
 		COLOR,
 		WIDTH,
 		LENGTH,
-		URI,
+		IMAGE_SOURCE,
 		FONT_FAMILY,
 		FONT_WEIGHT,
 		FONT_SIZE,
@@ -201,8 +202,6 @@ namespace css
 		WIDTH_LIST,
 		BORDER_IMAGE_SLICE,
 		BORDER_RADIUS,
-		LINEAR_GRADIENT,
-		RADIAL_GRADIENT,
 		TRANSITION_PROPERTIES,
 		TRANSITION_TIMING,
 		TRANSITION_TIMING_FUNCTION,
@@ -390,20 +389,55 @@ namespace css
 		OUTSET,
 	};
 
-	class UriStyle : public Style
+	class ImageSource : public Style
+	{
+	public:
+		ImageSource() : Style(StyleId::IMAGE_SOURCE) {}
+		virtual ~ImageSource() {}
+		// Returns a texture to use, width/height are only suggestions because
+		// textures may not have intrinsic values (i.e. linear gradients)
+		virtual KRE::TexturePtr getTexture(int width, int height) = 0;
+	private:
+	};
+	typedef std::shared_ptr<ImageSource> ImageSourcePtr;
+
+	class UriStyle : public ImageSource
 	{
 	public:
 		MAKE_FACTORY(UriStyle);
-		UriStyle() : Style(StyleId::URI), is_none_(true), uri_() {}
-		explicit UriStyle(bool none) : Style(StyleId::URI), is_none_(none), uri_() {}
-		explicit UriStyle(const std::string uri) : Style(StyleId::URI), is_none_(false), uri_(uri) {}
+		UriStyle() : is_none_(true), uri_() {}
+		explicit UriStyle(bool none) : is_none_(none), uri_() {}
+		explicit UriStyle(const std::string uri) : is_none_(false), uri_(uri) {}
 		bool isNone() const { return is_none_; }
 		const std::string& getUri() const { return uri_; }
 		void setURI(const std::string& uri) { uri_ = uri; is_none_ = false; }
 		bool isEqual(const StylePtr& style) const override;
+		KRE::TexturePtr getTexture(int width, int height) override;
 	private:
 		bool is_none_;
 		std::string uri_;
+	};
+
+	class LinearGradient : public ImageSource
+	{
+	public:
+		MAKE_FACTORY(LinearGradient);
+		LinearGradient() : angle_(0), color_stops_() {}
+		struct ColorStop {
+			ColorStop() : color(), length() {}
+			explicit ColorStop(const std::shared_ptr<CssColor>& c, const Length& l) : color(c), length(l) {}
+			std::shared_ptr<CssColor> color;
+			Length length;
+		};
+		void setAngle(float angle) { angle_ = angle; }
+		void clearColorStops() { color_stops_.clear(); }
+		void addColorStop(const ColorStop& cs) { color_stops_.emplace_back(cs); }
+		const std::vector<ColorStop>& getColorStops() const { return color_stops_; }
+		bool isEqual(const StylePtr& style) const override;
+		KRE::TexturePtr getTexture(int width, int height) override;
+	private:
+		float angle_;	// in degrees
+		std::vector<ColorStop> color_stops_;
 	};
 
 	class FontFamily : public Style
@@ -759,28 +793,18 @@ namespace css
 		MAKE_FACTORY(Cursor);
 		Cursor() : Style(StyleId::CURSOR), uris_(), cursor_(CssCursor::AUTO) {}
 		explicit Cursor(CssCursor c) : Style(StyleId::CURSOR), uris_(), cursor_(c) {}
-		explicit Cursor(const std::vector<std::string>& uris, CssCursor c) : Style(StyleId::CURSOR), uris_(uris), cursor_(c) {}
-		void setURI(const std::vector<std::string>& uris) { uris_ = uris; }
+		explicit Cursor(const std::vector<ImageSourcePtr>& uris, CssCursor c) : Style(StyleId::CURSOR), uris_(uris), cursor_(c) {}
+		void setURI(const std::vector<ImageSourcePtr>& uris) { uris_ = uris; }
 		void setCursor(CssCursor c) { cursor_ = c; }
 		bool isEqual(const StylePtr& style) const override;
 	private:
-		std::vector<std::string> uris_;
+		std::vector<std::shared_ptr<ImageSource>> uris_;
 		CssCursor cursor_;
 	};
 
 	enum class ListStylePosition {
 		INSIDE,
 		OUTSIDE,
-	};
-
-	struct ListStyleImage : public Style
-	{
-		MAKE_FACTORY(ListStyleImage);
-		ListStyleImage() : Style(StyleId::LIST_STYLE_IMAGE), uri_() {}
-		explicit ListStyleImage(const std::string& uri) : Style(StyleId::LIST_STYLE_IMAGE), uri_(uri) {}
-		bool isNone() const { return uri_.empty(); }
-		std::string uri_;
-		bool isEqual(const StylePtr& style) const override;
 	};
 
 	typedef std::pair<std::string, std::string> quote_pair;
@@ -973,27 +997,6 @@ namespace css
 		BORDER_BOX,
 		PADDING_BOX,
 		CONTENT_BOX,
-	};
-
-	class LinearGradient : public Style
-	{
-	public:
-		MAKE_FACTORY(LinearGradient);
-		LinearGradient() : Style(StyleId::LINEAR_GRADIENT), angle_(0), color_stops_() {}
-		struct ColorStop {
-			ColorStop() : color(), length() {}
-			explicit ColorStop(const std::shared_ptr<CssColor>& c, const Length& l) : color(c), length(l) {}
-			std::shared_ptr<CssColor> color;
-			Length length;
-		};
-		void setAngle(float angle) { angle_ = angle; }
-		void clearColorStops() { color_stops_.clear(); }
-		void addColorStop(const ColorStop& cs) { color_stops_.emplace_back(cs); }
-		const std::vector<ColorStop>& getColorStops() const { return color_stops_; }
-		bool isEqual(const StylePtr& style) const override;
-	private:
-		float angle_;	// in degrees
-		std::vector<ColorStop> color_stops_;
 	};
 
 	class TransitionProperties : public Style

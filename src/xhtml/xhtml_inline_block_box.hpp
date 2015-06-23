@@ -30,7 +30,7 @@ namespace xhtml
 	class InlineBlockBox : public Box
 	{
 	public:
-		explicit InlineBlockBox(BoxPtr parent, NodePtr node);
+		explicit InlineBlockBox(BoxPtr parent, StyleNodePtr node);
 		std::string toString() const override;
 		FixedPoint getBaselineOffset() const override { return 0; }
 		bool isMultiline() const override { return multiline_; }

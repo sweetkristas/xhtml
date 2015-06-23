@@ -35,9 +35,9 @@ namespace xhtml
 	public:
 		explicit LayoutEngine();
 
-		void layoutRoot(NodePtr node, BoxPtr parent, const point& container);
+		void layoutRoot(StyleNodePtr node, BoxPtr parent, const point& container);
 		
-		std::vector<BoxPtr> layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box);
+		std::vector<BoxPtr> layoutChildren(const std::vector<StyleNodePtr>& children, BoxPtr parent, LineBoxPtr& open_box);
 
 		FixedPoint getDescent() const;
 

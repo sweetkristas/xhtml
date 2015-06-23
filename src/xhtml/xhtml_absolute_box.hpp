@@ -30,7 +30,7 @@ namespace xhtml
 	class AbsoluteBox : public Box
 	{
 	public:
-		AbsoluteBox(BoxPtr parent, NodePtr node);
+		AbsoluteBox(BoxPtr parent, StyleNodePtr node);
 		std::string toString() const override;
 	private:
 		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;

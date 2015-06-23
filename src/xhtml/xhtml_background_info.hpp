@@ -26,15 +26,14 @@
 #include "geometry.hpp"
 #include "Texture.hpp"
 
-#include "css_styles.hpp"
+#include "xhtml_style_tree.hpp"
 
 namespace xhtml
 {
 	struct BgBoxShadow
 	{
-		BgBoxShadow() : x_offset(0), y_offset(0), blur_radius(0), spread_radius(0), inset(false), color(KRE::Color::colorBlack()) {}
-		BgBoxShadow(FixedPoint x, FixedPoint y, FixedPoint blur, FixedPoint spread, bool ins, const KRE::Color& col) 
-			: x_offset(x), y_offset(y), blur_radius(blur), spread_radius(spread), inset(ins), color(col) {}
+		BgBoxShadow();
+		explicit BgBoxShadow(FixedPoint x, FixedPoint y, FixedPoint blur, FixedPoint spread, bool ins, const KRE::Color& col); 
 		FixedPoint x_offset;
 		FixedPoint y_offset;
 		FixedPoint blur_radius;
@@ -46,28 +45,19 @@ namespace xhtml
 	class BackgroundInfo
 	{
 	public:
-		BackgroundInfo();
-		void setColor(const KRE::Color& color) { color_ = color; }
-		void setFile(const std::string& filename);
-		void setPosition(const std::shared_ptr<css::BackgroundPosition>& pos) { position_ = pos; }
-		void setRepeat(css::BackgroundRepeat repeat) { repeat_ = repeat; }
+		explicit BackgroundInfo(const StyleNodePtr& styles);
 		void render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
 		void init(const Dimensions& dims);
 	private:
 		void renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
-		KRE::Color color_;
+
+		StyleNodePtr styles_;
 		KRE::TexturePtr texture_;
-		css::BackgroundRepeat repeat_;
-		std::shared_ptr<css::BackgroundPosition> position_;
+
+		std::vector<BgBoxShadow> box_shadows_;
 
 		std::array<FixedPoint, 4> border_radius_horiz_;
 		std::array<FixedPoint, 4> border_radius_vert_;
-
-		// box-shadow properties.
-		std::vector<BgBoxShadow> box_shadows_;
-
-		// background-clip
-		css::BackgroundClip background_clip_; 
 
 		bool has_border_radius_;
 	};

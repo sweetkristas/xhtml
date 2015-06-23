@@ -43,20 +43,20 @@ namespace xhtml
 	{
 		std::string display_string(Display disp) {
 			switch(disp) {
-				case Display::BLOCK:					return "block";
+				case Display::BLOCK:				return "block";
 				case Display::INLINE:				return "inline";
 				case Display::INLINE_BLOCK:			return "inline-block";
-				case Display::LIST_ITEM:				return "list-item";
-				case Display::TABLE:					return "table";
+				case Display::LIST_ITEM:			return "list-item";
+				case Display::TABLE:				return "table";
 				case Display::INLINE_TABLE:			return "inline-table";
 				case Display::TABLE_ROW_GROUP:		return "table-row-group";
 				case Display::TABLE_HEADER_GROUP:	return "table-header-group";
 				case Display::TABLE_FOOTER_GROUP:	return "table-footer-group";
-				case Display::TABLE_ROW:				return "table-row";
+				case Display::TABLE_ROW:			return "table-row";
 				case Display::TABLE_COLUMN_GROUP:	return "table-column-group";
 				case Display::TABLE_COLUMN:			return "table-column";
 				case Display::TABLE_CELL:			return "table-cell";
-				case Display::TABLE_CAPTION:			return "table-caption";
+				case Display::TABLE_CAPTION:		return "table-caption";
 				case Display::NONE:					return "none";
 				default: 
 					ASSERT_LOG(false, "illegal display value: " << static_cast<int>(disp));
@@ -88,11 +88,9 @@ namespace xhtml
 		float_list_.emplace(FloatList());
 	}
 
-	void LayoutEngine::layoutRoot(NodePtr node, BoxPtr parent, const point& container) 
+	void LayoutEngine::layoutRoot(StyleNodePtr node, BoxPtr parent, const point& container) 
 	{
 		if(root_ == nullptr) {
-			RenderContext::Manager ctx_manager(node->getProperties());
-
 			root_ = std::make_shared<RootBox>(nullptr, node);
 			dims_.content_ = Rect(0, 0, container.x, container.y);
 
@@ -104,32 +102,32 @@ namespace xhtml
 		}
 	}
 	
-	std::vector<BoxPtr> LayoutEngine::layoutChildren(const std::vector<NodePtr>& children, BoxPtr parent, LineBoxPtr& open_box)
+	std::vector<BoxPtr> LayoutEngine::layoutChildren(const std::vector<StyleNodePtr>& children, BoxPtr parent, LineBoxPtr& open_box)
 	{
 		StackManager<point> offset_manager(offset_, point(parent->getLeft(), parent->getTop()) + offset_.top());
 
 		std::vector<BoxPtr> res;
 		for(auto it = children.begin(); it != children.end(); ++it) {
 			auto child = *it;
-			if(child->id() == NodeId::ELEMENT) {
-				if(child->ignoreForLayout()) {
+			auto node = child->getNode();
+			ASSERT_LOG(node != nullptr, "Something went wrong, there was a StyleNode without an associated DOM node.");
+			if(node->id() == NodeId::ELEMENT) {
+				if(node->ignoreForLayout()) {
 					continue;
 				}
-				RenderContext::Manager ctx_manager(child->getProperties());
-
 				// Adjust counters for list items as needed
 				std::unique_ptr<StackManager<int>> li_manager;
-				if(child->hasTag(ElementId::UL) || child->hasTag(ElementId::OL)) {
+				if(node->hasTag(ElementId::UL) || node->hasTag(ElementId::OL)) {
 					li_manager.reset(new StackManager<int>(list_item_counter_, 0));
 				}
-				if(child->hasTag(ElementId::LI) ) {
+				if(node->hasTag(ElementId::LI) ) {
 					auto &top = list_item_counter_.top();
 					++top;
 				}
 
-				const Display display = ctx_.getComputedValue(Property::DISPLAY)->getEnum<Display>();
-				const Float cfloat = ctx_.getComputedValue(Property::FLOAT)->getEnum<Float>();
-				const Position position = ctx_.getComputedValue(Property::POSITION)->getEnum<Position>();
+				const Display display = child->getDisplay();
+				const Float cfloat = child->getFloat();
+				const Position position = child->getPosition();
 
 				if(display == Display::NONE) {
 					// Do not create a box for this or it's children
@@ -167,15 +165,16 @@ namespace xhtml
 							// Do not create a box for this or it's children
 							break;
 						case Display::INLINE: {
-							if(child->isReplaced()) {
+							if(node->isReplaced()) {
 								// replaced elements should generate a box.
 								// XXX should these go into open_box?
 								res.emplace_back(std::make_shared<InlineElementBox>(parent, child));
 							} else {
 								// non-replaced elements we just generate children and add them.
 								for(auto& inline_child : child->getChildren()) {
-									if(inline_child->id() == NodeId::TEXT) {
-										inline_child->inheritProperties();
+									NodePtr inline_node = inline_child->getNode();
+									if(inline_node != nullptr && inline_node->id() == NodeId::TEXT) {
+										inline_child->inheritProperties(child);
 									}
 								}
 								std::vector<BoxPtr> new_children = layoutChildren(child->getChildren(), parent, open_box);
@@ -229,19 +228,18 @@ namespace xhtml
 							break;
 					}
 				}
-			} else if(child->id() == NodeId::TEXT) {
-				RenderContext::Manager ctx_manager(child->getProperties());
-				TextPtr tnode = std::dynamic_pointer_cast<Text>(child);
+			} else if(node->id() == NodeId::TEXT) {
+				TextPtr tnode = std::dynamic_pointer_cast<Text>(node);
 				ASSERT_LOG(tnode != nullptr, "Logic error, couldn't up-cast node to Text.");
 
 				tnode->transformText(true);
 				if(open_box == nullptr) {
 					open_box = std::make_shared<LineBox>(parent);
 				}
-				auto txt = std::make_shared<TextBox>(open_box, tnode);
+				auto txt = std::make_shared<TextBox>(open_box, child);
 				open_box->addChild(txt);
 			} else {
-				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(child->id()));
+				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(node->id()));
 			}
 		}
 		return res;
@@ -255,7 +253,7 @@ namespace xhtml
 	void LayoutEngine::addFloat(BoxPtr float_box)
 	{
 		ASSERT_LOG(!float_list_.empty(), "Empty float list.");
-		if(float_box->getFloatValue() == Float::LEFT) {
+		if(float_box->getStyleNode()->getFloat() == Float::LEFT) {
 			float_list_.top().left_.emplace_back(float_box);
 		} else {
 			float_list_.top().right_.emplace_back(float_box);

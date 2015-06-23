@@ -67,15 +67,16 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 		doc->processStyleRules();
 		}
 
+		xhtml::StyleNodePtr style_tree;
 		{
 			profile::manager pman("create style tree");
-			auto style_tree = xhtml::StyleNode::createStyleTree(doc);
+			style_tree = xhtml::StyleNode::createStyleTree(doc);
 		}
 
 		xhtml::RootBoxPtr layout = nullptr;
 		{
 		profile::manager pman("layout");
-		layout = xhtml::Box::createLayout(doc, width, height);
+		layout = xhtml::Box::createLayout(style_tree, width, height);
 		}
 		{
 		profile::manager pman_render("render");

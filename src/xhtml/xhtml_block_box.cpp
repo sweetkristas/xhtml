@@ -28,10 +28,9 @@ namespace xhtml
 {
 	using namespace css;
 
-	BlockBox::BlockBox(BoxPtr parent, NodePtr node, NodePtr child)
+	BlockBox::BlockBox(BoxPtr parent, StyleNodePtr node)
 		: Box(BoxId::BLOCK, parent, node),
-		  child_height_(0),
-		  child_(child)
+		  child_height_(0)
 	{
 	}
 
@@ -58,25 +57,25 @@ namespace xhtml
 
 		if(isFloat()) {
 			FixedPoint top = 0;
-			const FixedPoint lh = getCssHeight().isAuto() ? getLineHeight() : getCssHeight().getLength().compute(containing.content_.height);
+			const FixedPoint lh = getStyleNode()->getHeight()->isAuto() ? getLineHeight() : getStyleNode()->getHeight()->getLength().compute(containing.content_.height);
 			const FixedPoint box_w = getDimensions().content_.width;
 
 			FixedPoint y = 0;
 			FixedPoint x = 0;
 
 			FixedPoint y1 = y + getOffset().y;
-			FixedPoint left = getFloatValue() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+			FixedPoint left = getStyleNode()->getFloat() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 			bool placed = false;
 			while(!placed) {
 				if(w >= box_w) {
-					left = left - (getFloatValue() == Float::LEFT ? x : box_w) + getMBPLeft();
+					left = left - (getStyleNode()->getFloat() == Float::LEFT ? x : box_w) + getMBPLeft();
 					top = y + getMBPTop() + containing.content_.height;
 					placed = true;
 				} else {
 					y += lh;
 					y1 = y + getOffset().y;
-					left = getFloatValue() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+					left = getStyleNode()->getFloat() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 				}
 			}
@@ -85,37 +84,28 @@ namespace xhtml
 		}
 	}
 
-	std::vector<NodePtr> BlockBox::getChildNodes() const
-	{
-		NodePtr child = child_.lock();
-		if(child != nullptr) {
-			return std::vector<NodePtr>(1, child);
-		}
-		return Box::getChildNodes();
-	}
-
 	void BlockBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		if(isReplaceable()) {
 			NodePtr node = getNode();
 			calculateHorzMPB(containing.content_.width);
 			setContentRect(Rect(0, 0, node->getDimensions().w() * LayoutEngine::getFixedPointScale(), node->getDimensions().h() * LayoutEngine::getFixedPointScale()));
-			auto css_width = getCssWidth();
-			auto css_height = getCssHeight();
-			if(!css_width.isAuto()) {
-				setContentWidth(css_width.getLength().compute(containing.content_.width));
+			auto css_width = getStyleNode()->getWidth();
+			auto css_height = getStyleNode()->getHeight();
+			if(!css_width->isAuto()) {
+				setContentWidth(css_width->getLength().compute(containing.content_.width));
 			}
-			if(!css_height.isAuto()) {
-				setContentHeight(css_height.getLength().compute(containing.content_.height));
+			if(!css_height->isAuto()) {
+				setContentHeight(css_height->getLength().compute(containing.content_.height));
 			}
-			if(!css_width.isAuto() || !css_height.isAuto()) {
+			if(!css_width->isAuto() || !css_height->isAuto()) {
 				node->setDimensions(rect(0, 0, getDimensions().content_.width/LayoutEngine::getFixedPointScale(), getDimensions().content_.height/LayoutEngine::getFixedPointScale()));
 			}
 		} else {
 			layoutWidth(containing);
 
-			//if(!getCssHeight().isAuto()) {
-			//	setContentHeight(getCssHeight().getLength().compute(containing.content_.height));
+			//if(!getStyleNode->getHeight()->).isAuto()) {
+			//	setContentHeight(getStyleNode->getHeight()->).getLength().compute(containing.content_.height));
 			//}
 		}
 
@@ -123,16 +113,16 @@ namespace xhtml
 
 		FixedPoint left = getMBPLeft();
 		FixedPoint top = getMBPTop() + containing.content_.height;
-		if(getPosition() == Position::FIXED) {
+		if(getStyleNode()->getPosition() == Position::FIXED) {
 			const FixedPoint containing_width = containing.content_.width;
 			const FixedPoint containing_height = containing.content_.height;
 			left = containing.content_.x;
-			if(!getCssLeft().isAuto()) {
-				left = getCssLeft().getLength().compute(containing_width);
+			if(!getStyleNode()->getLeft()->isAuto()) {
+				left = getStyleNode()->getLeft()->getLength().compute(containing_width);
 			}
 			top = containing.content_.y;
-			if(!getCssTop().isAuto()) {
-				top = getCssTop().getLength().compute(containing_height);
+			if(!getStyleNode()->getTop()->isAuto()) {
+				top = getStyleNode()->getTop()->getLength().compute(containing_height);
 			}
 		}
 	
@@ -151,24 +141,24 @@ namespace xhtml
 		RenderContext& ctx = RenderContext::get();
 		const FixedPoint containing_width = containing.content_.width;
 
-		const auto& css_width = getCssWidth();
+		const auto& css_width = getStyleNode()->getWidth();
 		FixedPoint width = 0;
-		if(!css_width.isAuto()) {
-			width = css_width.getLength().compute(containing_width);
+		if(!css_width->isAuto()) {
+			width = css_width->getLength().compute(containing_width);
 			setContentWidth(width);
 		}
 
 		calculateHorzMPB(containing_width);
-		const auto& css_margin_left = getCssMargin(Side::LEFT);
-		const auto& css_margin_right = getCssMargin(Side::RIGHT);
+		const auto& css_margin_left = getStyleNode()->getMargin()[static_cast<int>(Side::LEFT)];
+		const auto& css_margin_right = getStyleNode()->getMargin()[static_cast<int>(Side::RIGHT)];
 
 		FixedPoint total = getMBPWidth() + width;
 			
-		if(!css_width.isAuto() && total > containing.content_.width) {
-			if(css_margin_left.isAuto()) {
+		if(!css_width->isAuto() && total > containing.content_.width) {
+			if(css_margin_left->isAuto()) {
 				setMarginLeft(0);
 			}
-			if(css_margin_right.isAuto()) {
+			if(css_margin_right->isAuto()) {
 				setMarginRight(0);
 			}
 		}
@@ -176,28 +166,28 @@ namespace xhtml
 		// If negative is overflow.
 		FixedPoint underflow = containing.content_.width - total;
 
-		if(css_width.isAuto()) {
-			if(css_margin_left.isAuto()) {
+		if(css_width->isAuto()) {
+			if(css_margin_left->isAuto()) {
 				setMarginLeft(0);
 			}
-			if(css_margin_right.isAuto()) {
+			if(css_margin_right->isAuto()) {
 				setMarginRight(0);
 			}
 			if(underflow >= 0) {
 				width = underflow;
 			} else {
 				width = 0;
-				const auto rmargin = css_margin_right.getLength().compute(containing_width);
+				const auto rmargin = css_margin_right->getLength().compute(containing_width);
 				setMarginRight(rmargin + underflow);
 			}
 			setContentWidth(width);
-		} else if(!css_margin_left.isAuto() && !css_margin_right.isAuto()) {
+		} else if(!css_margin_left->isAuto() && !css_margin_right->isAuto()) {
 			setMarginRight(getDimensions().margin_.right + underflow);
-		} else if(!css_margin_left.isAuto() && css_margin_right.isAuto()) {
+		} else if(!css_margin_left->isAuto() && css_margin_right->isAuto()) {
 			setMarginRight(underflow);
-		} else if(css_margin_left.isAuto() && !css_margin_right.isAuto()) {
+		} else if(css_margin_left->isAuto() && !css_margin_right->isAuto()) {
 			setMarginLeft(underflow);
-		} else if(css_margin_left.isAuto() && css_margin_right.isAuto()) {
+		} else if(css_margin_left->isAuto() && css_margin_right->isAuto()) {
 			setMarginLeft(underflow / 2);
 			setMarginRight(underflow / 2);
 		} 
@@ -219,11 +209,11 @@ namespace xhtml
 				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
 			}
 		}
-		if(getCssWidth().isAuto() && !isReplaceable()) {
+		if(getStyleNode()->getWidth()->isAuto() && !isReplaceable()) {
 			//setContentWidth(width);
 		}
-		auto css_height = getCssHeight();
-		if(css_height.isAuto() && !isReplaceable()) {
+		auto css_height = getStyleNode()->getHeight();
+		if(css_height->isAuto() && !isReplaceable()) {
 			setContentHeight(child_height_);
 		}
 	}
@@ -231,8 +221,8 @@ namespace xhtml
 	void BlockBox::layoutHeight(const Dimensions& containing)
 	{
 		// a set height value overrides the calculated value.
-		if(!getCssHeight().isAuto()) {
-			FixedPoint h = getCssHeight().getLength().compute(containing.content_.height);
+		if(!getStyleNode()->getHeight()->isAuto()) {
+			FixedPoint h = getStyleNode()->getHeight()->getLength().compute(containing.content_.height);
 			if(h > child_height_) {
 				/* apply overflow properties */
 			}

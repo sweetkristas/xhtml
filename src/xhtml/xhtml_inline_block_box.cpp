@@ -28,7 +28,7 @@ namespace xhtml
 {
 	using namespace css;
 
-	InlineBlockBox::InlineBlockBox(BoxPtr parent, NodePtr node)
+	InlineBlockBox::InlineBlockBox(BoxPtr parent, StyleNodePtr node)
 		: Box(BoxId::INLINE_BLOCK, parent, node),
 		  multiline_(false)
 	{
@@ -68,24 +68,24 @@ namespace xhtml
 		RenderContext& ctx = RenderContext::get();
 		const FixedPoint containing_width = containing.content_.width;
 
-		auto css_width = getCssWidth();
+		auto css_width = getStyleNode()->getWidth();
 		FixedPoint width = 0;
-		if(!css_width.isAuto()) {
-			width = css_width.getLength().compute(containing_width);
+		if(!css_width->isAuto()) {
+			width = css_width->getLength().compute(containing_width);
 			setContentWidth(width);
 		}
 
 		calculateHorzMPB(containing_width);
-		auto css_margin_left = getCssMargin(Side::LEFT);
-		auto css_margin_right = getCssMargin(Side::RIGHT);
+		auto css_margin_left = getStyleNode()->getMargin()[static_cast<int>(Side::LEFT)];
+		auto css_margin_right = getStyleNode()->getMargin()[static_cast<int>(Side::RIGHT)];
 
 		FixedPoint total = getMBPWidth() + width;
 			
-		if(!css_width.isAuto() && total > containing.content_.width) {
-			if(css_margin_left.isAuto()) {
+		if(!css_width->isAuto() && total > containing.content_.width) {
+			if(css_margin_left->isAuto()) {
 				setMarginLeft(0);
 			}
-			if(css_margin_right.isAuto()) {
+			if(css_margin_right->isAuto()) {
 				setMarginRight(0);
 			}
 		}
@@ -93,7 +93,7 @@ namespace xhtml
 		// If negative is overflow.
 		FixedPoint underflow = containing.content_.width - total;
 
-		if(css_width.isAuto()) {
+		if(css_width->isAuto()) {
 			setContentWidth(underflow);
 		}
 	}
@@ -107,7 +107,7 @@ namespace xhtml
 			for(auto& child : getChildren()) {
 				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
 			}
-			if(getCssWidth().isAuto()) {
+			if(getStyleNode()->getWidth()->isAuto()) {
 				setContentWidth(width);
 			}
 		}
@@ -135,8 +135,9 @@ namespace xhtml
 	{
 		RenderContext& ctx = RenderContext::get();
 		// a set height value overrides the calculated value.
-		if(!getCssHeight().isAuto()) {
-			setContentHeight(getCssHeight().getLength().compute(containing.content_.height));
+		auto& css_height = getStyleNode()->getHeight();
+		if(!css_height->isAuto()) {
+			setContentHeight(css_height->getLength().compute(containing.content_.height));
 		}
 		// XXX deal with min-height and max-height
 		//auto min_h = ctx.getComputedValue(Property::MIN_HEIGHT).getValue<Length>().compute(containing.content_.height);

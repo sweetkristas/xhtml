@@ -31,7 +31,7 @@
 #include "xhtml.hpp"
 #include "xhtml_background_info.hpp"
 #include "xhtml_border_info.hpp"
-#include "xhtml_node.hpp"
+#include "xhtml_style_tree.hpp"
 #include "xhtml_render_ctx.hpp"
 
 namespace xhtml
@@ -76,7 +76,7 @@ namespace xhtml
 	class Box : public std::enable_shared_from_this<Box>
 	{
 	public:
-		Box(BoxId id, BoxPtr parent, NodePtr node);
+		Box(BoxId id, BoxPtr parent, StyleNodePtr node);
 		virtual ~Box() {}
 		BoxId id() const { return id_; }
 		const Dimensions& getDimensions() const { return dimensions_; }
@@ -85,7 +85,8 @@ namespace xhtml
 
 		bool hasChildBlockBox() const;
 
-		NodePtr getNode() const { return node_.lock(); }
+		StyleNodePtr getStyleNode() const { return node_; }
+		NodePtr getNode() const { return node_ != nullptr ? node_->getNode() : nullptr; }
 		BoxPtr getParent() const { return parent_.lock(); }
 
 		void addChild(BoxPtr box) { boxes_.emplace_back(box); }
@@ -169,36 +170,19 @@ namespace xhtml
 				getMBPHeight() + getHeight());
 		}
 
-		static RootBoxPtr createLayout(NodePtr node, int containing_width, int containing_height);
+		static RootBoxPtr createLayout(StyleNodePtr node, int containing_width, int containing_height);
 
 		void layout(LayoutEngine& eng, const Dimensions& containing);
 		virtual std::string toString() const = 0;
 
 		void addAbsoluteElement(LayoutEngine& eng, const Dimensions& containing, BoxPtr abs);
-		void layoutAbsolute(LayoutEngine& eng, const Dimensions& containing);
 
 		void preOrderTraversal(std::function<void(BoxPtr, int)> fn, int nesting);
 		bool ancestralTraverse(std::function<bool(const ConstBoxPtr&)> fn) const;
 
-		css::Position getPosition() const { return css_position_; }
 		const point& getOffset() const { return offset_; }
 
 		void render(DisplayListPtr display_list, const point& offset) const;
-		KRE::FontHandlePtr getFont() const { return font_handle_; }
-
-		const css::Width& getCssLeft() const { return *css_sides_[1]; }
-		const css::Width& getCssTop() const { return *css_sides_[0]; }
-		const css::Width& getCssRight() const { return *css_sides_[3]; }
-		const css::Width& getCssBottom() const { return *css_sides_[2]; }
-		const css::Width& getCssWidth() const { return *css_width_; }
-		const css::Width& getCssHeight() const { return *css_height_; }
-		const css::Width& getCssMargin(css::Side n) const { return *margin_[static_cast<int>(n)]; }
-		const css::Length& getCssBorder(css::Side n) const { return *border_[static_cast<int>(n)]; }
-		const css::Length& getCssPadding(css::Side n) const { return *padding_[static_cast<int>(n)]; }
-		const KRE::Color& getColor() const { return color_; }
-
-		std::shared_ptr<css::VerticalAlign> getVerticalAlign() const { return vertical_align_; }
-		css::TextAlign getTextAlign() const { return text_align_; }
 
 		BorderInfo& getBorderInfo() { return border_info_; }
 		const BorderInfo& getBorderInfo() const { return border_info_; }
@@ -210,14 +194,10 @@ namespace xhtml
 		bool isEOL() const { return end_of_line_; }
 		void setEOL(bool eol=true) { end_of_line_ = eol; }
 		virtual bool isMultiline() const { return false; }
-		bool isFloat() const { return cfloat_ != css::Float::NONE; }
-		css::Float getFloatValue() const { return cfloat_; }
-
-		virtual std::vector<NodePtr> getChildNodes() const;
-
-		css::Direction getCssDirection() const { return css_direction_; }
 
 		bool isReplaceable() const { return is_replaceable_; }
+
+		bool isFloat() const { return node_ != nullptr && node_->getFloat() != css::Float::NONE; }
 
 		// for text boxes
 		virtual void justify(FixedPoint containing_width) {};
@@ -238,39 +218,20 @@ namespace xhtml
 		void init();
 
 		BoxId id_;
-		WeakNodePtr node_;
+		StyleNodePtr node_;
 		std::weak_ptr<Box> parent_;
 		Dimensions dimensions_;
 		std::vector<BoxPtr> boxes_;
 		std::vector<BoxPtr> absolute_boxes_;
-		css::Float cfloat_;
-		KRE::FontHandlePtr font_handle_;
 
 		BackgroundInfo background_info_;
 		BorderInfo border_info_;
-		css::Position css_position_;
-
-		std::array<std::shared_ptr<css::Length>, 4> padding_;
-		std::array<std::shared_ptr<css::Length>, 4> border_;
-		std::array<std::shared_ptr<css::Width>, 4> margin_;
-
-		KRE::Color color_;
-
-		std::array<std::shared_ptr<css::Width>, 4> css_sides_;
-		std::shared_ptr<css::Width> css_width_;
-		std::shared_ptr<css::Width> css_height_;
-		css::Clear float_clear_;
-		std::shared_ptr<css::VerticalAlign> vertical_align_;
-		css::TextAlign text_align_;
-		css::Direction css_direction_;
 
 		point offset_;
-
 		FixedPoint line_height_;
 
 		// Helper marker when doing LineBox layout
 		bool end_of_line_;
-
 		bool is_replaceable_;
 	};
 

@@ -292,46 +292,29 @@ namespace xhtml
 		}
 	}
 
-	BorderInfo::BorderInfo()
-		: uri_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SOURCE)->asType<UriStyle>()),
-		  border_width_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_WIDTH)->asType<WidthList>()),
-		  border_outset_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_OUTSET)->asType<WidthList>()),
-		  border_slice_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_SLICE)->asType<BorderImageSlice>()),
-		  border_repeat_(RenderContext::get().getComputedValue(Property::BORDER_IMAGE_REPEAT)->asType<BorderImageRepeat>()),
+	BorderInfo::BorderInfo(const StyleNodePtr& styles)
+		: styles_(styles),
 		  image_(),
-		  fill_(false),
 		  slice_{},
 		  outset_{},
-		  widths_{},
-		  repeat_horiz_(CssBorderImageRepeat::STRETCH),
-		  repeat_vert_(CssBorderImageRepeat::STRETCH),
-		  border_style_{},
-		  border_color_{}
+		  widths_{}
 	{
-		RenderContext& ctx = RenderContext::get();
-		const Property bs[4]  = { Property::BORDER_TOP_STYLE, Property::BORDER_LEFT_STYLE, Property::BORDER_BOTTOM_STYLE, Property::BORDER_RIGHT_STYLE };
-		const Property bc[4] = { Property::BORDER_TOP_COLOR, Property::BORDER_LEFT_COLOR, Property::BORDER_BOTTOM_COLOR, Property::BORDER_RIGHT_COLOR };
-		for(int n = 0; n != 4; ++n) {
-			border_color_[n] = ctx.getComputedValue(bc[n])->asType<CssColor>()->compute();
-			border_style_[n] = ctx.getComputedValue(bs[n])->getEnum<BorderStyle>();
-		}
 	}
 
-	void BorderInfo::setFile(const std::string& filename)
-	{
-		image_ = KRE::Texture::createTexture(filename, KRE::TextureType::TEXTURE_2D, 4);
-		image_->setFiltering(0, KRE::Texture::Filtering::LINEAR, KRE::Texture::Filtering::LINEAR, KRE::Texture::Filtering::POINT);
+	bool BorderInfo::isValid(css::Side side) const 
+	{ 
+		return (styles_ != nullptr && styles_->getBorderStyle()[static_cast<int>(side)] != css::BorderStyle::HIDDEN 
+			&& styles_->getBorderStyle()[static_cast<int>(side)] != css::BorderStyle::NONE) || (image_ != nullptr); 
 	}
 
 	void BorderInfo::init(const Dimensions& dims)
 	{
+		if(styles_ == nullptr) {
+			return;
+		}
 		std::array<FixedPoint, 4> border = { dims.border_.top, dims.border_.left, dims.border_.bottom, dims.border_.right };
 
-		if(!uri_->isNone()) {
-			setFile(uri_->getUri());
-		}
-
-		auto& outset = border_outset_->getWidths();
+		auto& outset = styles_->getBorderImageOutset();
 		for(auto side = 0; side != 4; ++side) {
 			if(outset[side].getLength().isNumber()) {
 				// If the outset is a plain number, it is take as the multiple of border_widths
@@ -357,7 +340,7 @@ namespace xhtml
 			+ dims.border_.right 
 			+ static_cast<FixedPoint>((outset_[0] + outset_[2]) * LayoutEngine::getFixedPointScale());
 
-		auto& slices = border_slice_->getWidths();
+		auto& slices = styles_->getBorderImageSlice();
 		for(auto side = 0; side != 4; ++side) {
 			const Length& slice_length = slices[side].getLength();
 			if(slice_length.isNumber()) {
@@ -374,7 +357,7 @@ namespace xhtml
 			ASSERT_LOG(slice_[side] >= 0, "Negative values for slices are illegal");
 		}
 
-		auto& widths = border_width_->getWidths();
+		auto& widths = styles_->getBorderImageWidth();
 		for(auto side = 0; side != 4; ++side) {
 			if(widths[side].isAuto()) {
 				// intrinsic width of corrsponding slice.
@@ -404,17 +387,18 @@ namespace xhtml
 			}
 		}
 
-		setRepeat(border_repeat_->image_repeat_horiz_, border_repeat_->image_repeat_vert_);
-
-		setFill(border_slice_->isFilled());
+		if(styles_->getBorderImage() != nullptr) {
+			image_ = styles_->getBorderImage()->getTexture(border_image_width / LayoutEngine::getFixedPointScale(), border_image_height / LayoutEngine::getFixedPointScale());
+			if(image_) {
+				image_->setFiltering(0, KRE::Texture::Filtering::LINEAR, KRE::Texture::Filtering::LINEAR, KRE::Texture::Filtering::POINT);
+			}
+		}
 	}
 
 	void BorderInfo::renderNormal(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
 	{
 		auto border = std::make_shared<SolidRenderable>();
 		std::vector<KRE::vertex_color> vc;
-
-		auto& ctx = RenderContext::get();
 
 		FixedPoint bw[4];
 		bw[0] = dims.border_.left; 
@@ -433,33 +417,35 @@ namespace xhtml
 		const float bottom_width = static_cast<float>(dims.border_.bottom) / LayoutEngine::getFixedPointScaleFloat();
 
 		vc.reserve(24*4);
+		auto& border_color = styles_->getBorderColor();
+		auto& border_style = styles_->getBorderStyle();
 		for(int side = 0; side != 4; ++side) {
 			// only drawing border if width > 0, alpha != 0
-			if(bw[side] > 0 && border_color_[side].ai() != 0) {
-				switch(border_style_[side]) {
+			if(bw[side] > 0 && border_color[side].ai() != 0) {
+				switch(border_style[side]) {
 					case BorderStyle::SOLID:
 						switch(side) {
-							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
-							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color_[side].as_u8vec4()); break;
-							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
-							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
+							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
+							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color[side].as_u8vec4()); break;
+							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
+							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
 						}
 						break;
 					case BorderStyle::INSET: {
-						glm::u8vec4 inset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
+						glm::u8vec4 inset(border_color[side].as_u8vec4().r/2, border_color[side].as_u8vec4().g/2, border_color[side].as_u8vec4().b/2, border_color[side].as_u8vec4().a);
 						switch(side) {
 							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, inset); break;
 							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, inset); break;
-							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
-							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
+							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
+							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
 						}
 						break;
 					}
 					case BorderStyle::OUTSET: {
-						glm::u8vec4 outset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
+						glm::u8vec4 outset(border_color[side].as_u8vec4().r/2, border_color[side].as_u8vec4().g/2, border_color[side].as_u8vec4().b/2, border_color[side].as_u8vec4().a);
 						switch(side) {
-							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color_[side].as_u8vec4()); break;
-							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color_[side].as_u8vec4()); break;
+							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
+							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color[side].as_u8vec4()); break;
 							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, outset); break;
 							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, outset); break;
 						}
@@ -468,26 +454,26 @@ namespace xhtml
 					case BorderStyle::DOUBLE:
 						switch(side) {
 							case 0: 
-								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
-								generate_solid_left_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
+								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side].as_u8vec4()); 
+								generate_solid_left_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side].as_u8vec4()); 
 								break;
 							case 1: 
-								generate_solid_top_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, border_color_[side].as_u8vec4()); 
-								generate_solid_top_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, border_color_[side].as_u8vec4()); 
+								generate_solid_top_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, border_color[side].as_u8vec4()); 
+								generate_solid_top_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, border_color[side].as_u8vec4()); 
 								break;
 							case 2: 
-								generate_solid_right_side(&vc, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
-								generate_solid_right_side(&vc, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
+								generate_solid_right_side(&vc, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side].as_u8vec4()); 
+								generate_solid_right_side(&vc, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side].as_u8vec4()); 
 								break;
 							case 3: 
-								generate_solid_bottom_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
-								generate_solid_bottom_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color_[side].as_u8vec4()); 
+								generate_solid_bottom_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side].as_u8vec4()); 
+								generate_solid_bottom_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side].as_u8vec4()); 
 								break;
 						}
 						break;
 					case BorderStyle::GROOVE: {
-						glm::u8vec4 inset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
-						glm::u8vec4 outset(border_color_[side].as_u8vec4());
+						glm::u8vec4 inset(border_color[side].as_u8vec4().r/2, border_color[side].as_u8vec4().g/2, border_color[side].as_u8vec4().b/2, border_color[side].as_u8vec4().a);
+						glm::u8vec4 outset(border_color[side].as_u8vec4());
 						switch(side) {
 							case 0: 
 								generate_solid_left_side(&vc, side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, inset); 
@@ -509,8 +495,8 @@ namespace xhtml
 						break;
 					}
 					case BorderStyle::RIDGE: {
-						glm::u8vec4 outset(border_color_[side].as_u8vec4().r/2, border_color_[side].as_u8vec4().g/2, border_color_[side].as_u8vec4().b/2, border_color_[side].as_u8vec4().a);
-						glm::u8vec4 inset(border_color_[side].as_u8vec4());
+						glm::u8vec4 outset(border_color[side].as_u8vec4().r/2, border_color[side].as_u8vec4().g/2, border_color[side].as_u8vec4().b/2, border_color[side].as_u8vec4().a);
+						glm::u8vec4 inset(border_color[side].as_u8vec4());
 						switch(side) {
 							case 0: 
 								generate_solid_left_side(&vc, side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, inset); 
@@ -533,7 +519,7 @@ namespace xhtml
 					}
 					case BorderStyle::DOTTED:
 					case BorderStyle::DASHED:
-						ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(border_style_[side]));
+						ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(border_style[side]));
 						break;
 					case BorderStyle::HIDDEN:
 					case BorderStyle::NONE:
@@ -551,6 +537,10 @@ namespace xhtml
 
 	bool BorderInfo::render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
 	{
+		if(styles_ == nullptr) {
+			return false;
+		}
+
 		if(image_ == nullptr) {
 			// no image, indicate we should try fallback.
 			renderNormal(display_list, offset, dims);
@@ -620,7 +610,7 @@ namespace xhtml
 			const float r_v1 = vw1;
 			const float r_u2 = 1.0f;
 			const float r_v2 = 1.0f - vw2;
-			switch(repeat_vert_) {
+			switch(styles_->getBorderImageRepeatVert()) {
 				case CssBorderImageRepeat::STRETCH: 
 					// left-side
 					coords.emplace_back(glm::vec2(x1, y1+widths_[0]), glm::vec2(l_u1, l_v1));
@@ -674,7 +664,7 @@ namespace xhtml
 			const float b_u2 = 1.0f - uw2;
 			const float b_v2 = 1.0f;
 
-			switch(repeat_horiz_) {
+			switch(styles_->getBorderImageRepeatHoriz()) {
 				case CssBorderImageRepeat::STRETCH:
 					// top-side
 					coords.emplace_back(glm::vec2(x1+widths_[1], y1), glm::vec2(t_u1, t_v1));
@@ -716,8 +706,8 @@ namespace xhtml
 		}
 
 		// fill
-		if(fill_ && !no_fill) {
-			if(repeat_horiz_ == CssBorderImageRepeat::STRETCH && repeat_vert_ == CssBorderImageRepeat::STRETCH) {
+		if(styles_->isBorderImageFilled() && !no_fill) {
+			if(styles_->getBorderImageRepeatHoriz() == CssBorderImageRepeat::STRETCH && styles_->getBorderImageRepeatVert() == CssBorderImageRepeat::STRETCH) {
 				// handle this case seperately as it's the easiest, requiring no tiling.
 				const float m_u1 = uw1;
 				const float m_v1 = vw1;

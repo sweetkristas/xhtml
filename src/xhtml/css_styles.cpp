@@ -539,6 +539,21 @@ namespace css
 		return time_value;
 	}
 
+	KRE::TexturePtr UriStyle::getTexture(int width, int height)
+	{
+		// width/height are only suggestions, since we should have intrinsic width
+		if(is_none_ || uri_.empty()) {
+			return nullptr;
+		}
+		return KRE::Texture::createTexture(uri_);
+	}
+
+	KRE::TexturePtr LinearGradient::getTexture(int width, int height)
+	{
+		// to do.
+		return nullptr;
+	}
+
 	bool Width::isEqual(const StylePtr& style) const
 	{
 		auto p = std::dynamic_pointer_cast<Width>(style);
@@ -577,12 +592,6 @@ namespace css
 	bool Counter::isEqual(const StylePtr& style) const
 	{
 		auto p = std::dynamic_pointer_cast<Counter>(style);
-		return false;
-	}
-
-	bool ListStyleImage::isEqual(const StylePtr& style) const
-	{
-		auto p = std::dynamic_pointer_cast<ListStyleImage>(style);
 		return false;
 	}
 

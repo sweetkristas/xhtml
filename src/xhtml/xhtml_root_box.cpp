@@ -28,7 +28,7 @@ namespace xhtml
 {
 	using namespace css;
 
-	RootBox::RootBox(BoxPtr parent, NodePtr node)
+	RootBox::RootBox(BoxPtr parent, StyleNodePtr node)
 		: BlockBox(parent, node),
 		  fixed_boxes_()
 	{

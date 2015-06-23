@@ -27,10 +27,10 @@
 
 namespace xhtml
 {
-	TextBox::TextBox(BoxPtr parent, TextPtr txt)
-		: Box(BoxId::TEXT, parent, nullptr),
+	TextBox::TextBox(BoxPtr parent, StyleNodePtr node)
+		: Box(BoxId::TEXT, parent, node),
 		  line_(),
-		  txt_(txt),
+		  txt_(std::dynamic_pointer_cast<Text>(node->getNode())),
 		  it_(),
 		  justification_(0)
 	{
@@ -60,7 +60,7 @@ namespace xhtml
 
 		bool done = false;
 		while(!done) {
-			LinePtr line = txt_->reflowText(it, width, getFont());
+			LinePtr line = txt_->reflowText(it, width, getStyleNode()->getFont());
 			if(line != nullptr && !line->line.empty()) {
 				// is the line larger than available space and are there floats present?
 				if(line->line.back().advance.back().x > width && eng.hasFloatsAtPosition(y1, y1 + getLineHeight())) {
@@ -137,7 +137,7 @@ namespace xhtml
 		std::vector<point> path;
 		std::string text;
 		int dim_x = offset.x;
-		int dim_y = offset.y + getFont()->getDescender();
+		int dim_y = offset.y + getStyleNode()->getFont()->getDescender();
 		for(auto& word : line_->line) {
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);
@@ -147,8 +147,8 @@ namespace xhtml
 		}
 		
 		auto& ctx = RenderContext::get();
-		auto fontr = getFont()->createRenderableFromPath(nullptr, text, path);
-		fontr->setColor(getColor());
+		auto fontr = getStyleNode()->getFont()->createRenderableFromPath(nullptr, text, path);
+		fontr->setColor(getStyleNode()->getColor());
 		display_list->addRenderable(fontr);
 	}
 }

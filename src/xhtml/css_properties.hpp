@@ -102,7 +102,7 @@ namespace css
 		void parseOverflow(const std::string& prefix, const std::string& suffix);
 		void parsePosition(const std::string& prefix, const std::string& suffix);
 		void parseFloat(const std::string& prefix, const std::string& suffix);
-		void parseUri(const std::string& prefix, const std::string& suffix);
+		void parseImageSource(const std::string& prefix, const std::string& suffix);
 		void parseBackgroundRepeat(const std::string& prefix, const std::string& suffix);
 		void parseBackgroundPosition(const std::string& prefix, const std::string& suffix);
 		void parseListStyleType(const std::string& prefix, const std::string& suffix);
@@ -160,7 +160,7 @@ namespace css
 		Width parseWidthInternal2();
 		StylePtr parseBorderWidthInternal();
 		StylePtr parseBorderStyleInternal();
-		StylePtr parseLinearGradient(const std::vector<TokenPtr>& tokens);
+		ImageSourcePtr parseLinearGradient(const std::vector<TokenPtr>& tokens);
 		void parseColor2(std::shared_ptr<CssColor> color);
 		ListStyleType parseListStyleTypeInt(const std::string& lst);
 		CssBorderImageRepeat parseBorderImageRepeatInteral(const std::string& ref);

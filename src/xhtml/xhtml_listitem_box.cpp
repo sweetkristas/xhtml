@@ -21,6 +21,8 @@
 	   distribution.
 */
 
+#include <Blittable.hpp>
+
 #include "to_roman.hpp"
 #include "utf8_to_codepoint.hpp"
 
@@ -49,7 +51,7 @@ namespace xhtml
 		const char32_t marker_georgian_end = 0x10f6;
 	}
 
-	ListItemBox::ListItemBox(BoxPtr parent, NodePtr node, int count)
+	ListItemBox::ListItemBox(BoxPtr parent, StyleNodePtr node, int count)
 		: Box(BoxId::LIST_ITEM, parent, node),
 		  count_(count),
 		  marker_(utils::codepoint_to_utf8(marker_disc))
@@ -66,8 +68,7 @@ namespace xhtml
 
 	void ListItemBox::handleLayout(LayoutEngine& eng, const Dimensions& containing) 
 	{
-		RenderContext& ctx = RenderContext::get();
-		ListStyleType lst = ctx.getComputedValue(Property::LIST_STYLE_TYPE)->getEnum<ListStyleType>();
+		auto lst = getStyleNode()->getListStyleType();
 		switch(lst) {
 			case ListStyleType::DISC: /* is the default */ break;
 			case ListStyleType::CIRCLE:
@@ -143,18 +144,18 @@ namespace xhtml
 			FixedPoint x = getMBPLeft();
 
 			FixedPoint y1 = y + getOffset().y;
-			left = getFloatValue() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+			left = getStyleNode()->getFloat() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 			bool placed = false;
 			while(!placed) {
 				if(w >= box_w) {
-					left = left - (getFloatValue() == Float::LEFT ? x : box_w);
+					left = left - (getStyleNode()->getFloat() == Float::LEFT ? x : box_w);
 					top = y;
 					placed = true;
 				} else {
 					y += lh;
 					y1 = y + getOffset().y;
-					left = getFloatValue() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
+					left = getStyleNode()->getFloat() == Float::LEFT ? eng.getXAtPosition(y1, y1 + lh) + x : eng.getX2AtPosition(y1, y1 + lh);
 					w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 				}
 			}
@@ -163,8 +164,9 @@ namespace xhtml
 		setContentX(left);
 		setContentY(top);
 
-		if(!getCssHeight().isAuto()) {
-			FixedPoint h = getCssHeight().getLength().compute(containing.content_.height);
+		auto& css_height = getStyleNode()->getHeight();
+		if(!css_height->isAuto()) {
+			FixedPoint h = css_height->getLength().compute(containing.content_.height);
 			//if(h > child_height_) {
 			//	/* apply overflow properties */
 			//}
@@ -180,10 +182,10 @@ namespace xhtml
 		calculateHorzMPB(containing_width);
 		calculateVertMPB(containing.content_.height);
 
-		const auto& css_width = getCssWidth();
+		const auto& css_width = getStyleNode()->getWidth();
 		FixedPoint width = 0;
-		if(!css_width.isAuto()) {
-			width = css_width.getLength().compute(containing_width);
+		if(!css_width->isAuto()) {
+			width = css_width->getLength().compute(containing_width);
 		} else {
 			width = containing_width;
 		}
@@ -199,11 +201,6 @@ namespace xhtml
 
 	void ListItemBox::handleRender(DisplayListPtr display_list, const point& offset) const 
 	{
-		auto& ctx = RenderContext::get();
-
-		auto path = getFont()->getGlyphPath(marker_);
-		std::vector<point> new_path;
-		FixedPoint path_width = path.back().x - path.front().x + getFont()->calculateCharAdvance(' ');
 		// XXX should figure out if there is a cleaner way of doing this, basically we want the list marker to be offset by the 
 		// content's first child's position.
 		auto y = getBaselineOffset();
@@ -212,12 +209,32 @@ namespace xhtml
 				y = getChildren().front()->getChildren().front()->getBaselineOffset();
 			}
 		}
-		for(auto& p : path) {
-			new_path.emplace_back(p.x + offset.x - 5 - path_width, p.y + offset.y + y);
+		auto& fnt = getStyleNode()->getFont();
+
+		auto& img = getStyleNode()->getListStyleImage();
+		if(getStyleNode()->getListStyleImage() != nullptr) {
+			// There are some other calculations we should do here if there is an
+			// intrinsic ration to use.
+			int em = static_cast<int>(fnt->getFontSize() / 72.0f * static_cast<float>(RenderContext::get().getDPI()));
+			auto tex = img->getTexture(em, em);
+			if(tex != nullptr) {
+				auto rend = std::make_shared<KRE::Blittable>(tex);
+				rend->setCentre(KRE::Blittable::Centre::BOTTOM_LEFT);
+				rend->setCentreCoords(pointf(0.0f, y / LayoutEngine::getFixedPointScaleFloat()));
+				display_list->addRenderable(rend);
+			}
+		} else {
+			auto path = fnt->getGlyphPath(marker_);
+			std::vector<point> new_path;
+			FixedPoint path_width = path.back().x - path.front().x + fnt->calculateCharAdvance(' ');
+
+			for(auto& p : path) {
+				new_path.emplace_back(p.x + offset.x - 5 - path_width, p.y + offset.y + y);
+			}
+			auto fontr = fnt->createRenderableFromPath(nullptr, marker_, new_path);
+			fontr->setColor(getStyleNode()->getColor());
+			display_list->addRenderable(fontr);
 		}
-		auto fontr = getFont()->createRenderableFromPath(nullptr, marker_, new_path);
-		fontr->setColor(getColor());
-		display_list->addRenderable(fontr);
 	}
 
 }

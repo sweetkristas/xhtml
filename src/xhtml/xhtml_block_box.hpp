@@ -30,9 +30,8 @@ namespace xhtml
 	class BlockBox : public Box
 	{
 	public:
-		explicit BlockBox(BoxPtr parent, NodePtr node, NodePtr child=nullptr);
+		explicit BlockBox(BoxPtr parent, StyleNodePtr node);
 		virtual std::string toString() const override;
-		std::vector<NodePtr> getChildNodes() const override;
 	protected:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		virtual void handleRender(DisplayListPtr display_list, const point& offset) const override;
@@ -46,6 +45,5 @@ namespace xhtml
 
 		// actual computed height of children.
 		FixedPoint child_height_;
-		WeakNodePtr child_;
 	};
 }

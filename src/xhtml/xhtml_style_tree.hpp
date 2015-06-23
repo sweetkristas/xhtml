@@ -26,6 +26,7 @@
 #include <array>
 
 #include "xhtml_node.hpp"
+#include "xhtml_render_ctx.hpp"
 
 namespace xhtml
 {
@@ -37,13 +38,15 @@ namespace xhtml
 	{
 	public:
 		StyleNode(const NodePtr& node);
-		NodePtr getNode() { return node_.lock(); }
-		void parseNode(const NodePtr& node);
+		NodePtr getNode() const { return node_.lock(); }
+		void parseNode(StyleNodePtr parent, const NodePtr& node);
 		static StyleNodePtr createStyleTree(const DocumentPtr& doc);
+		bool preOrderTraversal(std::function<bool(StyleNodePtr)> fn);
+		const std::vector<StyleNodePtr>& getChildren() const { return children_; }
 
 		css::BackgroundAttachment getBackgroundAttachment() const { return background_attachment_; }
 		const KRE::Color& getBackgroundColor() const { return background_color_; }
-		// const std::shared_ptr<css::ImageSource> getBackgroundImage() const { return background_image_; }
+		 const std::shared_ptr<css::ImageSource> getBackgroundImage() const { return background_image_; }
 		// Stored as [0] top, [1] left
 		const std::array<css::Length, 2>& getBackgroundPosition() const { return background_position_; }
 		css::BackgroundRepeat getBackgroundRepeat() const { return background_repeat_; }
@@ -69,7 +72,8 @@ namespace xhtml
 		const std::shared_ptr<css::Width>& getWidth() const { return width_height_[0]; }
 		const std::shared_ptr<css::Width>& getHeight() const { return width_height_[1]; }
 		const std::shared_ptr<css::Length>& getLetterSpacing() const { return letter_spacing_; }
-		//const std::shared_ptr<css::ImageSource>& getListStyleImage() const { return list_style_image_; }
+		const std::shared_ptr<css::Length>& getLineHeight() const { return line_height_; }
+		const std::shared_ptr<css::ImageSource>& getListStyleImage() const { return list_style_image_; }
 		css::ListStylePosition getListStylePosition() const { return list_style_position_; }
 		css::ListStyleType getListStyleType() const { return list_style_type_; }
 		const std::array<std::shared_ptr<css::Width>, 4>& getMargin() const { return margin_; }
@@ -103,7 +107,7 @@ namespace xhtml
 		const std::shared_ptr<css::TransitionTiming>& getTransitionDelay() const { return transition_delay_; }
 		const std::array<std::shared_ptr<css::BorderRadius>, 4>& getBorderRadius() const { return border_radius_; }
 		float getOpacity() const { return opacity_; }
-		//const std::shared_ptr<css::ImageSource>& getImageSource() const { return border_image_; }
+		const std::shared_ptr<css::ImageSource>& getBorderImage() const { return border_image_; }
 		bool isBorderImageFilled() const { return border_image_fill_; }
 		const std::array<css::Width, 4>& getBorderImageSlice() const { return border_image_slice_; }
 		const std::array<css::Width, 4>& getBorderImageWidth() const { return border_image_width_; }
@@ -111,16 +115,19 @@ namespace xhtml
 		css::CssBorderImageRepeat getBorderImageRepeatHoriz() const { return border_image_repeat_horiz_; }
 		css::CssBorderImageRepeat getBorderImageRepeatVert() const { return border_image_repeat_vert_; }
 		css::BackgroundClip getBackgroundClip() const { return background_clip_; }
+
+		void inheritProperties(const StyleNodePtr& new_styles);
 	private:
 		void processStyles();
 		WeakNodePtr node_;
+		std::vector<StyleNodePtr> children_;
 
 		//BACKGROUND_ATTACHMENT
 		css::BackgroundAttachment background_attachment_;
 		//BACKGROUND_COLOR
 		KRE::Color background_color_;
 		//BACKGROUND_IMAGE
-		//std::shared_ptr<css::ImageSource> background_image_;
+		std::shared_ptr<css::ImageSource> background_image_;
 		//BACKGROUND_POSITION -- stored as top/left
 		std::array<css::Length, 2> background_position_;
 		//BACKGROUND_REPEAT
@@ -162,7 +169,7 @@ namespace xhtml
 		//LINE_HEIGHT
 		std::shared_ptr<css::Length> line_height_;
 		//LIST_STYLE_IMAGE
-		//std::shared_ptr<css::ImageSource> list_style_image_;
+		std::shared_ptr<css::ImageSource> list_style_image_;
 		//LIST_STYLE_POSITION
 		css::ListStylePosition list_style_position_;
 		//LIST_STYLE_TYPE
@@ -233,7 +240,7 @@ namespace xhtml
 		//OPACITY
 		float opacity_;
 		//BORDER_IMAGE_SOURCE
-		//std::shared_ptr<css::ImageSource> border_image_;
+		std::shared_ptr<css::ImageSource> border_image_;
 		//BORDER_IMAGE_SLICE
 		bool border_image_fill_;
 		std::array<css::Width, 4> border_image_slice_;

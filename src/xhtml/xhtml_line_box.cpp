@@ -185,7 +185,8 @@ namespace xhtml
 		for(auto& child : getChildren()) {
 			FixedPoint child_y = child->getDimensions().content_.y;
 			// XXX we should implement this fully.
-			css::CssVerticalAlign va = child->getVerticalAlign()->getAlign();
+			auto& vertical_align = child->getStyleNode()->getVerticalAlign();
+			css::CssVerticalAlign va = vertical_align->getAlign();
 			switch(va) {
 				case css::CssVerticalAlign::BASELINE:
 					// Align the baseline of the box with the baseline of the parent box. 
@@ -217,7 +218,7 @@ namespace xhtml
 					break;
 				case css::CssVerticalAlign::LENGTH: {
 					// Offset align by length value. Percentages reference the line-height of the element.
-					FixedPoint len = child->getVerticalAlign()->getLength().compute(child->getLineHeight());
+					FixedPoint len = vertical_align->getLength().compute(child->getLineHeight());
 					// 0 for len is the baseline.
 					child_y += child->getBaselineOffset() - len;
 				}
@@ -231,7 +232,7 @@ namespace xhtml
 	void LineBox::postParentLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		const FixedPoint containing_width = containing.content_.width;
-		const css::TextAlign ta = getParent()->getTextAlign();
+		const css::TextAlign ta = getParent()->getStyleNode()->getTextAlign();
 
 		// computer&set children X offsets
 		for(auto& child : getChildren()) {
@@ -241,7 +242,7 @@ namespace xhtml
 				case css::TextAlign::CENTER:		child_x = (containing_width - child->getWidth() - child_x) / 2; break;
 				case css::TextAlign::JUSTIFY:	child->justify(containing_width); break;
 				case css::TextAlign::NORMAL:	
-					if(getParent()->getCssDirection() == css::Direction::RTL) {
+					if(getParent()->getStyleNode()->getDirection() == css::Direction::RTL) {
 						child_x = containing_width - child->getWidth();
 					}
 					break;

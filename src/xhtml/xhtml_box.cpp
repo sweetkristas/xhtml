@@ -51,36 +51,22 @@ namespace xhtml
 		return os;
 	}
 
-	Box::Box(BoxId id, BoxPtr parent, NodePtr node)
+	Box::Box(BoxId id, BoxPtr parent, StyleNodePtr node)
 		: id_(id),
 		  node_(node),
 		  parent_(parent),
 		  dimensions_(),
 		  boxes_(),
 		  absolute_boxes_(),
-		  cfloat_(Float::NONE),
-		  font_handle_(nullptr),
-		  background_info_(),
-		  border_info_(),
-		  css_position_(Position::STATIC),
-		  padding_{},
-		  border_{},
-		  margin_{},
-		  color_(),
-		  css_sides_(),
-		  css_width_(),
-		  css_height_(),
-		  float_clear_(Clear::NONE),
-		  vertical_align_(nullptr),
-		  text_align_(TextAlign::NORMAL),
-		  css_direction_(Direction::LTR),
+		  background_info_(node),
+		  border_info_(node),
 		  offset_(),
 		  line_height_(0),
 		  end_of_line_(false),
 		  is_replaceable_(false)
 	{
-		if(node != nullptr && node->id() == NodeId::ELEMENT) {
-			is_replaceable_ = node->isReplaced();
+		if(getNode() != nullptr && getNode()->id() == NodeId::ELEMENT) {
+			is_replaceable_ = getNode()->isReplaced();
 		}
 
 		init();
@@ -93,68 +79,27 @@ namespace xhtml
 			return;
 		}
 
-		RenderContext& ctx = RenderContext::get();
-		color_ = ctx.getComputedValue(Property::COLOR)->asType<CssColor>()->compute();
-
-		font_handle_ = ctx.getFontHandle();
-
-		background_info_.setColor(ctx.getComputedValue(Property::BACKGROUND_COLOR)->asType<CssColor>()->compute());
-		// We set repeat before the filename so we can correctly set the background texture wrap mode.
-		background_info_.setRepeat(ctx.getComputedValue(Property::BACKGROUND_REPEAT)->getEnum<BackgroundRepeat>());
-		background_info_.setPosition(ctx.getComputedValue(Property::BACKGROUND_POSITION)->asType<BackgroundPosition>());
-		auto uri = ctx.getComputedValue(Property::BACKGROUND_IMAGE)->asType<UriStyle>();
-		if(!uri->isNone()) {
-			background_info_.setFile(uri->getUri());
-		}
-		css_position_ = ctx.getComputedValue(Property::POSITION)->getEnum<Position>();
-
-		const Property b[4]  = { Property::BORDER_TOP_WIDTH, Property::BORDER_LEFT_WIDTH, Property::BORDER_BOTTOM_WIDTH, Property::BORDER_RIGHT_WIDTH };
-		const Property p[4]  = { Property::PADDING_TOP, Property::PADDING_LEFT, Property::PADDING_BOTTOM, Property::PADDING_RIGHT };
-		const Property m[4]  = { Property::MARGIN_TOP, Property::MARGIN_LEFT, Property::MARGIN_BOTTOM, Property::MARGIN_RIGHT };
-
-		for(int n = 0; n != 4; ++n) {
-			border_[n] = ctx.getComputedValue(b[n])->asType<Length>();
-			padding_[n] = ctx.getComputedValue(p[n])->asType<Length>();
-			margin_[n] = ctx.getComputedValue(m[n])->asType<Width>();
-		}
-
-		css_sides_[0] = ctx.getComputedValue(Property::TOP)->asType<Width>();
-		css_sides_[1] = ctx.getComputedValue(Property::LEFT)->asType<Width>();
-		css_sides_[2] = ctx.getComputedValue(Property::BOTTOM)->asType<Width>();
-		css_sides_[3] = ctx.getComputedValue(Property::RIGHT)->asType<Width>();
-
-		css_width_ = ctx.getComputedValue(Property::WIDTH)->asType<Width>();
-		css_height_ = ctx.getComputedValue(Property::HEIGHT)->asType<Width>();
-
-		float_clear_ = ctx.getComputedValue(Property::CLEAR)->getEnum<Clear>();
-
-		css_direction_ = ctx.getComputedValue(Property::DIRECTION)->getEnum<Direction>();
-
-		text_align_ = ctx.getComputedValue(Property::TEXT_ALIGN)->getEnum<TextAlign>();
-
-		cfloat_ = ctx.getComputedValue(Property::FLOAT)->getEnum<Float>();
-		
-		const auto lh = ctx.getComputedValue(Property::LINE_HEIGHT)->asType<Length>();
-		line_height_ = lh->compute();
+		auto& lh = node_->getLineHeight();
 		if(lh->isPercent() || lh->isNumber()) {
-			line_height_ = static_cast<FixedPoint>(line_height_ * font_handle_->getFontSize() * 96.0/72.0);
+			line_height_ = static_cast<FixedPoint>(lh->compute() * node_->getFont()->getFontSize() * 96.0/72.0);
+		} else {
+			line_height_ = lh->compute();
 		}
-
-		vertical_align_ = ctx.getComputedValue(Property::VERTICAL_ALIGN)->asType<VerticalAlign>();
 	}
 
-	RootBoxPtr Box::createLayout(NodePtr node, int containing_width, int containing_height)
+	RootBoxPtr Box::createLayout(StyleNodePtr node, int containing_width, int containing_height)
 	{
 		LayoutEngine e;
 		// search for the body element then render that content.
-		node->preOrderTraversal([&e, containing_width, containing_height](NodePtr node){
-			if(node->id() == NodeId::ELEMENT && node->hasTag(ElementId::HTML)) {
+		node->preOrderTraversal([&e, containing_width, containing_height](StyleNodePtr node){
+			auto n = node->getNode();
+			if(n->id() == NodeId::ELEMENT && n->hasTag(ElementId::HTML)) {
 				e.layoutRoot(node, nullptr, point(containing_width * LayoutEngine::getFixedPointScale(), containing_height * LayoutEngine::getFixedPointScale()));
 				return false;
 			}
 			return true;
 		});
-		node->layoutComplete();
+		node->getNode()->layoutComplete();
 		return e.getRoot();
 	}
 
@@ -188,13 +133,6 @@ namespace xhtml
 		abs_box->layout(eng, containing);
 	}
 
-	void Box::layoutAbsolute(LayoutEngine& eng, const Dimensions& containing)
-	{
-		//for(auto& abs : absolute_boxes_) {
-		//	abs->layout(eng, containing, FloatList());
-		//}
-	}
-
 	bool Box::hasChildBlockBox() const
 	{
 		for(auto& child : boxes_) {
@@ -205,15 +143,6 @@ namespace xhtml
 		return false;
 	}
 
-	std::vector<NodePtr> Box::getChildNodes() const
-	{
-		NodePtr node = getNode();
-		if(node != nullptr) {
-			return node->getChildren();
-		}
-		return std::vector<NodePtr>();
-	}
-
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		std::unique_ptr<LayoutEngine::FloatContextManager> fcm;
@@ -222,7 +151,9 @@ namespace xhtml
 		}
 		point cursor;
 		// If we have a clear flag set, then move the cursor in the layout engine to clear appropriate floats.
-		eng.moveCursorToClearFloats(float_clear_, cursor);
+		if(node_ != nullptr) {
+			eng.moveCursorToClearFloats(node_->getClear(), cursor);
+		}
 
 		NodePtr node = getNode();
 
@@ -235,12 +166,14 @@ namespace xhtml
 
 		LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
 
-		std::vector<NodePtr> node_children = getChildNodes();
-		if(!node_children.empty()) {
-			boxes_ = eng.layoutChildren(node_children, shared_from_this(), open);
-		}
-		if(open != nullptr && !open->boxes_.empty()) {
-			boxes_.emplace_back(open);
+		if(node_ != nullptr) {
+			const std::vector<StyleNodePtr>& node_children = node_->getChildren();
+			if(!node_children.empty()) {
+				boxes_ = eng.layoutChildren(node_children, shared_from_this(), open);
+			}
+			if(open != nullptr && !open->boxes_.empty()) {
+				boxes_.emplace_back(open);
+			}
 		}
 
 		// xxx offs
@@ -277,42 +210,42 @@ namespace xhtml
 	void Box::calculateVertMPB(FixedPoint containing_height)
 	{
 		if(border_info_.isValid(Side::TOP)) {
-			setBorderTop(getCssBorder(Side::TOP).compute());
+			setBorderTop(getStyleNode()->getBorderWidths()[0]->compute());
 		}
 		if(border_info_.isValid(Side::BOTTOM)) {
-			setBorderBottom(getCssBorder(Side::BOTTOM).compute());
+			setBorderBottom(getStyleNode()->getBorderWidths()[2]->compute());
 		}
 
-		setPaddingTop(getCssPadding(Side::TOP).compute(containing_height));
-		setPaddingBottom(getCssPadding(Side::BOTTOM).compute(containing_height));
+		setPaddingTop(getStyleNode()->getPadding()[0]->compute(containing_height));
+		setPaddingBottom(getStyleNode()->getPadding()[2]->compute(containing_height));
 
-		setMarginTop(getCssMargin(Side::TOP).getLength().compute(containing_height));
-		setMarginBottom(getCssMargin(Side::BOTTOM).getLength().compute(containing_height));
+		setMarginTop(getStyleNode()->getMargin()[0]->getLength().compute(containing_height));
+		setMarginBottom(getStyleNode()->getMargin()[2]->getLength().compute(containing_height));
 	}
 
 	void Box::calculateHorzMPB(FixedPoint containing_width)
 	{		
 		if(border_info_.isValid(Side::LEFT)) {
-			setBorderLeft(getCssBorder(Side::LEFT).compute());
+			setBorderLeft(getStyleNode()->getBorderWidths()[1]->compute());
 		}
 		if(border_info_.isValid(Side::RIGHT)) {
-			setBorderRight(getCssBorder(Side::RIGHT).compute());
+			setBorderRight(getStyleNode()->getBorderWidths()[3]->compute());
 		}
 
-		setPaddingLeft(getCssPadding(Side::LEFT).compute(containing_width));
-		setPaddingRight(getCssPadding(Side::RIGHT).compute(containing_width));
+		setPaddingLeft(getStyleNode()->getPadding()[1]->compute(containing_width));
+		setPaddingRight(getStyleNode()->getPadding()[3]->compute(containing_width));
 
-		if(!getCssMargin(Side::LEFT).isAuto()) {
-			setMarginLeft(getCssMargin(Side::LEFT).getLength().compute(containing_width));
+		if(!getStyleNode()->getMargin()[1]->isAuto()) {
+			setMarginLeft(getStyleNode()->getMargin()[1]->getLength().compute(containing_width));
 		}
-		if(!getCssMargin(Side::RIGHT).isAuto()) {
-			setMarginRight(getCssMargin(Side::RIGHT).getLength().compute(containing_width));
+		if(!getStyleNode()->getMargin()[3]->isAuto()) {
+			setMarginRight(getStyleNode()->getMargin()[3]->getLength().compute(containing_width));
 		}
 	}
 
 	void Box::render(DisplayListPtr display_list, const point& offset) const
 	{
-		auto node = node_.lock();
+		auto node = getNode();
 		std::unique_ptr<RenderContext::Manager> ctx_manager;
 		if(node != nullptr && node->id() == NodeId::ELEMENT) {
 			// only instantiate on element nodes.
@@ -322,35 +255,35 @@ namespace xhtml
 		point offs = offset;
 		offs += point(dimensions_.content_.x, dimensions_.content_.y);
 
-		if(css_position_ == Position::RELATIVE) {
-			if(getCssLeft().isAuto()) {
-				if(!getCssRight().isAuto()) {
-					offs.x -= getCssRight().getLength().compute(getParent()->getWidth());
+		if(node_ != nullptr && node_->getPosition() == Position::RELATIVE) {
+			if(getStyleNode()->getLeft()->isAuto()) {
+				if(!getStyleNode()->getRight()->isAuto()) {
+					offs.x -= getStyleNode()->getRight()->getLength().compute(getParent()->getWidth());
 				}
 				// the other case here evaluates as no-change.
 			} else {
-				if(getCssRight().isAuto()) {
-					offs.x += getCssLeft().getLength().compute(getParent()->getWidth());
+				if(getStyleNode()->getRight()->isAuto()) {
+					offs.x += getStyleNode()->getLeft()->getLength().compute(getParent()->getWidth());
 				} else {
 					// over-constrained.
-					if(css_direction_ == Direction::LTR) {
+					if(getStyleNode()->getDirection() == Direction::LTR) {
 						// left wins
-						offs.x += getCssLeft().getLength().compute(getParent()->getWidth());
+						offs.x += getStyleNode()->getLeft()->getLength().compute(getParent()->getWidth());
 					} else {
 						// right wins
-						offs.x -= getCssRight().getLength().compute(getParent()->getWidth());
+						offs.x -= getStyleNode()->getRight()->getLength().compute(getParent()->getWidth());
 					}
 				}
 			}
 
-			if(getCssTop().isAuto()) {
-				if(!getCssBottom().isAuto()) {
-					offs.y -= getCssBottom().getLength().compute(getParent()->getHeight());
+			if(getStyleNode()->getTop()->isAuto()) {
+				if(!getStyleNode()->getBottom()->isAuto()) {
+					offs.y -= getStyleNode()->getBottom()->getLength().compute(getParent()->getHeight());
 				}
 				// the other case here evaluates as no-change.
 			} else {
 				// Either bottom is auto in which case top wins or over-constrained in which case top wins.
-				offs.y += getCssTop().getLength().compute(getParent()->getHeight());
+				offs.y += getStyleNode()->getTop()->getLength().compute(getParent()->getHeight());
 			}
 		}
 

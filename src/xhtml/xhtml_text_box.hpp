@@ -31,7 +31,7 @@ namespace xhtml
 	class TextBox : public Box
 	{
 	public:
-		TextBox(BoxPtr parent, TextPtr txt);
+		TextBox(BoxPtr parent, StyleNodePtr node);
 		std::string toString() const override;
 		Text::iterator reflow(LayoutEngine& eng, point& cursor, Text::iterator it);
 		Text::iterator begin() { return it_; }

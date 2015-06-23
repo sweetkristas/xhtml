@@ -28,7 +28,7 @@ namespace xhtml
 {
 	using namespace css;
 
-	AbsoluteBox::AbsoluteBox(BoxPtr parent, NodePtr node)
+	AbsoluteBox::AbsoluteBox(BoxPtr parent, StyleNodePtr node)
 		: Box(BoxId::ABSOLUTE, parent, node),
 		  container_()
 	{
@@ -48,7 +48,7 @@ namespace xhtml
 		// Find the first ancestor with non-static position
 		auto parent = getParent();
 		if(parent != nullptr && !parent->ancestralTraverse([&container](const ConstBoxPtr& box) {
-			if(box->getPosition() != Position::STATIC) {
+			if(box->getStyleNode()->getPosition() != Position::STATIC) {
 				container = box->getDimensions().content_;
 				return true;
 			}
@@ -66,22 +66,22 @@ namespace xhtml
 		const FixedPoint containing_height = container.height;
 		
 		FixedPoint left = container.x;
-		if(!getCssLeft().isAuto()) {
-			left = getCssLeft().getLength().compute(containing_width);
+		if(!getStyleNode()->getLeft()->isAuto()) {
+			left = getStyleNode()->getLeft()->getLength().compute(containing_width);
 		}
 		FixedPoint top = container.y;
-		if(!getCssTop().isAuto()) {
-			top = getCssTop().getLength().compute(containing_height);
+		if(!getStyleNode()->getTop()->isAuto()) {
+			top = getStyleNode()->getTop()->getLength().compute(containing_height);
 		}
 
 		FixedPoint width = container.width;
-		if(!getCssRight().isAuto()) {
-			width = container.width - (getCssRight().getLength().compute(containing_width) + left);
+		if(!getStyleNode()->getRight()->isAuto()) {
+			width = container.width - (getStyleNode()->getRight()->getLength().compute(containing_width) + left);
 		}
 
 		// if width/height properties are set they override right/bottom.
-		if(!getCssWidth().isAuto()) {
-			width = getCssWidth().getLength().compute(containing_width);
+		if(!getStyleNode()->getWidth()->isAuto()) {
+			width = getStyleNode()->getWidth()->getLength().compute(containing_width);
 		}
 
 		calculateHorzMPB(containing_width);
@@ -102,17 +102,17 @@ namespace xhtml
 		const FixedPoint containing_height = container_.height;
 
 		FixedPoint top = container_.y;
-		if(!getCssTop().isAuto()) {
-			top = getCssTop().getLength().compute(containing_height);
+		if(!getStyleNode()->getTop()->isAuto()) {
+			top = getStyleNode()->getTop()->getLength().compute(containing_height);
 		}
 
 		FixedPoint height = container_.height;
-		if(!getCssBottom().isAuto()) {
-			height = container_.height - (getCssBottom().getLength().compute(containing_height) + top);
+		if(!getStyleNode()->getBottom()->isAuto()) {
+			height = container_.height - (getStyleNode()->getBottom()->getLength().compute(containing_height) + top);
 		}
 
-		if(!getCssHeight().isAuto()) {
-			height = getCssHeight().getLength().compute(containing_height);
+		if(!getStyleNode()->getHeight()->isAuto()) {
+			height = getStyleNode()->getHeight()->getLength().compute(containing_height);
 		}
 
 		setContentHeight(height - getMBPHeight());

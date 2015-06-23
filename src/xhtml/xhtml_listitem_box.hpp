@@ -30,7 +30,7 @@ namespace xhtml
 	class ListItemBox : public Box
 	{
 	public:
-		explicit ListItemBox(BoxPtr parent, NodePtr node, int count);
+		explicit ListItemBox(BoxPtr parent, StyleNodePtr node, int count);
 		std::string toString() const override;
 	private:
 		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
