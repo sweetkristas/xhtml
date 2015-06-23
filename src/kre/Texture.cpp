@@ -351,11 +351,24 @@ namespace KRE
 				tp.filtering[0] = min;
 				tp.filtering[1] = max;
 				tp.filtering[2] = mip;
+				// If you enable bilinear/trilinear/aniso filtering on an image then it must have mipmaps.
+				if((min != Texture::Filtering::LINEAR || min != Texture::Filtering::ANISOTROPIC
+					|| max == Texture::Filtering::LINEAR || max == Texture::Filtering::ANISOTROPIC
+					|| mip == Texture::Filtering::LINEAR) && texture_params_[n].mipmaps == 0) {
+					tp.mipmaps = 2;
+				}
 			}
 		} else {
 			texture_params_[n].filtering[0] = min;
 			texture_params_[n].filtering[1] = max;
 			texture_params_[n].filtering[2] = mip;
+
+			// If you enable bilinear/trilinear/aniso filtering on an image then it must have mipmaps.
+			if((min != Texture::Filtering::LINEAR || min != Texture::Filtering::ANISOTROPIC
+				|| max == Texture::Filtering::LINEAR || max == Texture::Filtering::ANISOTROPIC
+				|| mip == Texture::Filtering::LINEAR) && texture_params_[n].mipmaps == 0) {
+				texture_params_[n].mipmaps = 2;
+			}
 		}
 		init(n);
 	}

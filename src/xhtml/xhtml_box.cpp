@@ -80,10 +80,12 @@ namespace xhtml
 		}
 
 		auto& lh = node_->getLineHeight();
-		if(lh->isPercent() || lh->isNumber()) {
-			line_height_ = static_cast<FixedPoint>(lh->compute() * node_->getFont()->getFontSize() * 96.0/72.0);
-		} else {
-			line_height_ = lh->compute();
+		if(lh != nullptr) {
+			if(lh->isPercent() || lh->isNumber()) {
+				line_height_ = static_cast<FixedPoint>(lh->compute() * node_->getFont()->getFontSize() * 96.0/72.0);
+			} else {
+				line_height_ = lh->compute();
+			}
 		}
 	}
 

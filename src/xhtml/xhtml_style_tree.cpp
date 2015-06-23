@@ -105,11 +105,15 @@ namespace xhtml
 	void StyleNode::parseNode(StyleNodePtr parent, const NodePtr& node)
 	{
 		std::unique_ptr<RenderContext::Manager> rcm;
-		if(node->id() == NodeId::ELEMENT) {
+		bool is_element = node->id() == NodeId::ELEMENT;
+		bool is_text = node->id() == NodeId::TEXT;
+		if(is_element || is_text) {
 			rcm.reset(new RenderContext::Manager(node->getProperties()));
 		}
 		StyleNodePtr style_child = std::make_shared<StyleNode>(node);
-		style_child->processStyles();
+		if(is_element || is_text) {
+			style_child->processStyles();
+		}
 
 		parent->children_.emplace_back(style_child);
 
@@ -137,7 +141,8 @@ namespace xhtml
 		RenderContext& ctx = RenderContext::get();
 		background_attachment_ = ctx.getComputedValue(Property::BACKGROUND_ATTACHMENT)->getEnum<BackgroundAttachment>();
 		background_color_ = ctx.getComputedValue(Property::BACKGROUND_COLOR)->asType<CssColor>()->compute();
-		background_image_ = ctx.getComputedValue(Property::BACKGROUND_IMAGE)->asType<ImageSource>();
+		auto back_img = ctx.getComputedValue(Property::BACKGROUND_IMAGE);
+		background_image_ = back_img != nullptr ? back_img->asType<ImageSource>() : nullptr;
 		auto bp = ctx.getComputedValue(Property::BACKGROUND_POSITION)->asType<BackgroundPosition>();
 		background_position_[0] = bp->getTop();
 		background_position_[1] = bp->getLeft();
@@ -173,7 +178,8 @@ namespace xhtml
 		width_height_[1] = ctx.getComputedValue(Property::HEIGHT)->asType<Width>();
 		letter_spacing_ = ctx.getComputedValue(Property::LETTER_SPACING)->asType<Length>();
 		line_height_ = ctx.getComputedValue(Property::LINE_HEIGHT)->asType<Length>();
-		list_style_image_ = ctx.getComputedValue(Property::LIST_STYLE_IMAGE)->asType<ImageSource>();
+		auto list_img = ctx.getComputedValue(Property::LIST_STYLE_IMAGE);
+		list_style_image_ = list_img != nullptr ? list_img->asType<ImageSource>() : nullptr;
 		list_style_position_ = ctx.getComputedValue(Property::LIST_STYLE_POSITION)->getEnum<ListStylePosition>();
 		list_style_type_ = ctx.getComputedValue(Property::LIST_STYLE_TYPE)->getEnum<ListStyleType>();
 		margin_[0] = ctx.getComputedValue(Property::MARGIN_TOP)->asType<Width>();
@@ -217,7 +223,8 @@ namespace xhtml
 		border_radius_[2] = ctx.getComputedValue(Property::BORDER_BOTTOM_RIGHT_RADIUS)->asType<BorderRadius>();
 		border_radius_[3] = ctx.getComputedValue(Property::BORDER_BOTTOM_LEFT_RADIUS)->asType<BorderRadius>();
 		opacity_ = ctx.getComputedValue(Property::OPACITY)->asType<Length>()->compute() / 65536.0f;
-		border_image_ = ctx.getComputedValue(Property::BORDER_IMAGE_SOURCE)->asType<ImageSource>();
+		auto bord_img = ctx.getComputedValue(Property::BORDER_IMAGE_SOURCE);
+		border_image_ = bord_img != nullptr ? bord_img->asType<ImageSource>() : nullptr;
 		auto bis = ctx.getComputedValue(Property::BORDER_IMAGE_SLICE)->asType<BorderImageSlice>();
 		border_image_fill_ = bis->isFilled();
 		border_image_slice_ = bis->getWidths();

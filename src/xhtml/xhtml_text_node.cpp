@@ -161,6 +161,7 @@ namespace xhtml
 		ASSERT_LOG(transformed_ == true, "Text must be transformed before reflowing.");
 		auto ctx = RenderContext::get();
 
+		/// XXXX FIXME
 		line_.space_advance = font_handle->calculateCharAdvance(' ');
 		FixedPoint word_spacing = ctx.getComputedValue(css::Property::WORD_SPACING)->asType<css::Length>()->compute();
 		line_.space_advance += word_spacing;

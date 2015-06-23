@@ -294,15 +294,17 @@ namespace xhtml
 		if(styles == nullptr) {
 			return;
 		}
-		auto& shadows = styles_->getBoxShadow()->getShadows();
-		for(auto it = shadows.crbegin(); it != shadows.crend(); ++it) {
-			auto& shadow = *it;
-			box_shadows_.emplace_back(shadow.getX().compute(), 
-				shadow.getY().compute(), 
-				shadow.getBlur().compute(), 
-				shadow.getSpread().compute(), 
-				shadow.inset(), 
-				shadow.getColor().compute());
+		if(styles_->getBoxShadow() != nullptr) {
+			auto& shadows = styles_->getBoxShadow()->getShadows();
+			for(auto it = shadows.crbegin(); it != shadows.crend(); ++it) {
+				auto& shadow = *it;
+				box_shadows_.emplace_back(shadow.getX().compute(), 
+					shadow.getY().compute(), 
+					shadow.getBlur().compute(), 
+					shadow.getSpread().compute(), 
+					shadow.inset(), 
+					shadow.getColor().compute());
+			}
 		}
 	}
 
@@ -457,8 +459,6 @@ namespace xhtml
 		}
 		// XXX if texture is set then use background position and repeat as appropriate.
 		if(texture_ != nullptr) {
-			// XXX this needs fixing.
-			// we probably should clone the texture we pass to blittable.
 			// With a value pair of '14% 84%', the point 14% across and 84% down the image is to be placed at the point 14% across and 84% down the padding box.
 			const int sw = texture_->surfaceWidth();
 			const int sh = texture_->surfaceHeight();

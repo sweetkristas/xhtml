@@ -219,7 +219,7 @@ namespace css
 		PropertyRegistrar property046("top", Property::TOP, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "top", ""));
 		PropertyRegistrar property047("right", Property::RIGHT, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "right", ""));
 		PropertyRegistrar property048("bottom", Property::BOTTOM, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "bottom", ""));
-		PropertyRegistrar property049("background-image", Property::BACKGROUND_IMAGE, false, UriStyle::create(true), std::bind(&PropertyParser::parseImageSource, _1, "background-image", ""));
+		PropertyRegistrar property049("background-image", Property::BACKGROUND_IMAGE, false, nullptr, std::bind(&PropertyParser::parseImageSource, _1, "background-image", ""));
 		PropertyRegistrar property050("background-repeat", Property::BACKGROUND_REPEAT, false, Style::create<BackgroundRepeat>(StyleId::BACKGROUND_REPEAT, BackgroundRepeat::REPEAT), std::bind(&PropertyParser::parseBackgroundRepeat, _1, "background-repeat", ""));
 		PropertyRegistrar property051("background-position", Property::BACKGROUND_POSITION, false, BackgroundPosition::create(), std::bind(&PropertyParser::parseBackgroundPosition, _1, "background-position", ""));
 		PropertyRegistrar property052("list-style-type", Property::LIST_STYLE_TYPE, true, Style::create<ListStyleType>(StyleId::LIST_STYLE_TYPE, ListStyleType::DISC), std::bind(&PropertyParser::parseListStyleType, _1, "list-style-type", ""));
@@ -235,7 +235,7 @@ namespace css
 		PropertyRegistrar property062("content", Property::CONTENT, false, Content::create(), std::bind(&PropertyParser::parseContent, _1, "content", ""));
 		PropertyRegistrar property063("counter-increment", Property::COUNTER_INCREMENT, false, Counter::create(), std::bind(&PropertyParser::parseCounter, _1, "counter-increment", ""));
 		PropertyRegistrar property064("counter-reset", Property::COUNTER_RESET, false, Counter::create(), std::bind(&PropertyParser::parseCounter, _1, "counter-reset", ""));
-		PropertyRegistrar property065("list-style-image", Property::LIST_STYLE_IMAGE, false, UriStyle::create(true), std::bind(&PropertyParser::parseImageSource, _1, "list-style-image", ""));
+		PropertyRegistrar property065("list-style-image", Property::LIST_STYLE_IMAGE, false, nullptr, std::bind(&PropertyParser::parseImageSource, _1, "list-style-image", ""));
 		PropertyRegistrar property066("list-style-position", Property::LIST_STYLE_POSITION, false, Style::create<ListStylePosition>(StyleId::LIST_STYLE_POSITION, ListStylePosition::OUTSIDE), std::bind(&PropertyParser::parseListStylePosition, _1, "list-style-position", ""));
 		PropertyRegistrar property067("max-height", Property::MAX_HEIGHT, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "max-height", ""));
 		PropertyRegistrar property068("max-width", Property::MAX_WIDTH, false, Width::create(true), std::bind(&PropertyParser::parseWidth, _1, "max-width", ""));
@@ -255,7 +255,7 @@ namespace css
 		// CSS3 provisional properties
 		PropertyRegistrar property200("box-shadow", Property::BOX_SHADOW, false, BoxShadowStyle::create(), std::bind(&PropertyParser::parseBoxShadow, _1, "box-shadow", ""));
 
-		PropertyRegistrar property210("border-image-source", Property::BORDER_IMAGE_SOURCE, false, UriStyle::create(true), std::bind(&PropertyParser::parseImageSource, _1, "border-image-source", ""));
+		PropertyRegistrar property210("border-image-source", Property::BORDER_IMAGE_SOURCE, false, nullptr, std::bind(&PropertyParser::parseImageSource, _1, "border-image-source", ""));
 		PropertyRegistrar property211("border-image-repeat", Property::BORDER_IMAGE_REPEAT, false, BorderImageRepeat::create(), std::bind(&PropertyParser::parseBorderImageRepeat, _1, "border-image-repeat", ""));
 		PropertyRegistrar property212("border-image-width", Property::BORDER_IMAGE_WIDTH, false, WidthList::create(1.0f), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-width", ""));
 		PropertyRegistrar property213("border-image-outset", Property::BORDER_IMAGE_OUTSET, false, WidthList::create(0.0f), std::bind(&PropertyParser::parseWidthList2, _1, "border-image-outset", ""));
@@ -331,7 +331,7 @@ namespace css
 
 	void PropertyList::addProperty(const std::string& name, StylePtr o)
 	{
-		ASSERT_LOG(o != nullptr, "Adding invalid property is nullptr.");
+		//ASSERT_LOG(o != nullptr, "Adding invalid property is nullptr.");
 		auto prop_it = get_property_table().find(name);
 		if(prop_it == get_property_table().end()) {
 			LOG_ERROR("Not adding property '" << name << "' since we have no mapping for it.");
@@ -2011,7 +2011,7 @@ namespace css
 		auto bc = CssColor::create(CssColorParam::TRANSPARENT);
 		auto br = BackgroundRepeat::REPEAT;
 		auto bp = BackgroundPosition::create();
-		ImageSourcePtr bi = UriStyle::create(true);
+		ImageSourcePtr bi = nullptr;
 
 		bool was_horiz_set = false;
 		bool was_vert_set = false;
@@ -2072,6 +2072,12 @@ namespace css
 				auto& params = (*it_)->getParameters();
 				if(ref == "linear-gradient") {
 					bi = parseLinearGradient(params);
+					advance();
+				} else if(ref == "url") {
+					if(params.empty()) {
+						throw ParserError(formatter() << "expected at least one parameter to url '" << prefix << "': "  << (*it_)->toString());
+					}
+					bi = UriStyle::create(params.front()->getStringValue());
 					advance();
 				} else {
 					parseColor2(bc);
