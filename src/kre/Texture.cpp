@@ -354,7 +354,7 @@ namespace KRE
 				// If you enable bilinear/trilinear/aniso filtering on an image then it must have mipmaps.
 				if((min != Texture::Filtering::LINEAR || min != Texture::Filtering::ANISOTROPIC
 					|| max == Texture::Filtering::LINEAR || max == Texture::Filtering::ANISOTROPIC
-					|| mip == Texture::Filtering::LINEAR) && texture_params_[n].mipmaps == 0) {
+					|| mip == Texture::Filtering::LINEAR) && tp.mipmaps == 0) {
 					tp.mipmaps = 2;
 				}
 			}
