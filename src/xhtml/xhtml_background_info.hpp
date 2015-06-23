@@ -49,7 +49,7 @@ namespace xhtml
 		void render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
 		void init(const Dimensions& dims);
 	private:
-		void renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const;
+		void renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims, KRE::RenderablePtr clip_shape) const;
 
 		StyleNodePtr styles_;
 		KRE::TexturePtr texture_;

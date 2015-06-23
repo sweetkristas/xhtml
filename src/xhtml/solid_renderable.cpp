@@ -119,7 +119,7 @@ namespace xhtml
 		const int u_line_width = shader->getUniform("u_line_width");
 		const float line_width = static_cast<float>(r.h());
 		const float blur = blur_radius;
-		shader->setUniformDrawFunction([u_blur, u_line_width, line_width, blur, shader]() {
+		shader->setUniformDrawFunction([u_blur, u_line_width, line_width, blur](KRE::ShaderProgramPtr shader) {
 			shader->setUniformValue(u_blur, blur);
 			shader->setUniformValue(u_line_width, line_width);
 		});

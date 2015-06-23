@@ -384,31 +384,30 @@ namespace KRE
 				"uniform mat4 u_mvp_matrix;\n"
 				"attribute vec2 a_position;\n"
 				"attribute vec2 a_texcoord;\n"
-				"varying vec2 v_texcoord;\n"
+				"varying vec2 v_texcoords;\n"
+				"\n"
 				"void main()\n"
 				"{\n"
-				"    v_texcoord = a_texcoord;\n"
 				"    gl_Position = u_mvp_matrix * vec4(a_position, 0.0, 1.0);\n"
+				"    v_texcoords = a_texcoord;\n"
 				"}\n";
-			const char* const blur_fs =
+			const char* const blur7_fs =
+				"#version 120\n"
 				"uniform sampler2D u_tex_map;\n"
+				"uniform float texel_width_offset;\n"
+				"uniform float texel_height_offset;\n"
 				"uniform vec4 u_color;\n"
-				"varying vec2 v_texcoord;\n"
-				"\n"
-				"uniform float offset[3] = float[3]( 0.0, 1.3846153846, 3.2307692308 );\n"
-				"uniform float weight[3] = float[3]( 0.2270270270, 0.3162162162, 0.0702702703 );\n"
+				"uniform float gaussian[15];\n"
+				"varying vec2 v_texcoords;\n"
 				"\n"
 				"void main()\n"
 				"{\n"
-				"    float img_width = 512.0;\n"
-				"    float img_height = 256.0;\n"
-				"    vec2 coords = vec2(gl_FragCoord.x/img_width, gl_FragCoord.y/img_height);\n"
-				"    vec4 color = texture2D(u_tex_map, coords) * weight[0];\n"
-				"    for(int i = 1; i < 3; i++) {\n"
-				"        color += texture2D(u_tex_map, coords + vec2(0.0, offset[i] / img_height)) * weight[i];\n"
-				"        color += texture2D(u_tex_map, coords - vec2(0.0, offset[i] / img_height)) * weight[i];\n"
+				"    vec4 sum = vec4(0.0, 0.0, 0.0, 0.0);\n"
+				"    vec2 step_offset = vec2(texel_width_offset, texel_height_offset);\n"
+				"    for(int index = 0; index < 15; ++index) {\n"
+				"        sum += texture2D(u_tex_map, v_texcoords + step_offset * (index - 7)) * gaussian[index];\n"
 				"    }\n"
-				"    gl_FragColor = color * u_color;\n"
+				"    gl_FragColor = sum * u_color;\n"
 				"}\n";
 			const uniform_mapping blur_uniform_mapping[] = 
 			{
@@ -423,6 +422,7 @@ namespace KRE
 				{"texcoord", "a_texcoord"},
 				{"", ""},
 			};
+
 
 			const struct {
 				const char* shader_name;
@@ -442,7 +442,7 @@ namespace KRE
 				{ "circle", "circle_vs", circle_vs, "circle_fs", circle_fs, circle_uniform_mapping, circle_attribue_mapping },
 				{ "point_shader", "point_shader_vs", point_shader_vs, "point_shader_fs", point_shader_fs, point_shader_uniform_mapping, point_shader_attribute_mapping },
 				{ "font_shader", "font_shader_vs", font_shader_vs, "font_shader_fs", font_shader_fs, font_shader_uniform_mapping, font_shader_attribute_mapping },
-				{ "blur_shader", "blur_vs", blur_vs, "blur_fs", blur_fs, blur_uniform_mapping, blur_attribute_mapping },
+				{ "blur7", "blur_vs", blur_vs, "blur7_fs", blur7_fs, blur_uniform_mapping, blur_attribute_mapping },
 			};
 
 			typedef std::map<std::string, ShaderProgramPtr> shader_factory_map;
@@ -492,7 +492,7 @@ namespace KRE
 					case AttrFormat::UNSIGNED_INT_2_10_10_10_REV:	return GL_UNSIGNED_INT_2_10_10_10_REV;
 					case AttrFormat::UNSIGNED_INT_10F_11F_11F_REV:	return GL_UNSIGNED_INT_10F_11F_11F_REV;
 				}
-				ASSERT_LOG(false, "Unrecognised value for variable type.");
+				ASSERT_LOG(false, "Unrecognised value for render variable type: " << static_cast<int>(type));
 				return GL_NONE;
 			}
 
@@ -500,6 +500,36 @@ namespace KRE
 			{
 				static GLuint res = -1;
 				return res;
+			}
+
+			GLenum get_shader_type(ProgramType type)
+			{
+				switch(type) {
+					case ProgramType::VERTEX:						return GL_VERTEX_SHADER;
+					case ProgramType::FRAGMENT:						return GL_FRAGMENT_SHADER;
+					case ProgramType::GEOMETRY:						return GL_GEOMETRY_SHADER;
+					case ProgramType::TESSELATION_EVALUATION:		return GL_TESS_EVALUATION_SHADER;
+					case ProgramType::TESSELATION_CONTROL:			return GL_TESS_CONTROL_SHADER;
+					case ProgramType::COMPUTE:						return GL_COMPUTE_SHADER;
+					default: break;
+				}
+				ASSERT_LOG(false, "Unrecognised value for shader type: " << static_cast<int>(type));
+				return GL_NONE;
+			}
+
+			std::string get_shader_type_abbrev(ProgramType type)
+			{
+				switch(type) {
+					case ProgramType::VERTEX:						return "vs";
+					case ProgramType::FRAGMENT:						return "fs";
+					case ProgramType::GEOMETRY:						return "gs";
+					case ProgramType::TESSELATION_EVALUATION:		return "tes";
+					case ProgramType::TESSELATION_CONTROL:			return "tcs";
+					case ProgramType::COMPUTE:						return "compute";
+					default: break;
+				}
+				ASSERT_LOG(false, "Unrecognised value for shader type: " << static_cast<int>(type));
+				return "none";
 			}
 		}
 
@@ -590,6 +620,53 @@ namespace KRE
 			  enabled_attribs_()
 		{
 			init(name, vs, fs);
+		}
+
+		ShaderProgram::ShaderProgram(const std::string& name, 
+			const std::vector<ShaderData>& shader_data, 
+			const std::vector<ActiveMapping>& uniform_map, 
+			const std::vector<ActiveMapping>& attribute_map)
+			: KRE::ShaderProgram(name, variant()),
+			  name_(name),
+			  object_(0),
+              attribs_(),
+              uniforms_(),
+              v_uniforms_(),
+              v_attribs_(),
+              uniform_alternate_name_map_(),
+              attribute_alternate_name_map_(),
+			  u_mvp_(-1),
+			  u_mv_(-1),
+			  u_p_(-1),
+			  u_color_(-1),
+			  u_line_width_(-1),
+			  u_tex_(-1),
+			  a_vertex_(-1),
+			  a_texcoord_(-1),
+			  a_color_(-1),
+			  a_normal_(-1),              
+			  u_enable_palette_lookup_(-1),
+			  u_palette_(-1),
+			  u_palette_width_(-1),
+			  u_palette_map_(-1),
+			  u_mix_palettes_(-1),
+			  u_mix_(-1),
+			  enabled_attribs_()
+		{
+			std::vector<Shader> shader_programs;
+			for(auto& sd : shader_data) {
+				shader_programs.emplace_back(get_shader_type(sd.type), name + "-" + get_shader_type_abbrev(sd.type), sd.shader_data);
+			}
+			bool linked_ok = link(shader_programs);
+			ASSERT_LOG(linked_ok == true, "Error linking program: " << name_);
+			
+			for(auto& um : uniform_map) {
+				setAlternateUniformName(um.name, um.alt_name);
+			}
+
+			for(auto& am : attribute_map) {
+				setAlternateAttributeName(am.name, am.alt_name);
+			}
 		}
 
 		ShaderProgram::~ShaderProgram()
@@ -770,47 +847,51 @@ namespace KRE
 			case GL_BOOL:
 			case GL_SAMPLER_2D:
 			case GL_SAMPLER_CUBE:	
-				glUniform1i(u.location, *(GLint*)value); 
+				glUniform1i(u.location, *static_cast<const GLint*>(value)); 
 				break;
 			case GL_INT_VEC2:	
 			case GL_BOOL_VEC2:	
-				glUniform2i(u.location, ((GLint*)value)[0], ((GLint*)value)[1]); 
+				glUniform2i(u.location, (static_cast<const GLint*>(value))[0], (static_cast<const GLint*>(value))[1]); 
 				break;
 			case GL_INT_VEC3:	
 			case GL_BOOL_VEC3:	
-				glUniform3iv(u.location, u.num_elements, (GLint*)value); 
+				glUniform3iv(u.location, u.num_elements, static_cast<const GLint*>(value)); 
 				break;
 			case GL_INT_VEC4: 	
 			case GL_BOOL_VEC4:
-				glUniform4iv(u.location, u.num_elements, (GLint*)value); 
+				glUniform4iv(u.location, u.num_elements, static_cast<const GLint*>(value)); 
 				break;
 
 			case GL_FLOAT: {
-				glUniform1f(u.location, *(GLfloat*)value);
+				if(u.num_elements > 1) {
+					glUniform1fv(u.location, u.num_elements, static_cast<const GLfloat*>(value));
+				} else {
+					glUniform1f(u.location, *static_cast<const GLfloat*>(value));
+				}	
 				break;
 			}
 			case GL_FLOAT_VEC2: {
-				glUniform2fv(u.location, u.num_elements, (GLfloat*)value);
+				glUniform2fv(u.location, u.num_elements, static_cast<const GLfloat*>(value));
 				break;
 			}
 			case GL_FLOAT_VEC3: {
-				glUniform3fv(u.location, u.num_elements, (GLfloat*)value);
+				glUniform3fv(u.location, u.num_elements, static_cast<const GLfloat*>(value));
 				break;
 			}
 			case GL_FLOAT_VEC4: {
-				glUniform4fv(u.location, u.num_elements, (GLfloat*)value);
+				glUniform4fv(u.location, u.num_elements, static_cast<const GLfloat*>(value));
 				break;
 			}
 			case GL_FLOAT_MAT2:	{
-				glUniformMatrix2fv(u.location, u.num_elements, GL_FALSE, (GLfloat*)value);
+				glUniformMatrix2fv(u.location, u.num_elements, GL_FALSE, static_cast<const GLfloat*>(value));
 				break;
 			}
 			case GL_FLOAT_MAT3: {
-				glUniformMatrix3fv(u.location, u.num_elements, GL_FALSE, (GLfloat*)value);
+				glUniformMatrix3fv(u.location, u.num_elements, GL_FALSE, static_cast<const GLfloat*>(value));
 				break;
 			}
 			case GL_FLOAT_MAT4: {
-				glUniformMatrix4fv(u.location, u.num_elements, GL_FALSE, (GLfloat*)value);
+				glUniformMatrix4fv(u.location, u.num_elements, GL_FALSE, static_cast<const GLfloat*>(value));
 				break;
 			}
 			default:
@@ -910,7 +991,11 @@ namespace KRE
 			ASSERT_LOG(value != nullptr, "setUniformValue(): value is nullptr");
 			switch(u.type) {
 			case GL_FLOAT: {
-				glUniform1f(u.location, *value);
+				if(u.num_elements > 1) {
+					glUniform1fv(u.location, u.num_elements, value);
+				} else {
+					glUniform1f(u.location, *value);
+				}
 				break;
 			}
 			case GL_FLOAT_VEC2: {
@@ -1340,6 +1425,65 @@ namespace KRE
 		KRE::ShaderProgramPtr ShaderProgram::clone() 
 		{
 			return KRE::ShaderProgramPtr(new OpenGL::ShaderProgram(*this));
+		}
+
+		ShaderProgramPtr ShaderProgram::createShader(const std::string& name, 
+			const std::vector<ShaderData>& shader_data, 
+			const std::vector<ActiveMapping>& uniform_map,
+			const std::vector<ActiveMapping>& attribute_map)
+		{
+			auto spp = std::make_shared<OpenGL::ShaderProgram>(name, shader_data, uniform_map, attribute_map);
+			spp->setActives();
+			return spp;
+		}
+
+		ShaderProgramPtr ShaderProgram::createGaussianShader(int radius)
+		{
+			// we use a systematic naming for our gaussian blur shaders, so we can cache.
+			std::stringstream ss;
+			ss << "blur" << radius;
+			const std::string shader_name = ss.str();
+			auto& sf = get_shader_factory();
+			auto it = sf.find(shader_name);
+			if(it != sf.end()) {
+				return it->second;
+			}
+			const std::string fs_name = shader_name + "_fs";
+
+			blur_vs;
+
+			std::stringstream fs;
+			fs	<< "#version 120\n"
+				<< "uniform sampler2D u_tex_map;\n"
+				<< "uniform float texel_width_offset;\n"
+				<< "uniform float texel_height_offset;\n"
+				<< "uniform vec4 u_color;\n"
+				<< "uniform float gaussian[" << (2 * radius + 1) << "];\n"
+				<< "varying vec2 v_texcoords;\n"
+				<< "\n"
+				<< "void main()\n"
+				<< "{\n"
+				<< "    vec4 sum = vec4(0.0, 0.0, 0.0, 0.0);\n"
+				<< "    vec2 step_offset = vec2(texel_width_offset, texel_height_offset);\n"
+				<< "    for(int index = 0; index < " << (2 * radius + 1) << "; ++index) {\n"
+				<< "        sum += texture2D(u_tex_map, v_texcoords + step_offset * (index - " << radius << ")) * gaussian[index];\n"
+				<< "    }\n"
+				<< "    gl_FragColor = sum * u_color;\n"
+				<< "}\n";
+
+			auto spp = std::make_shared<OpenGL::ShaderProgram>(shader_name, ShaderDef("blur_fs", blur_vs), ShaderDef(fs_name, fs.str()), variant());
+			auto um = blur_uniform_mapping;
+			while(strlen(um->alt_name) > 0) {
+				spp->setAlternateUniformName(um->name, um->alt_name);
+				++um;
+			}
+			auto am = blur_attribute_mapping;
+			while(strlen(am->alt_name) > 0) {
+				spp->setAlternateAttributeName(am->name, am->alt_name);
+				++am;
+			}
+			spp->setActives();
+			return spp;
 		}
 	}
 }

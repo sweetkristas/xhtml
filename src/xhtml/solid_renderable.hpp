@@ -41,6 +41,7 @@ namespace xhtml
 	private:
 		std::shared_ptr<KRE::Attribute<glm::vec2>> attribs_;
 	};
+	typedef std::shared_ptr<SimpleRenderable> SimpleRenderablePtr;
 
 	class SolidRenderable : public KRE::SceneObject
 	{
@@ -53,6 +54,7 @@ namespace xhtml
 	private:
 		std::shared_ptr<KRE::Attribute<KRE::vertex_color>> attribs_;
 	};
+	typedef std::shared_ptr<SolidRenderable> SolidRenderablePtr;
 
 	struct blur_vertex_color
 	{

@@ -37,6 +37,8 @@ namespace KRE
 {
 	namespace
 	{
+		const int default_framebuffer_id = 0;
+
 		struct fbo_info
 		{
 			explicit fbo_info(int i, const rect& vp) : id(i), viewport(vp) {}
@@ -47,11 +49,13 @@ namespace KRE
 		fbo_stack_type& get_fbo_stack()
 		{
 			static fbo_stack_type res;
+			if(res.empty()) {
+				// place the default on the stack
+				WindowPtr wnd = WindowManager::getMainWindow();
+				res.emplace(default_framebuffer_id, rect(0, 0, wnd->width(), wnd->height()));
+			}
 			return res;
 		}
-
-		const int default_framebuffer_id = 0;
-		rect last_viewport;
 	}
 
 	FboOpenGL::FboOpenGL(int width, int height, 
@@ -247,8 +251,6 @@ namespace KRE
 		ASSERT_LOG(framebuffer_id_ != nullptr, "Framebuffer object hasn't been created.");
 		glBindFramebuffer(GL_FRAMEBUFFER, *framebuffer_id_);
 
-		last_viewport = DisplayDevice::getCurrent()->getViewPort();
-
 		applied_ = true;
 		get_fbo_stack().emplace(*framebuffer_id_, r);
 
@@ -262,15 +264,12 @@ namespace KRE
 		// This should be our id at top.
 		auto chk = get_fbo_stack().top(); get_fbo_stack().pop();
 		ASSERT_LOG(chk.id == *framebuffer_id_, "Our FBO id was not the one at the top of the stack. This should never happen if calls to apply/unapply are balanced.");
-		if(get_fbo_stack().empty()) {
-			glBindFramebuffer(GL_FRAMEBUFFER, default_framebuffer_id);
-			DisplayDevice::getCurrent()->setViewPort(last_viewport);
-		} else {
-			auto last = get_fbo_stack().top();
-			glBindFramebuffer(GL_FRAMEBUFFER, last.id);
-			//glViewport(last.viewport[0], last.viewport[1], last.viewport[2], last.viewport[3]);
-			DisplayDevice::getCurrent()->setViewPort(last.viewport);
-		}
+		ASSERT_LOG(!get_fbo_stack().empty(), "FBO id stack was empty. This should never happen if calls to apply/unapply are balanced.");
+
+		auto& last = get_fbo_stack().top();
+		glBindFramebuffer(GL_FRAMEBUFFER, last.id);
+		DisplayDevice::getCurrent()->setViewPort(last.viewport);
+
 		applied_ = false;
 		setChanged();
 	}

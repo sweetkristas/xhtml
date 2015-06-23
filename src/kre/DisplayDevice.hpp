@@ -32,6 +32,7 @@
 #include "geometry.hpp"
 #include "PixelFormat.hpp"
 #include "Renderable.hpp"
+#include "Shaders.hpp"
 #include "StencilSettings.hpp"
 #include "variant.hpp"
 
@@ -147,6 +148,11 @@ namespace KRE
 		virtual ShaderProgramPtr getShaderProgram(const std::string& name) = 0;
 		virtual ShaderProgramPtr getShaderProgram(const variant& node) = 0;
 		virtual ShaderProgramPtr getDefaultShader() = 0;
+		virtual ShaderProgramPtr createShader(const std::string& name, 
+			const std::vector<ShaderData>& shader_data, 
+			const std::vector<ActiveMapping>& uniform_map,
+			const std::vector<ActiveMapping>& attribute_map) = 0;
+		virtual ShaderProgramPtr createGaussianShader(int radius) = 0;
 
 		virtual int queryParameteri(DisplayDeviceParameters param) = 0;
 

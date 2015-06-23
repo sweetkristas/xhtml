@@ -25,6 +25,7 @@
 
 #include "AttributeSet.hpp"
 #include "Blittable.hpp"
+#include "CameraObject.hpp"
 #include "StencilScope.hpp"
 #include "DisplayDevice.hpp"
 #include "RenderTarget.hpp"
@@ -349,8 +350,10 @@ namespace xhtml
 		}
 	}
 
-	void BackgroundInfo::renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
+	void BackgroundInfo::renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims, KRE::RenderablePtr clip_shape) const
 	{
+		using namespace KRE;
+
 		// XXX We should be using the shape generated via clipping.
 		const FixedPoint left = dims.content_.x - dims.border_.left - dims.padding_.left - dims.margin_.left + offset.x;
 		const FixedPoint top = dims.content_.y - dims.border_.top - dims.padding_.top - dims.margin_.top + offset.y;
@@ -366,44 +369,79 @@ namespace xhtml
 				const FixedPoint spread_top = top - shadow.spread_radius;
 				const FixedPoint spread_right = right + shadow.spread_radius;
 				const FixedPoint spread_bottom = bottom + shadow.spread_radius;
+
+				if(std::abs(shadow.blur_radius) < FLT_EPSILON) {
+					rect box_size(0, 0, spread_right - spread_left, spread_bottom - spread_top);
+					SolidRenderablePtr box = std::make_shared<SolidRenderable>(box_size, shadow.color);
+					if(clip_shape != nullptr) {
+						box->setClipSettings(get_stencil_mask_settings(), clip_shape);
+					}
+					box->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScale(), (shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScale());
+					display_list->addRenderable(box);
+				} else {
+					const int gaussian_radius = 7;
 				
-				const int width = (spread_right - spread_left) / LayoutEngine::getFixedPointScale() + half_kernel_size * 2; 
-				const int height = (spread_bottom - spread_top) / LayoutEngine::getFixedPointScale() + half_kernel_size * 2;;
+					const int width = (spread_right - spread_left) / LayoutEngine::getFixedPointScale() + gaussian_radius * 4; 
+					const int height = (spread_bottom - spread_top) / LayoutEngine::getFixedPointScale() + gaussian_radius * 4;;
 
-				cairo_surface_t* surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-				cairo_t* cairo = cairo_create(surface);
+					auto shader_blur = ShaderProgram::createGaussianShader(gaussian_radius)->clone();
+					const int blur_two = shader_blur->getUniform("texel_width_offset");
+					const int blur_tho = shader_blur->getUniform("texel_height_offset");
+					const int u_gaussian = shader_blur->getUniform("gaussian");
+					std::vector<float> gaussian = generate_gaussian(shadow.blur_radius / LayoutEngine::getFixedPointScaleFloat() / 2.0f, gaussian_radius);
 
-				cairo_set_source_rgba(cairo, 0, 0, 0, 0);
-				cairo_rectangle(cairo, 0, 0, width, height);
-				cairo_fill(cairo);
+					CameraPtr rt_cam = std::make_shared<Camera>("ortho_blur", 0, width, 0, height);
 
-				cairo_set_source_rgba(cairo, shadow.color.r(), shadow.color.g(), shadow.color.b(), shadow.color.a());
-				cairo_rectangle(cairo, 
-					half_kernel_size, 
-					half_kernel_size, 
-					(right - left) / LayoutEngine::getFixedPointScaleFloat(), 
-					(bottom - top) / LayoutEngine::getFixedPointScaleFloat());
-				cairo_fill(cairo);
+					rect box_size(
+						gaussian_radius * 2 * LayoutEngine::getFixedPointScale(),
+						gaussian_radius * 2 * LayoutEngine::getFixedPointScale(),
+						spread_right - spread_left,
+						spread_bottom - spread_top);
+					SolidRenderablePtr box = std::make_shared<SolidRenderable>(box_size, shadow.color);
+					if(clip_shape != nullptr) {
+						box->setClipSettings(get_stencil_mask_settings(), clip_shape);
+					}
+					box->setCamera(rt_cam);
 
-				uint8_t *src = cairo_image_surface_get_data(surface);
-				const int src_stride = cairo_image_surface_get_stride(surface);
+					WindowPtr wnd = WindowManager::getMainWindow();
+					RenderTargetPtr rt_blur_h = RenderTarget::create(width, height, 1, true, true);
+					rt_blur_h->getTexture()->setFiltering(-1, Texture::Filtering::LINEAR, Texture::Filtering::LINEAR, Texture::Filtering::POINT);
+					rt_blur_h->getTexture()->setAddressModes(-1, Texture::AddressMode::CLAMP, Texture::AddressMode::CLAMP);
+					rt_blur_h->setCentre(Blittable::Centre::TOP_LEFT);
+					rt_blur_h->setClearColor(Color(0,0,0,0));
+					{
+						RenderTarget::RenderScope rs(rt_blur_h, rect(0, 0, width, height));
+						box->preRender(wnd);
+						wnd->render(box.get());
+					}
+					rt_blur_h->setCamera(rt_cam);
+					rt_blur_h->setShader(shader_blur);
+					shader_blur->setUniformDrawFunction([blur_two, blur_tho, width, gaussian, u_gaussian](ShaderProgramPtr shader){ 
+						shader->setUniformValue(u_gaussian, &gaussian[0]);
+						shader->setUniformValue(blur_two, 1.0f / (width - 1.0f));
+						shader->setUniformValue(blur_tho, 0.0f);
+					});
 
-				if(shadow.blur_radius > 0) {
-					gaussian_filter(width, height, src, src_stride, shadow.blur_radius/LayoutEngine::getFixedPointScale());
+					RenderTargetPtr rt_blur_v = RenderTarget::create(width, height);
+					rt_blur_v->getTexture()->setFiltering(-1, Texture::Filtering::LINEAR, Texture::Filtering::LINEAR, Texture::Filtering::POINT);
+					rt_blur_v->getTexture()->setAddressModes(-1, Texture::AddressMode::CLAMP, Texture::AddressMode::CLAMP);
+					rt_blur_v->setCentre(Blittable::Centre::TOP_LEFT);
+					rt_blur_v->setClearColor(Color(0,0,0,0));
+					{
+						RenderTarget::RenderScope rs(rt_blur_v, rect(0, 0, width, height));
+						rt_blur_h->preRender(wnd);
+						wnd->render(rt_blur_h.get());
+					}
+					rt_blur_v->setShader(shader_blur);
+					shader_blur->setUniformDrawFunction([blur_two, blur_tho, height, gaussian, u_gaussian](ShaderProgramPtr shader){ 
+						shader->setUniformValue(u_gaussian, &gaussian[0]);
+						shader->setUniformValue(blur_two, 0.0f);
+						shader->setUniformValue(blur_tho, 1.0f / (height - 1.0f));
+					});
+
+					rt_blur_v->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScale(), (shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScale());
+					display_list->addRenderable(rt_blur_v);
 				}
-
-				auto surf = KRE::Surface::create(width, height, KRE::PixelFormat::PF::PIXELFORMAT_ARGB8888);
-				surf->writePixels(src, src_stride * height);
-				//surf->createAlphaMap();
-
-				auto ptr = std::make_shared<KRE::Blittable>(KRE::Texture::createTexture(surf));
-				ptr->setCentre(KRE::Blittable::Centre::TOP_LEFT);
-				//ptr->setShader(KRE::ShaderProgram::getProgram("blur_shader"));
-				ptr->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScale(), (shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScale());
-				display_list->addRenderable(ptr);
-
-				cairo_destroy(cairo);
-				cairo_surface_destroy(surface);
 			}
 		}
 	}
@@ -413,7 +451,6 @@ namespace xhtml
 		if(styles_ == nullptr) {
 			return;
 		}
-		renderBoxShadow(display_list, offset, dims);
 
 		// XXX if we're rendering the body element then it takes the entire canvas :-/
 		// technically the rule is that if no background styles are applied to the html element then
@@ -430,28 +467,33 @@ namespace xhtml
 			case BackgroundClip::BORDER_BOX:
 				// don't do anything unless border-radius is specified
 				if(has_border_radius_) {
-					clip_shape = create_border_mask(border_radius_horiz_, border_radius_vert_, 0, 0, rw, rh);
-					clip_shape->setPosition(rx / LayoutEngine::getFixedPointScale(), ry / LayoutEngine::getFixedPointScale());
+					clip_shape = create_border_mask(border_radius_horiz_, border_radius_vert_, 0, 0, rw, rh);					
 				}
 				break;
 			case BackgroundClip::PADDING_BOX:
 				clip_shape = std::make_shared<SolidRenderable>(rect(
-					offset.x - dims.padding_.left,
-					offset.y - dims.padding_.top,
+					0,
+					0,
 					dims.content_.width + dims.padding_.left + dims.padding_.right,
 					dims.content_.height + dims.padding_.top + dims.padding_.bottom), KRE::Color::colorWhite());
+				clip_shape->setPosition(dims.border_.left/LayoutEngine::getFixedPointScale(), dims.border_.top/LayoutEngine::getFixedPointScale());
 				break;
 			case BackgroundClip::CONTENT_BOX:
 				clip_shape = std::make_shared<SolidRenderable>(rect(
-					offset.x,
-					offset.y,
+					0,
+					0,
 					dims.content_.width,
 					dims.content_.height), KRE::Color::colorWhite());
+				clip_shape->setPosition((dims.padding_.left + dims.border_.left)/LayoutEngine::getFixedPointScale(), 
+					(dims.padding_.top + dims.border_.top)/LayoutEngine::getFixedPointScale());
 				break;
 		}
 
+		renderBoxShadow(display_list, offset, dims, clip_shape);
+
 		if(styles_->getBackgroundColor().ai() != 0) {
-			auto solid = std::make_shared<SolidRenderable>(r, styles_->getBackgroundColor());
+			auto solid = std::make_shared<SolidRenderable>(rect(0, 0, rw, rh), styles_->getBackgroundColor());
+			solid->setPosition(rx / LayoutEngine::getFixedPointScale(), ry / LayoutEngine::getFixedPointScale());
 			if(clip_shape != nullptr) {
 				solid->setClipSettings(get_stencil_mask_settings(), clip_shape);
 			}

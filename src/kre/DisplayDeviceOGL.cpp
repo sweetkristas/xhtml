@@ -283,14 +283,25 @@ namespace KRE
 
 		StencilScopePtr stencil_scope;
 		if(r->hasClipSettings()) {
+			ModelManager2D mm(r->getPosition().x, r->getPosition().y);
+			auto clip_shape = r->getStencilMask();
+			bool cam_set = false;
+			if(clip_shape->getCamera() == nullptr && r->getCamera() != nullptr) {
+				cam_set = true;
+				clip_shape->setCamera(r->getCamera());
+			}
 			stencil_scope.reset(new StencilScopeOGL(r->getStencilSettings()));
 			glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 			glDepthMask(GL_FALSE);
 			glClear(GL_STENCIL_BUFFER_BIT);
-			render(r->getStencilMask().get());
+			render(clip_shape.get());
 			stencil_scope->applyNewSettings(keep_stencil_settings);
 			glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 			glDepthMask(GL_TRUE);
+
+			if(cam_set) {
+				clip_shape->setCamera(nullptr);
+			}
 		}
 
 		auto shader = r->getShader();
@@ -378,7 +389,7 @@ namespace KRE
 		// XXX we should make this either or with setting the mvp/color uniforms above.
 		auto uniform_draw_fn = shader->getUniformDrawFunction();
 		if(uniform_draw_fn) {
-			uniform_draw_fn();
+			uniform_draw_fn(shader);
 		}
 
 		// Loop through uniform render variables and set them.
@@ -538,22 +549,19 @@ namespace KRE
 	void DisplayDeviceOpenGL::setViewPort(int x, int y, int width, int height)
 	{
 		rect new_vp(x, y, width, height);
-		if(get_current_viewport() != new_vp) {
+		if(get_current_viewport() != new_vp && width != 0 && height != 0) {
 			get_current_viewport() = new_vp;
-			//LOG_DEBUG("Viewport changed to: " << x << "," << y << "," << width << "," << height);
-			// N.B. glViewPort has the origin in the bottom-left corner. Hence the modification
-			// to the y value.
-			auto wnd = getParentWindow();
-			glViewport(x, wnd->height() - (y + height), width, height);
+			// N.B. glViewPort has the origin in the bottom-left corner. 
+			glViewport(x, y, width, height);
 		}
 	}
 
 	void DisplayDeviceOpenGL::setViewPort(const rect& vp)
 	{
-		if(get_current_viewport() != vp) {
+		if(get_current_viewport() != vp && vp.w() != 0 && vp.h() != 0) {
 			get_current_viewport() = vp;
-			auto wnd = getParentWindow();
-			glViewport(vp.x(), wnd->height() - vp.y2(), vp.w(), vp.h());
+			// N.B. glViewPort has the origin in the bottom-left corner. 
+			glViewport(vp.x(), vp.y(), vp.w(), vp.h());
 		}
 	}
 
@@ -595,6 +603,14 @@ namespace KRE
 	ShaderProgramPtr DisplayDeviceOpenGL::getShaderProgram(const variant& node)
 	{
 		return OpenGL::ShaderProgram::factory(node);
+	}
+
+	ShaderProgramPtr DisplayDeviceOpenGL::createShader(const std::string& name, 
+		const std::vector<ShaderData>& shader_data, 
+		const std::vector<ActiveMapping>& uniform_map,
+		const std::vector<ActiveMapping>& attribute_map)
+	{
+		return OpenGL::ShaderProgram::createShader(name, shader_data, uniform_map, attribute_map);
 	}
 
 	// XXX Need a way to deal with blits with Camera/Lighting.
@@ -743,6 +759,11 @@ namespace KRE
 		}
 		// XXX Add more effects here as and if needed.
 		return EffectPtr();
+	}
+
+	ShaderProgramPtr DisplayDeviceOpenGL::createGaussianShader(int radius) 
+	{
+		return OpenGL::ShaderProgram::createGaussianShader(radius);
 	}
 }
 
