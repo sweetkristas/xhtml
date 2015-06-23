@@ -106,6 +106,8 @@ namespace xhtml
 		void normalize();
 		void mergeProperties(const css::Specificity& specificity, const css::PropertyList& plist);
 		const css::PropertyList& getProperties() const { return properties_; }
+
+		void processWhitespace();
 		
 		void addPseudoClass(css::PseudoClass pclass) { pclass_ = pclass_ | pclass; }
 		bool hasPseudoClass(css::PseudoClass pclass) { return (pclass_ & pclass) != css::PseudoClass::NONE; }

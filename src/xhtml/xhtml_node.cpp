@@ -188,6 +188,39 @@ namespace xhtml
 		return null_str;
 	}
 
+	void Node::processWhitespace()
+	{
+		using namespace css;
+		StylePtr style = properties_.getProperty(Property::WHITE_SPACE);
+		Whitespace ws = style != nullptr ? style->getEnum<Whitespace>() : Whitespace::NORMAL;
+		bool collapse_whitespace = ws == Whitespace::NORMAL || ws == Whitespace::NOWRAP || ws == Whitespace::PRE_LINE;
+		if(collapse_whitespace) {
+			std::vector<NodePtr> removal_list;
+			for(auto& child : children_) {
+				if(child->id() == NodeId::TEXT) {
+					auto& txt = child->getValue();
+					bool non_empty = false;
+					for(auto& ch : txt) {
+						if(ch != '\t' && ch != '\r' && ch != '\n' && ch != ' ') {
+							non_empty = true;
+						}
+					}
+					if(!non_empty) {
+						removal_list.emplace_back(child);
+					}
+				}
+			}
+			for(auto& child : removal_list) {
+				removeChild(child);
+			}
+		}
+
+		for(auto& child : children_) {
+			child->processWhitespace();
+		}
+	}
+
+
 	void Node::inheritProperties()
 	{
 		NodePtr parent = getParent();
