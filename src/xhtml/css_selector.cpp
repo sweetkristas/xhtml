@@ -604,10 +604,13 @@ namespace css
 					break;
 				}
 				case Combinator::SIBLING:
-					element = element->getLeft();
-					if(element == nullptr) {
-						return false;
-					}		
+					// ignore text nodes and look for the first leftward element node
+					do {
+						element = element->getLeft();
+						if(element == nullptr) {
+							return false;
+						}	
+					} while(element->id() != xhtml::NodeId::ELEMENT);
 					break;
 				case Combinator::CHILD:
 					element = element->getParent();
