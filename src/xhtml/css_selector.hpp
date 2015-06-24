@@ -88,6 +88,7 @@ namespace css
 	{
 	public:
 		explicit FilterSelector(FilterId id);
+		virtual ~FilterSelector() {}
 		FilterId id() const { return id_; }
 		virtual bool match(xhtml::NodePtr element) const = 0;
 		virtual std::string toString() const = 0;

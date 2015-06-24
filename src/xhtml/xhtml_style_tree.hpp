@@ -100,7 +100,7 @@ namespace xhtml
 		const std::shared_ptr<css::Zindex>& getZindex() const { return zindex_; }
 
 		const std::shared_ptr<css::BoxShadowStyle>& getBoxShadow() const { return box_shadow_; }
-		//const std::shared_ptr<css::TextShadowStyle>& getTextShadow() const { return text_shadow_; }
+		const std::shared_ptr<css::TextShadowStyle>& getTextShadow() const { return text_shadow_; }
 		const std::shared_ptr<css::TransitionProperties>& getTransitionProperties() const { return transition_properties_; }
 		const std::shared_ptr<css::TransitionTiming>& getTransitionDuration() const { return transition_duration_; }
 		const std::shared_ptr<css::TransitionTimingFunctions>& getTransitionTimingFunction() const { return transition_timing_function_; }
@@ -226,7 +226,7 @@ namespace xhtml
 		//BOX_SHADOW
 		std::shared_ptr<css::BoxShadowStyle> box_shadow_;
 		//TEXT_SHADOW
-		//std::shared_ptr<TextShadowStyle> text_shadow_;
+		std::shared_ptr<css::TextShadowStyle> text_shadow_;
 		//TRANSITION_PROPERTY
 		std::shared_ptr<css::TransitionProperties> transition_properties_;
 		//TRANSITION_DURATION

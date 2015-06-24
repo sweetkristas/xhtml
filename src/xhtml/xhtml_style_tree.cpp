@@ -84,7 +84,7 @@ namespace xhtml
 		  //WIDOWS
 		  //BORDER_SPACING
 		  box_shadow_(nullptr),
-		  //text_shadow_(nullptr),
+		  text_shadow_(nullptr),
 		  transition_properties_(nullptr),
 		  transition_duration_(nullptr),
 		  transition_timing_function_(nullptr),
@@ -212,7 +212,10 @@ namespace xhtml
 		zindex_ = ctx.getComputedValue(Property::Z_INDEX)->asType<Zindex>();
 
 		box_shadow_ = ctx.getComputedValue(Property::BOX_SHADOW)->asType<BoxShadowStyle>();
-		//text_shadow_ = ctx.getComputedValue(Property::TEXT_SHADOW)->asType<TextShadowStyle>();
+		auto ts = ctx.getComputedValue(Property::TEXT_SHADOW);
+		if(ts != nullptr) {
+			text_shadow_ = ts->asType<TextShadowStyle>();
+		}
 		// XXX should we turn these styles into the proper list of properties here?
 		transition_properties_ = ctx.getComputedValue(Property::TRANSITION_PROPERTY)->asType<TransitionProperties>();
 		transition_duration_ = ctx.getComputedValue(Property::TRANSITION_DURATION)->asType<TransitionTiming>();

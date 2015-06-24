@@ -655,6 +655,34 @@ namespace css
 		return false;
 	}
 
+	TextShadow::TextShadow(const Length& offset_x, const Length& offset_y) 
+		: color_(), 
+		  offset_{}, 
+		  blur_radius_(0, LengthUnits::PX) 
+	{
+		offset_[0] = offset_x;
+		offset_[1] = offset_y;
+	}
+
+	TextShadow::TextShadow(const Length& offset_x, const Length& offset_y, const CssColor& color, const Length& blur) 
+		: color_(color), 
+		  offset_{}, 
+		  blur_radius_(blur) 
+	{
+		offset_[0] = offset_x;
+		offset_[1] = offset_y;
+	}
+
+	TextShadow::TextShadow(const std::vector<Length>& len, const CssColor& color)
+		: color_(color),
+		offset_{},
+		  blur_radius_(len.size() > 2 ? len[2] : Length(0, LengthUnits::PX))
+	{
+		ASSERT_LOG(len.size() != 2 || len.size() != 3, "Wrong number of lengths in TextShadow constructor.");
+		offset_[0] = len[0];
+		offset_[1] = len[1];
+	}
+
 
 	/*
 		// XXX roughly compute what the stops should be, there doesn't seem to be an algorithm specfied for this, so we

@@ -270,6 +270,7 @@ namespace css
 
 		PropertyRegistrar property230("background-clip", Property::BACKGROUND_CLIP, false, Style::create<BackgroundClip>(StyleId::BACKGROUND_CLIP, BackgroundClip::BORDER_BOX), std::bind(&PropertyParser::parseBackgroundClip, _1, "background-clip", ""));
 		PropertyRegistrar property231("opacity", Property::OPACITY, false, Length::create(fixed_point_scale, false), std::bind(&PropertyParser::parseLength, _1, "opacity", ""));
+		PropertyRegistrar property232("text-shadow", Property::TEXT_SHADOW, false, nullptr, std::bind(&PropertyParser::parseTextShadow, _1, "text-shadow", ""));
 
 		PropertyRegistrar property250("transition-property", Property::TRANSITION_PROPERTY, false, TransitionProperties::create(), std::bind(&PropertyParser::parseTransitionProperty, _1, "transition-property", ""));
 		PropertyRegistrar property251("transition-duration", Property::TRANSITION_DURATION, false, TransitionTiming::create(), std::bind(&PropertyParser::parseTransitionTiming, _1, "transition-duration", ""));
@@ -3051,5 +3052,57 @@ namespace css
 		plist_.addProperty(prefix + "-duration", TransitionTiming::create(durations));
 		plist_.addProperty(prefix + "-timing-function", TransitionTimingFunctions::create(fns));
 		plist_.addProperty(prefix + "-delay", TransitionTiming::create(delays));
+	}
+
+	void PropertyParser::parseTextShadow(const std::string& prefix, const std::string& suffix)
+	{
+		std::vector<TextShadow> shadows;
+		std::vector<Length> lengths;
+		std::shared_ptr<CssColor> color = std::make_shared<CssColor>();
+		while(!isEndToken()) {
+			skipWhitespace();
+			if(isToken(TokenId::IDENT)) {
+				const std::string ref = (*it_)->getStringValue();
+				advance();
+				if(ref == "none") {
+					// no style specified
+					return;
+				} else {
+					color->setColor(KRE::Color(ref));
+				}
+			} else if(isToken(TokenId::NUMBER)) {
+				xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+				advance();
+				skipWhitespace();
+				lengths.emplace_back(Length(d, false));
+			} else if(isToken(TokenId::DIMENSION)) {
+				const std::string units = (*it_)->getStringValue();
+				xhtml::FixedPoint value = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+				advance();
+				lengths.emplace_back(Length(value, units));
+			} else if(isToken(TokenId::PERCENT)) {
+				xhtml::FixedPoint d = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
+				advance();
+				lengths.emplace_back(Length(d, true));
+			} else {
+				parseColor2(color);
+			}
+			skipWhitespace();
+
+			if(isToken(TokenId::COMMA)) {
+				advance();
+				skipWhitespace();
+				if(lengths.size() < 2) {
+					throw ParserError(formatter() << "A text shadow definition requires at least 2 length values. found: " << lengths.size());
+				}
+				shadows.emplace_back(lengths, color != nullptr ? *color : CssColor());
+				lengths.clear();
+			}
+		}
+
+		if(lengths.size() >= 2) {
+			shadows.emplace_back(lengths, color != nullptr ? *color : CssColor());
+		}
+		plist_.addProperty(prefix, TextShadowStyle::create(shadows));
 	}
 }

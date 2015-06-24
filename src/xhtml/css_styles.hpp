@@ -222,6 +222,7 @@ namespace css
 		BACKGROUND_CLIP,
 		FONT_STYLE,
 		ClEAR,
+		TEXT_SHADOW,
 	};
 
 	// This is the basee class for all other styles.
@@ -1069,5 +1070,34 @@ namespace css
 		bool isEqual(const StylePtr& style) const override;
 	private:
 		std::vector<TimingFunction> ttfns_;
+	};
+
+	class TextShadow
+	{
+	public:
+		TextShadow() : color_(), offset_{}, blur_radius_(0, LengthUnits::PX) {}
+		explicit TextShadow(const Length& offset_x, const Length& offset_y);
+		explicit TextShadow(const Length& offset_x, const Length& offset_y, const CssColor& color, const Length& blur);
+		explicit TextShadow(const std::vector<Length>& len, const CssColor& color);
+		void setColor(const CssColor& color) { color_ = color; }
+		void setBlur(const Length& radius) { blur_radius_ = radius; }
+		const std::array<Length, 2>& getOffset() const { return offset_; }
+		const CssColor& getColor() const { return color_; }
+		const Length& getBlur() const { return blur_radius_; }
+	private:
+		CssColor color_;
+		std::array<Length, 2> offset_;
+		Length blur_radius_;
+	};
+
+	class TextShadowStyle : public Style
+	{
+	public:
+		MAKE_FACTORY(TextShadowStyle);
+		TextShadowStyle() : Style(StyleId::TEXT_SHADOW), shadows_() {}
+		explicit TextShadowStyle(const std::vector<TextShadow>& shadows) : Style(StyleId::TEXT_SHADOW), shadows_(shadows) {}
+		const std::vector<TextShadow>& getShadows() const { return shadows_; }
+	private:
+		std::vector<TextShadow> shadows_;
 	};
 }
