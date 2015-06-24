@@ -74,7 +74,7 @@ namespace xhtml
 	};
 	typedef std::shared_ptr<Lines> LinesPtr;
 
-	class Node : std::enable_shared_from_this<Node>
+	class Node : public std::enable_shared_from_this<Node>
 	{
 	public:
 		explicit Node(NodeId id, WeakDocumentPtr owner);
