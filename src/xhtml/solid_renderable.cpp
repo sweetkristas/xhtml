@@ -21,8 +21,6 @@
 	   distribution.
 */
 
-#pragma once
-
 #include "AttributeSet.hpp"
 #include "Blittable.hpp"
 #include "DisplayDevice.hpp"
