@@ -98,14 +98,14 @@ endef
 
 .PHONY: all checkdirs clean
 
-all: checkdirs build/xhtml
+all: checkdirs xhtml
 
-build/xhtml: $(OBJ)
+xhtml: $(OBJ)
 	@echo "Linking : xhtml"
 	@$(CCACHE) $(CXX) \
 		$(BASE_CXXFLAGS) $(LDFLAGS) $(CXXFLAGS) $(CPPFLAGS) \
 		$(OBJ) -o xhtml \
-		$(LIBS) -lboost_regex -lboost_system -lboost_filesystem -lpthread -fthreadsafe-statics
+		$(LIBS) -lboost_regex -lboost_system -lboost_filesystem -lboost_locale -lpthread -fthreadsafe-statics
 
 checkdirs: $(BUILD_DIR)
 
