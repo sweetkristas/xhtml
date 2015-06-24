@@ -520,9 +520,11 @@ namespace xhtml
 			const int sw = texture_->surfaceWidth();
 			const int sh = texture_->surfaceHeight();
 
+			const int rw = (dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right);
+			const int rh = (dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom);
+
 			int sw_offs = 0;
 			int sh_offs = 0;
-
 			
 			auto& pos_top = styles_->getBackgroundPosition()[0];
 			auto& pos_left = styles_->getBackgroundPosition()[1];
@@ -539,10 +541,10 @@ namespace xhtml
 			const float rxf = static_cast<float>(rx);
 			const float ryf = static_cast<float>(ry);
 
-			const float left = static_cast<float>(rw_offs - sw_offs + rx);
-			const float top = static_cast<float>(rh_offs - sh_offs + ry);
-			const float width = static_cast<float>(rw);
-			const float height = static_cast<float>(rh);
+			const float left = static_cast<float>(rw_offs - sw_offs + rx) / LayoutEngine::getFixedPointScaleFloat();
+			const float top = static_cast<float>(rh_offs - sh_offs + ry) / LayoutEngine::getFixedPointScaleFloat();
+			const float width = static_cast<float>(rw) / LayoutEngine::getFixedPointScaleFloat();
+			const float height = static_cast<float>(rh) / LayoutEngine::getFixedPointScaleFloat();
 
 			auto tex = texture_->clone();
 			auto ptr = std::make_shared<KRE::Blittable>(tex);
