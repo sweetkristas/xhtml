@@ -262,12 +262,5 @@ namespace xhtml
 
 	void LineBox::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
 	{
-		// add a debug background, around content.
-		/*rect r(getDimensions().content_.x + offset.x, 
-			getDimensions().content_.y + offset.y, 
-			getDimensions().content_.width, 
-			getDimensions().content_.height);
-		auto sr = std::make_shared<SolidRenderable>(r, KRE::Color::colorSlateblue());
-		display_list->addRenderable(sr);*/
 	}
 }

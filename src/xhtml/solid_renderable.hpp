@@ -48,6 +48,7 @@ namespace xhtml
 	public:
 		SolidRenderable();
 		explicit SolidRenderable(const rect& r, const KRE::Color& color);
+		explicit SolidRenderable(const rectf& r, const KRE::Color& color);
 		void init();
 		void update(std::vector<KRE::vertex_color>* coords);
 		void setDrawMode(KRE::DrawMode draw_mode);
@@ -55,32 +56,4 @@ namespace xhtml
 		std::shared_ptr<KRE::Attribute<KRE::vertex_color>> attribs_;
 	};
 	typedef std::shared_ptr<SolidRenderable> SolidRenderablePtr;
-
-	struct blur_vertex_color
-	{
-		blur_vertex_color(const glm::vec2& v, const glm::u8vec4& c, const glm::vec2& norm)
-			: vertex(v), color(c), normal(norm) {}
-		glm::vec2 vertex;
-		glm::u8vec4 color;
-		glm::vec2 normal;
-	};
-
-	struct vertex_normal
-	{
-		vertex_normal(const glm::vec2& v, const glm::vec2& norm)
-			: vertex(v), normal(norm) {}
-		glm::vec2 vertex;
-		glm::vec2 normal;
-	};
-
-	class BlurredSolidRenderable : public KRE::SceneObject
-	{
-	public:
-		BlurredSolidRenderable();
-		explicit BlurredSolidRenderable(const rect& r, const KRE::Color& color, float blur_radius);
-		void init();
-		void update(std::vector<vertex_normal>* coords);
-	private:
-		std::shared_ptr<KRE::Attribute<vertex_normal>> attribs_;
-	};
 }

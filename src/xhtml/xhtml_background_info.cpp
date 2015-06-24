@@ -236,14 +236,14 @@ namespace xhtml
 
 		KRE::RenderablePtr create_border_mask(const std::array<FixedPoint, 4>& horiz_radius, 
 			const std::array<FixedPoint, 4>& vert_radius, 
-			FixedPoint left, FixedPoint top, FixedPoint right, FixedPoint bottom)
+			int left, int top, int right, int bottom)
 		{
 			std::shared_ptr<SimpleRenderable> sr = std::make_shared<SimpleRenderable>(KRE::DrawMode::TRIANGLE_FAN);
 
-			const float l = left/LayoutEngine::getFixedPointScaleFloat();
-			const float t = top/LayoutEngine::getFixedPointScaleFloat();
-			const float r = right/LayoutEngine::getFixedPointScaleFloat();
-			const float b = bottom/LayoutEngine::getFixedPointScaleFloat();
+			const float l = static_cast<float>(left);
+			const float t = static_cast<float>(top);
+			const float r = static_cast<float>(right);
+			const float b = static_cast<float>(bottom);
 
 			const float cx = (r-l)/2.0f;
 			const float cy = (b-t)/2.0f;
@@ -355,56 +355,69 @@ namespace xhtml
 		using namespace KRE;
 
 		// XXX We should be using the shape generated via clipping.
-		const FixedPoint left = dims.content_.x - dims.border_.left - dims.padding_.left - dims.margin_.left + offset.x;
-		const FixedPoint top = dims.content_.y - dims.border_.top - dims.padding_.top - dims.margin_.top + offset.y;
-		const FixedPoint right = dims.content_.x + dims.content_.width + dims.border_.right + dims.padding_.right + dims.margin_.right + offset.x;
-		const FixedPoint bottom = dims.content_.y + dims.content_.height + dims.border_.bottom + dims.padding_.bottom + dims.margin_.bottom + offset.y;
+		const int box_width = (dims.content_.width 
+			+ dims.border_.right + dims.padding_.right 
+			+ dims.border_.left + dims.padding_.left) / LayoutEngine::getFixedPointScale();
+		const int box_height = (dims.content_.height 
+			+ dims.border_.top + dims.padding_.top 
+			+ dims.border_.bottom + dims.padding_.bottom ) / LayoutEngine::getFixedPointScale();
+
+		RenderablePtr new_clip_shape = nullptr;
+		if(clip_shape != nullptr) {
+			new_clip_shape = std::shared_ptr<Renderable>(new Renderable(*clip_shape));
+		}
 
 		for(auto& shadow : box_shadows_) {
 			if(shadow.inset) {
 				// XXX
 			} else {
 				// This needs to be clipped by the background clip shape.
-				const FixedPoint spread_left = left - shadow.spread_radius;
-				const FixedPoint spread_top = top - shadow.spread_radius;
-				const FixedPoint spread_right = right + shadow.spread_radius;
-				const FixedPoint spread_bottom = bottom + shadow.spread_radius;
+				const float ssr = shadow.spread_radius / LayoutEngine::getFixedPointScaleFloat();
+
+				const float spread_width = static_cast<float>(box_width) + 2 * ssr;
+				const float spread_height = static_cast<float>(box_height) + 2 * ssr;
 
 				if(std::abs(shadow.blur_radius) < FLT_EPSILON) {
-					rect box_size(0, 0, spread_right - spread_left, spread_bottom - spread_top);
+					rectf box_size(0, 0, spread_width, spread_height);
 					SolidRenderablePtr box = std::make_shared<SolidRenderable>(box_size, shadow.color);
 					if(clip_shape != nullptr) {
-						box->setClipSettings(get_stencil_mask_settings(), clip_shape);
+						RenderablePtr new_clip_shape = std::shared_ptr<Renderable>(new Renderable(*clip_shape));
+						const float scalew = spread_width / static_cast<float>(box_width);
+						const float scaleh = spread_height / static_cast<float>(box_height);
+						new_clip_shape->setScale(scalew, scaleh);
+						box->setClipSettings(get_stencil_mask_settings(), new_clip_shape);
 					}
-					box->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScale(), (shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScale());
+					box->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScaleFloat() - ssr, 
+						(shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScaleFloat() - ssr);
 					display_list->addRenderable(box);
 				} else {
 					const int gaussian_radius = 7;
 				
-					const int width = (spread_right - spread_left) / LayoutEngine::getFixedPointScale() + gaussian_radius * 4; 
-					const int height = (spread_bottom - spread_top) / LayoutEngine::getFixedPointScale() + gaussian_radius * 4;;
+					const int width = spread_width + gaussian_radius * 4; 
+					const int height = spread_height + gaussian_radius * 4;;
 
 					auto shader_blur = ShaderProgram::createGaussianShader(gaussian_radius)->clone();
 					const int blur_two = shader_blur->getUniform("texel_width_offset");
 					const int blur_tho = shader_blur->getUniform("texel_height_offset");
 					const int u_gaussian = shader_blur->getUniform("gaussian");
-					std::vector<float> gaussian = generate_gaussian(shadow.blur_radius / LayoutEngine::getFixedPointScaleFloat() / 2.0f, gaussian_radius);
+					std::vector<float> gaussian = generate_gaussian(ssr/2.0f, gaussian_radius);
 
 					CameraPtr rt_cam = std::make_shared<Camera>("ortho_blur", 0, width, 0, height);
 
-					rect box_size(
-						gaussian_radius * 2 * LayoutEngine::getFixedPointScale(),
-						gaussian_radius * 2 * LayoutEngine::getFixedPointScale(),
-						spread_right - spread_left,
-						spread_bottom - spread_top);
+					rect box_size(0, 0, spread_width, spread_height);
 					SolidRenderablePtr box = std::make_shared<SolidRenderable>(box_size, shadow.color);
 					if(clip_shape != nullptr) {
-						box->setClipSettings(get_stencil_mask_settings(), clip_shape);
+						const float scalew = spread_width / static_cast<float>(box_width);
+						const float scaleh = spread_height / static_cast<float>(box_height);
+						new_clip_shape->setScale(scalew, scaleh);
+						box->setClipSettings(get_stencil_mask_settings(), new_clip_shape);
 					}
+					box->setPosition(gaussian_radius * 2, gaussian_radius * 2);
 					box->setCamera(rt_cam);
 
 					WindowPtr wnd = WindowManager::getMainWindow();
-					RenderTargetPtr rt_blur_h = RenderTarget::create(width, height, 1, true, true);
+					// We need to create the "rt_blur_h" render target with a minimum of a stencil buffer.
+					RenderTargetPtr rt_blur_h = RenderTarget::create(width, height, 1, false, true/*, true, 4*/);
 					rt_blur_h->getTexture()->setFiltering(-1, Texture::Filtering::LINEAR, Texture::Filtering::LINEAR, Texture::Filtering::POINT);
 					rt_blur_h->getTexture()->setAddressModes(-1, Texture::AddressMode::CLAMP, Texture::AddressMode::CLAMP);
 					rt_blur_h->setCentre(Blittable::Centre::TOP_LEFT);
@@ -439,7 +452,8 @@ namespace xhtml
 						shader->setUniformValue(blur_tho, 1.0f / (height - 1.0f));
 					});
 
-					rt_blur_v->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScale(), (shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScale());
+					rt_blur_v->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScaleFloat() - ssr - gaussian_radius * 2, 
+						(shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScaleFloat() - ssr - gaussian_radius * 2);
 					display_list->addRenderable(rt_blur_v);
 				}
 			}
@@ -455,11 +469,10 @@ namespace xhtml
 		// XXX if we're rendering the body element then it takes the entire canvas :-/
 		// technically the rule is that if no background styles are applied to the html element then
 		// we apply the body styles.
-		const int rx = offset.x - dims.padding_.left - dims.border_.left;
-		const int ry = offset.y - dims.padding_.top - dims.border_.top;
-		const int rw = dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right;
-		const int rh = dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom;
-		rect r(rx, ry, rw, rh);
+		const int rx = (offset.x - dims.padding_.left - dims.border_.left) / LayoutEngine::getFixedPointScale();
+		const int ry = (offset.y - dims.padding_.top - dims.border_.top) / LayoutEngine::getFixedPointScale();
+		const int rw = (dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right) / LayoutEngine::getFixedPointScale();
+		const int rh = (dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom) / LayoutEngine::getFixedPointScale();
 
 
 		KRE::RenderablePtr clip_shape = nullptr;
@@ -474,16 +487,18 @@ namespace xhtml
 				clip_shape = std::make_shared<SolidRenderable>(rect(
 					0,
 					0,
-					dims.content_.width + dims.padding_.left + dims.padding_.right,
-					dims.content_.height + dims.padding_.top + dims.padding_.bottom), KRE::Color::colorWhite());
+					(dims.content_.width + dims.padding_.left + dims.padding_.right) / LayoutEngine::getFixedPointScale(),
+					(dims.content_.height + dims.padding_.top + dims.padding_.bottom) / LayoutEngine::getFixedPointScale()), 
+					KRE::Color::colorWhite());
 				clip_shape->setPosition(dims.border_.left/LayoutEngine::getFixedPointScale(), dims.border_.top/LayoutEngine::getFixedPointScale());
 				break;
 			case BackgroundClip::CONTENT_BOX:
 				clip_shape = std::make_shared<SolidRenderable>(rect(
 					0,
 					0,
-					dims.content_.width,
-					dims.content_.height), KRE::Color::colorWhite());
+					dims.content_.width / LayoutEngine::getFixedPointScale(),
+					dims.content_.height / LayoutEngine::getFixedPointScale()), 
+					KRE::Color::colorWhite());
 				clip_shape->setPosition((dims.padding_.left + dims.border_.left)/LayoutEngine::getFixedPointScale(), 
 					(dims.padding_.top + dims.border_.top)/LayoutEngine::getFixedPointScale());
 				break;
@@ -493,7 +508,7 @@ namespace xhtml
 
 		if(styles_->getBackgroundColor().ai() != 0) {
 			auto solid = std::make_shared<SolidRenderable>(rect(0, 0, rw, rh), styles_->getBackgroundColor());
-			solid->setPosition(rx / LayoutEngine::getFixedPointScale(), ry / LayoutEngine::getFixedPointScale());
+			solid->setPosition(rx, ry);
 			if(clip_shape != nullptr) {
 				solid->setClipSettings(get_stencil_mask_settings(), clip_shape);
 			}
@@ -521,13 +536,13 @@ namespace xhtml
 			const int rw_offs = pos_left.compute(rw);
 			const int rh_offs = pos_top.compute(rh);
 			
-			const float rxf = static_cast<float>(rx) / LayoutEngine::getFixedPointScaleFloat();
-			const float ryf = static_cast<float>(ry) / LayoutEngine::getFixedPointScaleFloat();
+			const float rxf = static_cast<float>(rx);
+			const float ryf = static_cast<float>(ry);
 
-			const float left = static_cast<float>(rw_offs - sw_offs + rx) / LayoutEngine::getFixedPointScaleFloat();
-			const float top = static_cast<float>(rh_offs - sh_offs + ry) / LayoutEngine::getFixedPointScaleFloat();
-			const float width = static_cast<float>(rw) / LayoutEngine::getFixedPointScaleFloat();
-			const float height = static_cast<float>(rh) / LayoutEngine::getFixedPointScaleFloat();
+			const float left = static_cast<float>(rw_offs - sw_offs + rx);
+			const float top = static_cast<float>(rh_offs - sh_offs + ry);
+			const float width = static_cast<float>(rw);
+			const float height = static_cast<float>(rh);
 
 			auto tex = texture_->clone();
 			auto ptr = std::make_shared<KRE::Blittable>(tex);
