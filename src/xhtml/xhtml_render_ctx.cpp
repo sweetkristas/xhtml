@@ -21,8 +21,6 @@
 	   distribution.
 */
 
-#pragma once
-
 #include <stack>
 
 #include "xhtml_render_ctx.hpp"

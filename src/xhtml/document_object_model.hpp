@@ -131,6 +131,7 @@ namespace dom
 	public:
 		explicit Node(NodeType type, const std::string& name, std::weak_ptr<Document> owner);
 		Node(const Node& node, bool deep);
+		virtual ~Node() {}
 		void setParent(std::weak_ptr<Node> parent);
 		void setNextSibling(std::weak_ptr<Node> right) { right_ = right; }
 		void setPreviousSibling(std::weak_ptr<Node> left) { left_ = left; }

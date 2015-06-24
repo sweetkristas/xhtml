@@ -517,7 +517,7 @@ namespace css
 			if(whitespace(next())) {
 				advance();
 			}
-			char32_t value;
+			int value;
 			std::stringstream ss;
 			ss << std::hex << digits;
 			ss >> value;
