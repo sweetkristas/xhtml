@@ -25,11 +25,5 @@ Block boxes inside an inline-block non-replaced context don't have the correct w
 This isn't an easy problem to solve since it requires multiple layout passes to layout the children, which would require re-doing the layout engine.
 repro: test28.xhtml
 
-box-shadow doesn't work
-
 text-shadow doesn't work
-
-border-radius isn't applied
-
-background-clip isn't obeyed
 
