@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		main_wnd->setClearColor(KRE::Color::colorWhite());
+		//main_wnd->setClearColor(KRE::Color::colorWhite());
 		main_wnd->clear(ClearFlags::ALL);
 
 		check_layout(width, height, doc, display_list, scene);
