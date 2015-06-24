@@ -220,7 +220,7 @@ namespace css
 					advance();
 				}
 				if(!isToken(TokenId::COLON)) {
-					throw ParserError("Expected ':' in declaration");
+					throw ParserError(formatter() << "Expected ':' in declaration, while parsing property: " << property);
 				}
 				advance();
 			
