@@ -63,6 +63,11 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 		// XXX should we should have a re-process styles flag here.
 
 		{
+			bool toggle = false;
+			doc->getElementById("content1");
+		}
+
+		{
 		profile::manager pman("apply styles");
 		doc->processStyleRules();
 		}

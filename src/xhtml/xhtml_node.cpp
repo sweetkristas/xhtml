@@ -247,6 +247,23 @@ namespace xhtml
 		properties_ = parent->getProperties();
 	}
 
+	NodePtr Node::getElementById(const std::string& ident)
+	{
+		if(id() == NodeId::ELEMENT) {
+			auto attr = getAttribute("id");
+			if(attr != nullptr && attr->getValue() == ident) {
+				return shared_from_this();
+			}
+		}
+		for(auto& child : children_) {
+			auto node = child->getElementById(ident);
+			if(node != nullptr) {
+				return node;
+			}
+		}
+		return nullptr;
+	}
+
 	void Node::normalize()
 	{
 		std::vector<NodePtr> new_child_list;
