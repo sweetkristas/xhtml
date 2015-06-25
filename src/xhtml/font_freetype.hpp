@@ -77,8 +77,15 @@ namespace KRE
 		FontRenderable();
 		void clear();
 		void update(std::vector<font_coord>* queue);
+		int getWidth() const { return width_; }
+		int getHeight() const { return height_; }
+		void setWidth(int width) { width_ = width; }
+		void setHeight(int height) { height_ = height; }
 	private:
 		std::shared_ptr<Attribute<font_coord>> attribs_;
+		// intrinsic width and height when rendered, in pixels.
+		int width_;
+		int height_;
 	};
 	typedef std::shared_ptr<FontRenderable> FontRenderablePtr;
 

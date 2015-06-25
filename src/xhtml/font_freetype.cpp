@@ -369,6 +369,9 @@ namespace KRE
 				font_renderable->setTexture(font_texture_);
 			}
 
+			int width = 0;
+			int height = 0;
+
 			std::vector<font_coord> coords;
 			coords.reserve(glyphs_in_text * 6);
 			int n = 0;
@@ -384,6 +387,9 @@ namespace KRE
 				}
 				GlyphInfo& gi = it->second;
 				
+				width += gi.width;
+				height = std::max(height, static_cast<int>(gi.height));
+
 				const float u1 = font_texture_->getTextureCoordW(0, gi.tex_x);
 				const float v1 = font_texture_->getTextureCoordH(0, gi.tex_y);
 				const float u2 = font_texture_->getTextureCoordW(0, gi.tex_x + gi.width);
@@ -403,6 +409,8 @@ namespace KRE
 				++n;
 			}
 
+			font_renderable->setWidth(width);
+			font_renderable->setHeight(height);
 			font_renderable->update(&coords);
 			return font_renderable;
 		}

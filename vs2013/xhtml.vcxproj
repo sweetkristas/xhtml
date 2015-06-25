@@ -95,8 +95,6 @@
     <ClCompile Include="..\src\xhtml\css_stylesheet.cpp" />
     <ClCompile Include="..\src\xhtml\css_transition.cpp" />
     <ClCompile Include="..\src\xhtml\display_list.cpp" />
-    <ClCompile Include="..\src\xhtml\document_object_model.cpp" />
-    <ClCompile Include="..\src\xhtml\dom_exception.cpp" />
     <ClCompile Include="..\src\xhtml\font_freetype.cpp" />
     <ClCompile Include="..\src\xhtml\solid_renderable.cpp" />
     <ClCompile Include="..\src\xhtml\to_roman.cpp" />
@@ -227,8 +225,6 @@
     <ClInclude Include="..\src\xhtml\css_stylesheet.hpp" />
     <ClInclude Include="..\src\xhtml\css_transition.hpp" />
     <ClInclude Include="..\src\xhtml\display_list.hpp" />
-    <ClInclude Include="..\src\xhtml\document_object_model.hpp" />
-    <ClInclude Include="..\src\xhtml\dom_exception.hpp" />
     <ClInclude Include="..\src\xhtml\font_freetype.hpp" />
     <ClInclude Include="..\src\xhtml\solid_renderable.hpp" />
     <ClInclude Include="..\src\xhtml\to_roman.hpp" />

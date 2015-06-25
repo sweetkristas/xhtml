@@ -44,10 +44,22 @@ namespace xhtml
 		void handleRender(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBackground(DisplayListPtr display_list, const point& offset) const override;
 		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
+		void handleRenderShadow(DisplayListPtr display_list, const point& offset, KRE::FontRenderablePtr fontr, float w, float h) const;
 		FixedPoint calculateWidth() const;
 		LinePtr line_;
 		TextPtr txt_;
 		Text::iterator it_;
 		FixedPoint justification_;
+
+		// for text shadows
+		struct Shadow {
+			Shadow() : x_offset(0), y_offset(0), blur(0), color() {}
+			Shadow(float xo, float yo, float br, const KRE::Color& c) : x_offset(xo), y_offset(yo), blur(br), color(c) {}
+			float x_offset;
+			float y_offset;
+			float blur;
+			KRE::Color color;
+		};
+		std::vector<Shadow> shadows_;
 	};
 }
