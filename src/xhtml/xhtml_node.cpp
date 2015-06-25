@@ -127,6 +127,25 @@ namespace xhtml
 		attributes_[a->getName()] = a;
 	}
 
+	/*void Node::addTransition(TransitionPtr transition)
+	{
+		// XXX
+	}*/
+
+	void Node::process(float dt)
+	{
+		// XXX
+		/*for(auto& tp : transition_table_) {
+			if(!tp->stopped()) {
+				tp->process(dt);
+			}
+		}*/
+		
+		for(auto& c : children_) {
+			c->process(dt);
+		}
+	}
+
 	bool Node::preOrderTraversal(std::function<bool(NodePtr)> fn)
 	{
 		// Visit node, visit children.

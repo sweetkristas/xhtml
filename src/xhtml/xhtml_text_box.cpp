@@ -50,7 +50,7 @@ namespace xhtml
 				float xo = shadow.getOffset()[0].compute() / LayoutEngine::getFixedPointScaleFloat();
 				float yo = shadow.getOffset()[1].compute() / LayoutEngine::getFixedPointScaleFloat();
 				float br = shadow.getBlur().compute() / LayoutEngine::getFixedPointScaleFloat();
-				KRE::Color color = shadow.getColor().compute();
+				KRE::ColorPtr color = shadow.getColor().compute();
 				shadows_.emplace_back(xo, yo, br, color);
 			}
 		}
@@ -165,7 +165,7 @@ namespace xhtml
 				KRE::FontRenderablePtr shadow_font(new KRE::FontRenderable(*fontr));
 				shadow_font->setPosition(shadow.x_offset + offset.x / LayoutEngine::getFixedPointScaleFloat(), 
 					shadow.y_offset + offset.y / LayoutEngine::getFixedPointScaleFloat());
-				shadow_font->setColor(shadow.color);
+				shadow_font->setColor(shadow.color != nullptr ? *shadow.color : *getStyleNode()->getColor());
 				display_list->addRenderable(shadow_font);
 			} else {
 				using namespace KRE;
@@ -187,7 +187,7 @@ namespace xhtml
 				KRE::FontRenderablePtr shadow_font(new KRE::FontRenderable(*fontr));
 				shadow_font->setPosition(kernel_radius, getBaselineOffset() / LayoutEngine::getFixedPointScale());
 				shadow_font->setCamera(rt_cam);
-				shadow_font->setColor(shadow.color);
+				shadow_font->setColor(shadow.color != nullptr ? *shadow.color : *getStyleNode()->getColor());
 				int u_ignore_alpha = shadow_font->getShader()->getUniform("ignore_alpha");
 				UniformSetFn old_fn = shadow_font->getShader()->getUniformDrawFunction();
 				shadow_font->getShader()->setUniformDrawFunction([u_ignore_alpha](ShaderProgramPtr shader) {
@@ -287,7 +287,7 @@ namespace xhtml
 		}
 		//handleRenderTextDecoration -- underlines, then overlines
 
-		fontr->setColor(getStyleNode()->getColor());
+		fontr->setColor(*getStyleNode()->getColor());
 		fontr->setPosition(offset.x / LayoutEngine::getFixedPointScaleFloat(), offset.y / LayoutEngine::getFixedPointScaleFloat());
 		display_list->addRenderable(fontr);
 

@@ -69,14 +69,14 @@ namespace css
 	CssColor::CssColor()
 		: Style(StyleId::COLOR),
 		  param_(CssColorParam::VALUE),
-		  color_(KRE::Color::colorWhite())
+		  color_(std::make_shared<KRE::Color>(KRE::Color::colorWhite()))
 	{
 	}
 
 	CssColor::CssColor(CssColorParam param, const KRE::Color& color)
 		: Style(StyleId::COLOR),
 		  param_(param),
-		  color_(color)
+		  color_(std::make_shared<KRE::Color>(color))
 	{
 	}
 
@@ -84,33 +84,34 @@ namespace css
 	{
 		param_ = param;
 		if(param_ != CssColorParam::VALUE) {
-			color_ = KRE::Color(0, 0, 0, 0);
+			*color_ = KRE::Color(0, 0, 0, 0);
 		}
 	}
 
 	void CssColor::setColor(const KRE::Color& color)
 	{
-		color_ = color;
+		*color_ = color;
 		setParam(CssColorParam::VALUE);
 	}
 
-	KRE::Color CssColor::compute() const
+	KRE::ColorPtr CssColor::compute() const
 	{
 		if(param_ == CssColorParam::VALUE) {
 			return color_;
 		} else if(param_ == CssColorParam::CURRENT) {
+			// XXX this is broken.
 			auto& ctx = xhtml::RenderContext::get();
 			auto current_color = ctx.getComputedValue(Property::COLOR)->asType<CssColor>();
 			ASSERT_LOG(current_color->getParam() != CssColorParam::CURRENT, "Computing color of current color would cause infinite loop.");
 			return current_color->compute();
 		}
-		return KRE::Color(0, 0, 0, 0);
+		return color_;
 	}
 
 	bool CssColor::isEqual(const StylePtr& a) const
 	{		
 		auto p = std::dynamic_pointer_cast<CssColor>(a);
-		return color_ == p->color_;
+		return *color_ == *p->color_;
 	}
 
 	Length::Length(xhtml::FixedPoint value, const std::string& units) 

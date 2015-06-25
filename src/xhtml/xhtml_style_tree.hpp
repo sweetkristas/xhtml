@@ -45,13 +45,13 @@ namespace xhtml
 		const std::vector<StyleNodePtr>& getChildren() const { return children_; }
 
 		css::BackgroundAttachment getBackgroundAttachment() const { return background_attachment_; }
-		const KRE::Color& getBackgroundColor() const { return background_color_; }
+		const KRE::ColorPtr& getBackgroundColor() const { return background_color_; }
 		 const std::shared_ptr<css::ImageSource> getBackgroundImage() const { return background_image_; }
 		// Stored as [0] top, [1] left
 		const std::array<css::Length, 2>& getBackgroundPosition() const { return background_position_; }
 		css::BackgroundRepeat getBackgroundRepeat() const { return background_repeat_; }
 		// Stored as top, left, bottom, right
-		const std::array<KRE::Color, 4>& getBorderColor() const { return border_color_; }
+		const std::array<KRE::ColorPtr, 4>& getBorderColor() const { return border_color_; }
 		const std::array<css::BorderStyle, 4>& getBorderStyle() const { return border_style_; }
 		const std::array<std::shared_ptr<css::Length>, 4>& getBorderWidths() const { return border_width_; }
 		const std::shared_ptr<css::Width>& getTop() const { return tlbr_[0]; }
@@ -60,7 +60,7 @@ namespace xhtml
 		const std::shared_ptr<css::Width>& getRight() const { return tlbr_[3]; }
 		css::Clear getClear() const { return clear_; }
 		const std::shared_ptr<css::Clip>& getClip() const { return clip_; }
-		const KRE::Color& getColor() const { return color_; }
+		const KRE::ColorPtr& getColor() const { return color_; }
 		const std::shared_ptr<css::Content>& getContent() const { return content_; }
 		const std::shared_ptr<css::Counter>& getCounterIncr() const { return counter_increment_; }
 		const std::shared_ptr<css::Counter>& getCounterReset() const { return counter_reset_; }
@@ -81,7 +81,7 @@ namespace xhtml
 		const std::shared_ptr<css::Width>& getMaxHeight() const { return minmax_height_[1]; }
 		const std::shared_ptr<css::Width>& getMinWidth() const { return minmax_width_[0]; }
 		const std::shared_ptr<css::Width>& getMaxWidth() const { return minmax_width_[1]; }
-		const KRE::Color& getOutlineColor() const { return outline_color_; }
+		const KRE::ColorPtr& getOutlineColor() const { return outline_color_; }
 		css::BorderStyle getOutlineStyle() const { return outline_style_; }
 		const std::shared_ptr<css::Length>& getOutlineWidth() const { return outline_width_; }
 		css::Overflow getOverflow() const { return overflow_; }
@@ -125,7 +125,7 @@ namespace xhtml
 		//BACKGROUND_ATTACHMENT
 		css::BackgroundAttachment background_attachment_;
 		//BACKGROUND_COLOR
-		KRE::Color background_color_;
+		KRE::ColorPtr background_color_;
 		//BACKGROUND_IMAGE
 		std::shared_ptr<css::ImageSource> background_image_;
 		//BACKGROUND_POSITION -- stored as top/left
@@ -133,7 +133,7 @@ namespace xhtml
 		//BACKGROUND_REPEAT
 		css::BackgroundRepeat background_repeat_;
 		//BORDER_TOP_COLOR / BORDER_LEFT_COLOR / BORDER_BOTTOM_COLOR / BORDER_RIGHT_COLOR
-		std::array<KRE::Color, 4> border_color_;
+		std::array<KRE::ColorPtr, 4> border_color_;
 		//BORDER_TOP_STYLE / BORDER_LEFT_STYLE / BORDER_BOTTOM_STYLE / BORDER_RIGHT_STYLE
 		std::array<css::BorderStyle, 4> border_style_;
 		//BORDER_TOP_WIDTH / BORDER_LEFT_WIDTH / BORDER_BOTTOM_WIDTH / BORDER_RIGHT_WIDTH
@@ -145,7 +145,7 @@ namespace xhtml
 		//CLIP
 		std::shared_ptr<css::Clip> clip_;
 		//COLOR
-		KRE::Color color_;
+		KRE::ColorPtr color_;
 		//CONTENT
 		std::shared_ptr<css::Content> content_;
 		//COUNTER_INCREMENT
@@ -181,7 +181,7 @@ namespace xhtml
 		//MIN_WIDTH / MAX_WIDTH
 		std::array<std::shared_ptr<css::Width>, 2> minmax_width_;
 		//OUTLINE_COLOR
-		KRE::Color outline_color_;
+		KRE::ColorPtr outline_color_;
 		//OUTLINE_STYLE
 		css::BorderStyle outline_style_;
 		//OUTLINE_WIDTH

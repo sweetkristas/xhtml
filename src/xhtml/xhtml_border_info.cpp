@@ -421,31 +421,31 @@ namespace xhtml
 		auto& border_style = styles_->getBorderStyle();
 		for(int side = 0; side != 4; ++side) {
 			// only drawing border if width > 0, alpha != 0
-			if(bw[side] > 0 && border_color[side].ai() != 0) {
+			if(bw[side] > 0 && border_color[side]->ai() != 0) {
 				switch(border_style[side]) {
 					case BorderStyle::SOLID:
 						switch(side) {
-							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
-							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color[side].as_u8vec4()); break;
-							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
-							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
+							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
+							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color[side]->as_u8vec4()); break;
+							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
+							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
 						}
 						break;
 					case BorderStyle::INSET: {
-						glm::u8vec4 inset(border_color[side].as_u8vec4().r/2, border_color[side].as_u8vec4().g/2, border_color[side].as_u8vec4().b/2, border_color[side].as_u8vec4().a);
+						glm::u8vec4 inset(border_color[side]->as_u8vec4().r/2, border_color[side]->as_u8vec4().g/2, border_color[side]->as_u8vec4().b/2, border_color[side]->as_u8vec4().a);
 						switch(side) {
 							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, inset); break;
 							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, inset); break;
-							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
-							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
+							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
+							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
 						}
 						break;
 					}
 					case BorderStyle::OUTSET: {
-						glm::u8vec4 outset(border_color[side].as_u8vec4().r/2, border_color[side].as_u8vec4().g/2, border_color[side].as_u8vec4().b/2, border_color[side].as_u8vec4().a);
+						glm::u8vec4 outset(border_color[side]->as_u8vec4().r/2, border_color[side]->as_u8vec4().g/2, border_color[side]->as_u8vec4().b/2, border_color[side]->as_u8vec4().a);
 						switch(side) {
-							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color[side].as_u8vec4()); break;
-							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color[side].as_u8vec4()); break;
+							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
+							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color[side]->as_u8vec4()); break;
 							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, outset); break;
 							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, outset); break;
 						}
@@ -454,26 +454,26 @@ namespace xhtml
 					case BorderStyle::DOUBLE:
 						switch(side) {
 							case 0: 
-								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side].as_u8vec4()); 
-								generate_solid_left_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side].as_u8vec4()); 
+								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
+								generate_solid_left_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
 								break;
 							case 1: 
-								generate_solid_top_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, border_color[side].as_u8vec4()); 
-								generate_solid_top_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, border_color[side].as_u8vec4()); 
+								generate_solid_top_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, border_color[side]->as_u8vec4()); 
+								generate_solid_top_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, border_color[side]->as_u8vec4()); 
 								break;
 							case 2: 
-								generate_solid_right_side(&vc, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side].as_u8vec4()); 
-								generate_solid_right_side(&vc, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side].as_u8vec4()); 
+								generate_solid_right_side(&vc, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
+								generate_solid_right_side(&vc, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
 								break;
 							case 3: 
-								generate_solid_bottom_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side].as_u8vec4()); 
-								generate_solid_bottom_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side].as_u8vec4()); 
+								generate_solid_bottom_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
+								generate_solid_bottom_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
 								break;
 						}
 						break;
 					case BorderStyle::GROOVE: {
-						glm::u8vec4 inset(border_color[side].as_u8vec4().r/2, border_color[side].as_u8vec4().g/2, border_color[side].as_u8vec4().b/2, border_color[side].as_u8vec4().a);
-						glm::u8vec4 outset(border_color[side].as_u8vec4());
+						glm::u8vec4 inset(border_color[side]->as_u8vec4().r/2, border_color[side]->as_u8vec4().g/2, border_color[side]->as_u8vec4().b/2, border_color[side]->as_u8vec4().a);
+						glm::u8vec4 outset(border_color[side]->as_u8vec4());
 						switch(side) {
 							case 0: 
 								generate_solid_left_side(&vc, side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, inset); 
@@ -495,8 +495,8 @@ namespace xhtml
 						break;
 					}
 					case BorderStyle::RIDGE: {
-						glm::u8vec4 outset(border_color[side].as_u8vec4().r/2, border_color[side].as_u8vec4().g/2, border_color[side].as_u8vec4().b/2, border_color[side].as_u8vec4().a);
-						glm::u8vec4 inset(border_color[side].as_u8vec4());
+						glm::u8vec4 outset(border_color[side]->as_u8vec4().r/2, border_color[side]->as_u8vec4().g/2, border_color[side]->as_u8vec4().b/2, border_color[side]->as_u8vec4().a);
+						glm::u8vec4 inset(border_color[side]->as_u8vec4());
 						switch(side) {
 							case 0: 
 								generate_solid_left_side(&vc, side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, inset); 

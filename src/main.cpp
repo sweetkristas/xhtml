@@ -244,6 +244,7 @@ int main(int argc, char* argv[])
 		// Called once a cycle before rendering.
 		Uint32 current_tick_time = SDL_GetTicks();
 		float dt = (current_tick_time - last_tick_time) / 1000.0f;
+		doc->process(dt);
 		scene->process(dt);
 		last_tick_time = current_tick_time;
 

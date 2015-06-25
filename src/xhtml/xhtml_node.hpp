@@ -125,6 +125,9 @@ namespace xhtml
 		void clearProperties() { properties_.clear(); }
 		void inheritProperties();
 		
+		void process(float dt);
+
+
 		// for elements
 		const rect& getDimensions() { return dimensions_; }
 		void setDimensions(const rect& r) { dimensions_ = r; handleSetDimensions(r); }

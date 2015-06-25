@@ -54,11 +54,11 @@ namespace xhtml
 		// for text shadows
 		struct Shadow {
 			Shadow() : x_offset(0), y_offset(0), blur(0), color() {}
-			Shadow(float xo, float yo, float br, const KRE::Color& c) : x_offset(xo), y_offset(yo), blur(br), color(c) {}
+			Shadow(float xo, float yo, float br, const KRE::ColorPtr& c) : x_offset(xo), y_offset(yo), blur(br), color(c) {}
 			float x_offset;
 			float y_offset;
 			float blur;
-			KRE::Color color;
+			KRE::ColorPtr color;
 		};
 		std::vector<Shadow> shadows_;
 	};

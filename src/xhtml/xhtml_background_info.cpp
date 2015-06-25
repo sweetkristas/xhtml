@@ -304,7 +304,7 @@ namespace xhtml
 					shadow.getBlur().compute(), 
 					shadow.getSpread().compute(), 
 					shadow.inset(), 
-					shadow.getColor().compute());
+					*shadow.getColor().compute());
 			}
 		}
 	}
@@ -506,8 +506,8 @@ namespace xhtml
 
 		renderBoxShadow(display_list, offset, dims, clip_shape);
 
-		if(styles_->getBackgroundColor().ai() != 0) {
-			auto solid = std::make_shared<SolidRenderable>(rect(0, 0, rw, rh), styles_->getBackgroundColor());
+		if(styles_->getBackgroundColor()->ai() != 0) {
+			auto solid = std::make_shared<SolidRenderable>(rect(0, 0, rw, rh), *styles_->getBackgroundColor());
 			solid->setPosition(rx, ry);
 			if(clip_shape != nullptr) {
 				solid->setClipSettings(get_stencil_mask_settings(), clip_shape);

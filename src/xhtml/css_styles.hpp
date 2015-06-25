@@ -278,15 +278,15 @@ namespace css
 		void setParam(CssColorParam param);
 		void setColor(const KRE::Color& color);
 		CssColorParam getParam() const { return param_; }
-		const KRE::Color& getColor() const { return color_; }	
+		const KRE::ColorPtr& getColor() const { return color_; }	
 		bool isTransparent() const { return param_ == CssColorParam::TRANSPARENT; }
 		bool isNone() const { return param_ == CssColorParam::NONE; }
 		bool isValue() const { return param_ == CssColorParam::VALUE; }
-		KRE::Color compute() const;
+		KRE::ColorPtr compute() const;
 	private:
 		bool isEqual(const StylePtr& style) const override;
 		CssColorParam param_;
-		KRE::Color color_;
+		KRE::ColorPtr color_;
 	};
 
 	enum class LengthUnits {
