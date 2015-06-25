@@ -136,6 +136,24 @@ namespace xhtml
 		return true;
 	}
 
+	void StyleNode::updateStyles()
+	{
+		std::unique_ptr<RenderContext::Manager> rcm;
+		auto node = node_.lock();
+		if(node != nullptr) {
+			bool is_element = node->id() == NodeId::ELEMENT;
+			bool is_text = node->id() == NodeId::TEXT;
+			if(is_element || is_text) {
+				rcm.reset(new RenderContext::Manager(node->getProperties()));
+				processStyles();
+			}
+		}
+
+		for(auto& child : getChildren()) {
+			child->updateStyles();
+		}
+	}
+
 	void StyleNode::processStyles()
 	{
 		RenderContext& ctx = RenderContext::get();

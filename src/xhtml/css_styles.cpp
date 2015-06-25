@@ -105,6 +105,7 @@ namespace css
 			ASSERT_LOG(current_color->getParam() != CssColorParam::CURRENT, "Computing color of current color would cause infinite loop.");
 			return current_color->compute();
 		}
+		*color_ = KRE::Color(0, 0, 0, 0);
 		return color_;
 	}
 

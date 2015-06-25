@@ -67,10 +67,14 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 		doc->processStyleRules();
 		}
 
-		xhtml::StyleNodePtr style_tree;
+		static xhtml::StyleNodePtr style_tree = nullptr;
 		{
 			profile::manager pman("create style tree");
-			style_tree = xhtml::StyleNode::createStyleTree(doc);
+			if(style_tree == nullptr) {
+				style_tree = xhtml::StyleNode::createStyleTree(doc);
+			} else {
+				style_tree->updateStyles();
+			}
 		}
 
 		xhtml::RootBoxPtr layout = nullptr;
@@ -236,7 +240,7 @@ int main(int argc, char* argv[])
 			}
 		}
 
-		main_wnd->setClearColor(KRE::Color::colorWhite());
+		//main_wnd->setClearColor(KRE::Color::colorWhite());
 		main_wnd->clear(ClearFlags::ALL);
 
 		check_layout(width, height, doc, display_list, scene);
