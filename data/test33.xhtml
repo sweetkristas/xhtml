@@ -5,10 +5,30 @@
 <head>
 	<style>
 .white-with-blue-shadow {
-    text-shadow: 1px 1px 1px blue;
+    text-shadow: 1px 1px 2px black, 0 0 1em blue, 0 0 0.2em blue;
     color: white;
     font-size: 1.5em;
     font-family: Georgia, "Bitstream Charter", "URW Bookman L", "Century Schoolbook L", serif; 
+}
+.div_text_shadow {
+    background-color: #666;
+    text-shadow: 2px 2px 3px #333333;
+    font-size: 2em;
+    height: 2em;
+}
+.div_text_shadow_neon {
+    color: rgb(255, 255, 255);
+    font-size: 50px;
+    height: 2em;
+    background-color: rgb(51, 51, 51);
+    text-shadow: rgb(255, 255, 255) 0px 0px 5px, 
+        rgb(255, 255, 255) 0px 0px 10px, 
+        rgb(255, 255, 255) 0px 0px 15px, 
+        rgb(255, 45, 149) 0px 0px 20px, 
+        rgb(255, 45, 149) 0px 0px 30px, 
+        rgb(255, 45, 149) 0px 0px 40px, 
+        rgb(255, 45, 149) 0px 0px 50px, 
+        rgb(255, 45, 149) 0px 0px 75px;
 }
 	</style>
 </head>
@@ -19,5 +39,7 @@
         doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore 
         veritatis et quasi architecto beatae vitae dicta sunt explicabo.
     </p>
+    <p class="div_text_shadow">Your name in lights</p>
+    <p class="div_text_shadow_neon">Your name in lights - part2</p>
 </body>
 </html>

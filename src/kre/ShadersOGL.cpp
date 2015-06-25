@@ -360,10 +360,14 @@ namespace KRE
 				"#version 120\n"
 				"uniform sampler2D u_tex_map;\n"
 				"uniform vec4 u_color;\n"
+				"uniform bool ignore_alpha;\n"
 				"varying vec2 v_texcoord;\n"
 				"void main()\n"
 				"{\n"
 				"    vec4 color = vec4(1.0, 1.0, 1.0, texture2D(u_tex_map, v_texcoord).r);\n"
+				"    if(ignore_alpha && color.a > 0) {\n"
+				"	     color.a = 255;\n"
+				"    }\n"
 				"    gl_FragColor = color * u_color;\n"
 				"}\n";
 			const uniform_mapping font_shader_uniform_mapping[] = 

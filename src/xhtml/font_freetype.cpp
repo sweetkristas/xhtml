@@ -112,15 +112,23 @@ namespace KRE
 	FontRenderable::FontRenderable() 
 		: SceneObject("font-renderable")
 	{
-		setShader(ShaderProgram::getProgram("font_shader"));
+		ShaderProgramPtr shader = ShaderProgram::getProgram("font_shader");
+		setShader(shader);
 		auto as = DisplayDevice::createAttributeSet();
 		attribs_.reset(new Attribute<font_coord>(AccessFreqHint::DYNAMIC, AccessTypeHint::DRAW));
 		attribs_->addAttributeDesc(AttributeDesc(AttrType::POSITION, 2, AttrFormat::FLOAT, false, sizeof(font_coord), offsetof(font_coord, vtx)));
 		attribs_->addAttributeDesc(AttributeDesc(AttrType::TEXTURE,  2, AttrFormat::FLOAT, false, sizeof(font_coord), offsetof(font_coord, tc)));
 		as->addAttribute(AttributeBasePtr(attribs_));
 		as->setDrawMode(DrawMode::TRIANGLES);
-		
+		as->clearblendState();
+		as->clearBlendMode();
+
 		addAttributeSet(as);
+
+		int u_ignore_alpha = shader->getUniform("ignore_alpha");
+		shader->setUniformDrawFunction([u_ignore_alpha](ShaderProgramPtr shader) {
+			shader->setUniformValue(u_ignore_alpha, 0);
+		});				
 	}
 
 	void FontRenderable::update(std::vector<font_coord>* queue)

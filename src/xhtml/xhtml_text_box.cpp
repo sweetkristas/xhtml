@@ -21,6 +21,7 @@
 	   distribution.
 */
 
+#include "BlendModeScope.hpp"
 #include "CameraObject.hpp"
 #include "RenderTarget.hpp"
 #include "Shaders.hpp"
@@ -154,6 +155,10 @@ namespace xhtml
 	{
 		// make a copy of the font object.
 		//KRE::FontRenderablePtr shadow_font(new KRE::FontRenderable(*fontr));
+		std::vector<KRE::RenderablePtr> shadow_list;
+		KRE::WindowPtr wnd = KRE::WindowManager::getMainWindow();
+		const int kernel_radius = 7;
+
 		for(auto shadow : shadows_) {
 			if(std::abs(shadow.blur) < FLT_EPSILON) {
 				// no blur
@@ -166,10 +171,8 @@ namespace xhtml
 				using namespace KRE;
 				// more complex case where we need to blur, so we render the text to a 
 				// RenderTarget, then render that to another render target with a blur filter.
-				const int kernel_radius = 7;
-
-				const float width = w + kernel_radius * 2.0f;
-				const float height = h + kernel_radius * 2.0f;
+				const float width = w + (kernel_radius) * 2.0f;
+				const float height = h + (kernel_radius) * 2.0f;
 
 				const int iwidth = static_cast<int>(std::round(width));
 				const int iheight = static_cast<int>(std::round(height));
@@ -178,17 +181,20 @@ namespace xhtml
 				const int blur_two = shader_blur->getUniform("texel_width_offset");
 				const int blur_tho = shader_blur->getUniform("texel_height_offset");
 				const int u_gaussian = shader_blur->getUniform("gaussian");
-				std::vector<float> gaussian = generate_gaussian(shadow.blur/2.0f, kernel_radius);
+				std::vector<float> gaussian = generate_gaussian(shadow.blur / 2.0f, kernel_radius);
 
 				CameraPtr rt_cam = std::make_shared<Camera>("ortho_blur", 0, iwidth, 0, iheight);
 				KRE::FontRenderablePtr shadow_font(new KRE::FontRenderable(*fontr));
 				shadow_font->setPosition(kernel_radius, getBaselineOffset() / LayoutEngine::getFixedPointScale());
 				shadow_font->setCamera(rt_cam);
 				shadow_font->setColor(shadow.color);
+				int u_ignore_alpha = shadow_font->getShader()->getUniform("ignore_alpha");
+				UniformSetFn old_fn = shadow_font->getShader()->getUniformDrawFunction();
+				shadow_font->getShader()->setUniformDrawFunction([u_ignore_alpha](ShaderProgramPtr shader) {
+					shader->setUniformValue(u_ignore_alpha, 1);
+				});				
 
-				WindowPtr wnd = WindowManager::getMainWindow();
-				// We need to create the "rt_blur_h" render target with a minimum of a stencil buffer.
-				RenderTargetPtr rt_blur_h = RenderTarget::create(iwidth, iheight, 1, false, true/*, true, 4*/);
+				RenderTargetPtr rt_blur_h = RenderTarget::create(iwidth, iheight);
 				rt_blur_h->getTexture()->setFiltering(-1, Texture::Filtering::LINEAR, Texture::Filtering::LINEAR, Texture::Filtering::POINT);
 				rt_blur_h->getTexture()->setAddressModes(-1, Texture::AddressMode::CLAMP, Texture::AddressMode::CLAMP);
 				rt_blur_h->setCentre(Blittable::Centre::TOP_LEFT);
@@ -198,6 +204,7 @@ namespace xhtml
 					shadow_font->preRender(wnd);
 					wnd->render(shadow_font.get());
 				}
+				shadow_font->getShader()->setUniformDrawFunction(old_fn);
 				rt_blur_h->setCamera(rt_cam);
 				rt_blur_h->setShader(shader_blur);
 				shader_blur->setUniformDrawFunction([blur_two, blur_tho, iwidth, gaussian, u_gaussian](ShaderProgramPtr shader){ 
@@ -224,10 +231,35 @@ namespace xhtml
 				});
 
 				rt_blur_v->setPosition(shadow.x_offset + offset.x / LayoutEngine::getFixedPointScaleFloat() - kernel_radius, 
-					shadow.y_offset + offset.y / LayoutEngine::getFixedPointScaleFloat() - h - kernel_radius);
+					shadow.y_offset + (offset.y + getStyleNode()->getFont()->getDescender()) / LayoutEngine::getFixedPointScaleFloat() - h - kernel_radius);
 				display_list->addRenderable(rt_blur_v);
+				// XXX isnstead of adding all the textures here, we should add them to an array, then
+				// render them all to an FBO so we only have one final texture.
+				/*shadow_list.emplace_back(rt_blur_v);
+				rt_blur_v->setPosition(shadow.x_offset, shadow.y_offset);*/
 			}
 		}
+
+		/*if(!shadow_list.empty()) {
+			using namespace KRE;
+			int width = shadow_list.front()->getTexture()->width();
+			int height = shadow_list.front()->getTexture()->height();
+			RenderTargetPtr rt_blurred = RenderTarget::create(width, height);
+			rt_blurred->getTexture()->setFiltering(-1, Texture::Filtering::LINEAR, Texture::Filtering::LINEAR, Texture::Filtering::POINT);
+			rt_blurred->getTexture()->setAddressModes(-1, Texture::AddressMode::CLAMP, Texture::AddressMode::CLAMP);
+			rt_blurred->setCentre(Blittable::Centre::TOP_LEFT);
+			rt_blurred->setClearColor(Color(0,0,0,0));
+			{
+				RenderTarget::RenderScope rs(rt_blurred, rect(0, 0, width, height));
+				for(auto& r : shadow_list) {
+					r->preRender(wnd);
+					wnd->render(r.get());
+				}
+			}
+			rt_blurred->setPosition(offset.x / LayoutEngine::getFixedPointScaleFloat() - kernel_radius,
+				(offset.y + getStyleNode()->getFont()->getDescender()) / LayoutEngine::getFixedPointScaleFloat() - h - kernel_radius);
+			display_list->addRenderable(rt_blurred);
+		}*/
 	}
 
 	void TextBox::handleRender(DisplayListPtr display_list, const point& offset) const
