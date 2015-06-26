@@ -225,6 +225,49 @@ namespace css
 		TEXT_SHADOW,
 	};
 
+	enum class CssTransitionTimingFunction {
+		STEPS,
+		CUBIC_BEZIER,
+	};
+
+	enum class StepChangePoint {
+		START,
+		END,
+	};
+
+	// This is needed before the definition of Style
+	class TimingFunction
+	{
+	public:
+		TimingFunction() : ttfn_(CssTransitionTimingFunction::CUBIC_BEZIER), nintervals_(0), poc_(StepChangePoint::END), p1_(0.25f, 0.1f), p2_(0.25f, 1.0f) {}
+		// for cubic-bezier
+		explicit TimingFunction(float x1, float y1, float x2, float y2) 
+			: ttfn_(CssTransitionTimingFunction::CUBIC_BEZIER), nintervals_(0), poc_(StepChangePoint::END), p1_(x1, y1), p2_(x2, y2) {}
+		// for step function
+		explicit TimingFunction(int nintervals, StepChangePoint poc)
+			: ttfn_(CssTransitionTimingFunction::STEPS), nintervals_(nintervals), poc_(poc), p1_(), p2_() {}
+		CssTransitionTimingFunction getFunction() const { return ttfn_; }
+		int getIntervals() const { return nintervals_; }
+		StepChangePoint getStepChangePoint() const { return poc_; }
+		const glm::vec2& getP1() const { return p1_; }
+		const glm::vec2& getP2() const { return p2_; }
+	private:
+		CssTransitionTimingFunction ttfn_;
+		int nintervals_;
+		StepChangePoint poc_;
+		glm::vec2 p1_;
+		glm::vec2 p2_;
+	};
+
+	struct StyleTransition 
+	{
+		StyleTransition() : duration(0), ttfn(), delay() {}
+		StyleTransition(float dura, TimingFunction fn, float del) : duration(dura), ttfn(fn), delay(del) {}
+		float duration;
+		TimingFunction ttfn;
+		float delay;
+	};
+
 	// This is the basee class for all other styles.
 	class Style : public std::enable_shared_from_this<Style>
 	{
@@ -234,10 +277,11 @@ namespace css
 			  is_important_(false), 
 			  is_inherited_(false), 
 			  stored_enum_(true), 
-			  enumeration_(static_cast<int>(value)) 
+			  enumeration_(static_cast<int>(value)),
+			  transitions_()
 		{}
-		explicit Style(StyleId id) : id_(id), is_important_(false), is_inherited_(false), stored_enum_(false), enumeration_(0) {}
-		explicit Style(bool inh) : id_(StyleId::INHERIT), is_important_(false), is_inherited_(inh), stored_enum_(false), enumeration_(0) {}
+		explicit Style(StyleId id) : id_(id), is_important_(false), is_inherited_(false), stored_enum_(false), enumeration_(0), transitions_() {}
+		explicit Style(bool inh) : id_(StyleId::INHERIT), is_important_(false), is_inherited_(inh), stored_enum_(false), enumeration_(0), transitions_() {}
 		virtual ~Style() {}
 		StyleId id() const { return id_; }
 		void setImportant(bool imp=true) { is_important_ = imp; }
@@ -260,6 +304,9 @@ namespace css
 			return ptr;
 		}
 		template<typename T> static StylePtr create(StyleId id, T value) { return std::make_shared<Style>(id, value); }
+		void addTransition(float duration, const TimingFunction& ttfn, float delay) { transitions_.emplace_back(duration, ttfn, delay); }
+		bool hasTransition() const { return !transitions_.empty(); }
+		const std::vector<StyleTransition>& getTransitions() const { return transitions_; }
 	private:
 		virtual bool isEqual(const StylePtr& style) const;
 		StyleId id_;
@@ -267,6 +314,9 @@ namespace css
 		bool is_inherited_;
 		bool stored_enum_;
 		int enumeration_;
+
+		// transitions
+		std::vector<StyleTransition> transitions_;
 	};
 
 	class CssColor : public Style
@@ -1004,14 +1054,12 @@ namespace css
 	{
 	public:
 		MAKE_FACTORY(TransitionProperties);
-		TransitionProperties() : Style(StyleId::TRANSITION_PROPERTIES), properties_(), all_(true) {}
-		explicit TransitionProperties(bool use_all) : Style(StyleId::TRANSITION_PROPERTIES), properties_(), all_(use_all) {}
-		explicit TransitionProperties(const std::vector<Property>& p) : Style(StyleId::TRANSITION_PROPERTIES), properties_(p), all_(false) {}
+		TransitionProperties() : Style(StyleId::TRANSITION_PROPERTIES), properties_() {}
+		explicit TransitionProperties(const std::vector<Property>& p) : Style(StyleId::TRANSITION_PROPERTIES), properties_(p) {}
 		const std::vector<Property>& getProperties() { return properties_; }
 		bool isEqual(const StylePtr& style) const override;
 	private:
 		std::vector<Property> properties_;
-		bool all_;
 	};
 
 	// for delays and duration
@@ -1025,39 +1073,6 @@ namespace css
 		bool isEqual(const StylePtr& style) const override;
 	private:
 		std::vector<float> timings_;
-	};
-
-	enum class CssTransitionTimingFunction {
-		STEPS,
-		CUBIC_BEZIER,
-	};
-
-	enum class StepChangePoint {
-		START,
-		END,
-	};
-
-	class TimingFunction
-	{
-	public:
-		TimingFunction() : ttfn_(CssTransitionTimingFunction::CUBIC_BEZIER), nintervals_(0), poc_(StepChangePoint::END), p1_(0.25f, 0.1f), p2_(0.25f, 1.0f) {}
-		// for cubic-bezier
-		explicit TimingFunction(float x1, float y1, float x2, float y2) 
-			: ttfn_(CssTransitionTimingFunction::CUBIC_BEZIER), nintervals_(0), poc_(StepChangePoint::END), p1_(x1, y1), p2_(x2, y2) {}
-		// for step function
-		explicit TimingFunction(int nintervals, StepChangePoint poc)
-			: ttfn_(CssTransitionTimingFunction::STEPS), nintervals_(nintervals), poc_(poc), p1_(), p2_() {}
-		CssTransitionTimingFunction getFunction() const { return ttfn_; }
-		int getIntervals() const { return nintervals_; }
-		StepChangePoint getStepChangePoint() const { return poc_; }
-		const glm::vec2& getP1() const { return p1_; }
-		const glm::vec2& getP2() const { return p2_; }
-	private:
-		CssTransitionTimingFunction ttfn_;
-		int nintervals_;
-		StepChangePoint poc_;
-		glm::vec2 p1_;
-		glm::vec2 p2_;
 	};
 
 	class TransitionTimingFunctions : public Style

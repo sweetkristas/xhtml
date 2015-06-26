@@ -30,6 +30,9 @@ namespace xhtml
 
 	StyleNode::StyleNode(const NodePtr& node)
 		: node_(node),
+		  children_(),
+		  transitions_(),
+		  acc_(0.0f),
 		  background_attachment_(BackgroundAttachment::SCROLL),
 		  background_color_(nullptr),
 		  background_image_(nullptr),
@@ -154,21 +157,72 @@ namespace xhtml
 		}
 	}
 
+	void StyleNode::process(float dt)
+	{
+		acc_ += dt;
+		// process any transitions.
+		for(auto& tx : transitions_) {
+			//LOG_DEBUG("A " << tx->toString() << ", acc: " << acc_ << " " << intptr_t(tx.get()));
+			if(!tx->isStarted()) {
+				tx->start(acc_);
+			}
+			if(!tx->isStopped()) {
+				tx->process(acc_);
+			}
+			//LOG_DEBUG("B " << tx->toString() << ", acc: " << acc_ << " " << intptr_t(tx.get()));
+		}
+		// remove any transitions that have stopped.
+		// XXX move to a temporary holding list?
+		transitions_.erase(std::remove_if(transitions_.begin(), transitions_.end(), [](TransitionPtr tx){ 
+			return tx->isStopped(); 
+		}), transitions_.end());
+
+		for(auto& child : children_) {
+			child->process(dt);
+		}
+	}
+
+	void StyleNode::addTransitionEffect(const css::TransitionPtr& tx)
+	{
+		transitions_.emplace_back(tx);
+	}
+
+	void StyleNode::processColor(Property p, KRE::ColorPtr& color)
+	{
+		RenderContext& ctx = RenderContext::get();
+		std::shared_ptr<CssColor> color_style = ctx.getComputedValue(p)->asType<CssColor>();
+		KRE::ColorPtr new_color = color_style->compute();
+		if(color_style->hasTransition()) {
+			// color_ will be the current computed value.
+			for(auto& tx : color_style->getTransitions()) {
+				ColorTransitionPtr ct = ColorTransition::create(tx.ttfn, tx.duration, tx.delay);
+				ct->setStartColor(color == nullptr ? KRE::Color::colorWhite() : *color);
+				ct->setEndColor(*new_color);
+				addTransitionEffect(ct);
+				color = ct->getColor();
+			}
+		} else {
+			color = new_color;
+		}
+	}
+
 	void StyleNode::processStyles()
 	{
 		RenderContext& ctx = RenderContext::get();
 		background_attachment_ = ctx.getComputedValue(Property::BACKGROUND_ATTACHMENT)->getEnum<BackgroundAttachment>();
-		background_color_ = ctx.getComputedValue(Property::BACKGROUND_COLOR)->asType<CssColor>()->compute();
+		
+		processColor(Property::BACKGROUND_COLOR, background_color_);
+		
 		auto back_img = ctx.getComputedValue(Property::BACKGROUND_IMAGE);
 		background_image_ = back_img != nullptr ? back_img->asType<ImageSource>() : nullptr;
 		auto bp = ctx.getComputedValue(Property::BACKGROUND_POSITION)->asType<BackgroundPosition>();
 		background_position_[0] = bp->getTop();
 		background_position_[1] = bp->getLeft();
 		background_repeat_ = ctx.getComputedValue(Property::BACKGROUND_REPEAT)->getEnum<BackgroundRepeat>();
-		border_color_[0] = ctx.getComputedValue(Property::BORDER_TOP_COLOR)->asType<CssColor>()->compute();
-		border_color_[1] = ctx.getComputedValue(Property::BORDER_LEFT_COLOR)->asType<CssColor>()->compute();
-		border_color_[2] = ctx.getComputedValue(Property::BORDER_BOTTOM_COLOR)->asType<CssColor>()->compute();
-		border_color_[3] = ctx.getComputedValue(Property::BORDER_RIGHT_COLOR)->asType<CssColor>()->compute();
+		processColor(Property::BORDER_TOP_COLOR, border_color_[0]);
+		processColor(Property::BORDER_LEFT_COLOR, border_color_[1]);
+		processColor(Property::BORDER_BOTTOM_COLOR, border_color_[2]);
+		processColor(Property::BORDER_RIGHT_COLOR, border_color_[3]);
 		border_style_[0] = ctx.getComputedValue(Property::BORDER_TOP_STYLE)->getEnum<BorderStyle>();
 		border_style_[1] = ctx.getComputedValue(Property::BORDER_LEFT_STYLE)->getEnum<BorderStyle>();
 		border_style_[2] = ctx.getComputedValue(Property::BORDER_BOTTOM_STYLE)->getEnum<BorderStyle>();
@@ -183,7 +237,9 @@ namespace xhtml
 		tlbr_[3] = ctx.getComputedValue(Property::RIGHT)->asType<Width>();
 		clear_ = ctx.getComputedValue(Property::CLEAR)->getEnum<Clear>();
 		clip_ = ctx.getComputedValue(Property::CLIP)->asType<Clip>();
-		color_ = ctx.getComputedValue(Property::COLOR)->asType<CssColor>()->compute();
+
+		processColor(Property::COLOR, color_);
+
 		content_ = ctx.getComputedValue(Property::CONTENT)->asType<Content>();
 		counter_increment_ = ctx.getComputedValue(Property::COUNTER_INCREMENT)->asType<Counter>();
 		counter_reset_ = ctx.getComputedValue(Property::COUNTER_RESET)->asType<Counter>();
@@ -208,7 +264,9 @@ namespace xhtml
 		minmax_height_[1] = ctx.getComputedValue(Property::MAX_HEIGHT)->asType<Width>();
 		minmax_width_[0] = ctx.getComputedValue(Property::MIN_WIDTH)->asType<Width>();
 		minmax_width_[1] = ctx.getComputedValue(Property::MAX_WIDTH)->asType<Width>();
-		outline_color_ = ctx.getComputedValue(Property::OUTLINE_COLOR)->asType<CssColor>()->compute();
+		
+		processColor(Property::OUTLINE_COLOR, outline_color_);
+		
 		outline_style_ = ctx.getComputedValue(Property::OUTLINE_STYLE)->getEnum<BorderStyle>();
 		outline_width_ = ctx.getComputedValue(Property::OUTLINE_WIDTH)->asType<Length>();
 		overflow_ = ctx.getComputedValue(Property::CSS_OVERFLOW)->getEnum<Overflow>();

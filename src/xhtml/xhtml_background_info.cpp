@@ -270,11 +270,11 @@ namespace xhtml
 		  blur_radius(0), 
 		  spread_radius(0), 
 		  inset(false), 
-		  color(KRE::Color::colorBlack()) 
+		  color(std::make_shared<KRE::Color>(KRE::Color::colorBlack()))
 	{
 	}
 
-	BgBoxShadow::BgBoxShadow(FixedPoint x, FixedPoint y, FixedPoint blur, FixedPoint spread, bool ins, const KRE::Color& col) 
+	BgBoxShadow::BgBoxShadow(FixedPoint x, FixedPoint y, FixedPoint blur, FixedPoint spread, bool ins, const KRE::ColorPtr& col) 
 		: x_offset(x), 
 		  y_offset(y), 
 		  blur_radius(blur), 
@@ -304,7 +304,7 @@ namespace xhtml
 					shadow.getBlur().compute(), 
 					shadow.getSpread().compute(), 
 					shadow.inset(), 
-					*shadow.getColor().compute());
+					shadow.getColor().compute());
 			}
 		}
 	}
@@ -488,8 +488,7 @@ namespace xhtml
 					0,
 					0,
 					(dims.content_.width + dims.padding_.left + dims.padding_.right) / LayoutEngine::getFixedPointScale(),
-					(dims.content_.height + dims.padding_.top + dims.padding_.bottom) / LayoutEngine::getFixedPointScale()), 
-					KRE::Color::colorWhite());
+					(dims.content_.height + dims.padding_.top + dims.padding_.bottom) / LayoutEngine::getFixedPointScale()));
 				clip_shape->setPosition(dims.border_.left/LayoutEngine::getFixedPointScale(), dims.border_.top/LayoutEngine::getFixedPointScale());
 				break;
 			case BackgroundClip::CONTENT_BOX:
@@ -497,8 +496,7 @@ namespace xhtml
 					0,
 					0,
 					dims.content_.width / LayoutEngine::getFixedPointScale(),
-					dims.content_.height / LayoutEngine::getFixedPointScale()), 
-					KRE::Color::colorWhite());
+					dims.content_.height / LayoutEngine::getFixedPointScale()));
 				clip_shape->setPosition((dims.padding_.left + dims.border_.left)/LayoutEngine::getFixedPointScale(), 
 					(dims.padding_.top + dims.border_.top)/LayoutEngine::getFixedPointScale());
 				break;
@@ -507,7 +505,7 @@ namespace xhtml
 		renderBoxShadow(display_list, offset, dims, clip_shape);
 
 		if(styles_->getBackgroundColor()->ai() != 0) {
-			auto solid = std::make_shared<SolidRenderable>(rect(0, 0, rw, rh), *styles_->getBackgroundColor());
+			auto solid = std::make_shared<SolidRenderable>(rect(0, 0, rw, rh), styles_->getBackgroundColor());
 			solid->setPosition(rx, ry);
 			if(clip_shape != nullptr) {
 				solid->setClipSettings(get_stencil_mask_settings(), clip_shape);

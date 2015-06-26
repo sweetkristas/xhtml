@@ -47,13 +47,16 @@ namespace xhtml
 	{
 	public:
 		SolidRenderable();
-		explicit SolidRenderable(const rect& r, const KRE::Color& color);
-		explicit SolidRenderable(const rectf& r, const KRE::Color& color);
+		explicit SolidRenderable(const rect& r, const KRE::ColorPtr& color=nullptr);
+		explicit SolidRenderable(const rectf& r, const KRE::ColorPtr& color=nullptr);
 		void init();
 		void update(std::vector<KRE::vertex_color>* coords);
+		void setColorPointer(const KRE::ColorPtr& color) { color_ = color; }
 		void setDrawMode(KRE::DrawMode draw_mode);
+		void preRender(const KRE::WindowPtr& wnd);
 	private:
 		std::shared_ptr<KRE::Attribute<KRE::vertex_color>> attribs_;
+		KRE::ColorPtr color_;
 	};
 	typedef std::shared_ptr<SolidRenderable> SolidRenderablePtr;
 }

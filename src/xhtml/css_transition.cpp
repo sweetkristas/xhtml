@@ -112,47 +112,78 @@ namespace css
 		}
 	}
 
-	ColorTransition::ColorTransition(const TimingFunction& fn, float duration, float delay)
+	Transition::Transition(const TimingFunction& fn, float duration, float delay)
 		: ttfn_(fn),
 		  started_(false),
 		  stopped_(false),
 		  duration_(duration),
 		  delay_(delay),
-		  start_time_(0),
-		  start_color_(),
-		  end_color_(),
-		  mix_color_()
+		  start_time_(0)
 	{
 	}
 
-	void ColorTransition::process(float t)
+	void Transition::process(float t)
 	{
 		if(started_ && !stopped_) {
 			if(t > (start_time_ + duration_)) {
+				handleProcess(t, 1.0f);
 				stopped_ = true;
 			} else if(t >= start_time_) {
-				float frac = 1.0f - (t - start_time_) / duration_;
+				float frac = (t - start_time_) / duration_;
 				if(frac > 1.0f) {
-					frac = 1.0f;
-				}
-				float outp = 0.0f;
-				if(ttfn_.getFunction() == CssTransitionTimingFunction::STEPS) {
-					// steps
-					outp = evaluate_step(frac, ttfn_.getIntervals(), ttfn_.getStepChangePoint() == StepChangePoint::START);
+					handleProcess(t, 1.0f);
 				} else {
-					// cubic bezier
-					outp = evaluate_cubic_bezier(frac, ttfn_.getP1(), ttfn_.getP2());
-				}
-				mix_color_.setRed(mix(outp, start_color_.r(), end_color_.r()));
-				mix_color_.setGreen(mix(outp, start_color_.g(), end_color_.g()));
-				mix_color_.setBlue(mix(outp, start_color_.b(), end_color_.b()));
-				mix_color_.setAlpha(mix(outp, start_color_.a(), end_color_.a()));
-
-				if(flt_equal(t, (start_time_ + duration_))) {
-					stopped_ = true;
+					float outp = 0.0f;
+					if(ttfn_.getFunction() == CssTransitionTimingFunction::STEPS) {
+						// steps
+						outp = evaluate_step(frac, ttfn_.getIntervals(), ttfn_.getStepChangePoint() == StepChangePoint::START);
+					} else {
+						// cubic bezier
+						outp = evaluate_cubic_bezier(frac, ttfn_.getP1(), ttfn_.getP2());
+					}
+					handleProcess(t, outp);
 				}
 			}
 		}
+	}
+
+	std::string Transition::toString() const
+	{
+		std::stringstream ss;
+		ss  << handleToString()
+			<< ", started: " << (started_ ? "true" : "false")
+			<< ", stopped: " << (stopped_ ? "true" : "false")
+			<< ", duration: " << duration_
+			<< ", delay: " << delay_
+			<< ", start_time: " << start_time_
+			;
+		return ss.str();
+	}
+
+	ColorTransition::ColorTransition(const TimingFunction& fn, float duration, float delay)
+		: Transition(fn, duration, delay),
+		  start_color_(),
+		  end_color_(),
+		  mix_color_(std::make_shared<KRE::Color>())
+	{
+	}
+
+	std::string ColorTransition::handleToString() const
+	{
+		std::stringstream ss;
+		ss  << "ColorTransition: StartColor: " << start_color_
+			<< ", EndColor: " << end_color_
+			<< ", Mix: " << *mix_color_
+			;
+		return ss.str();
+	}
+
+	void ColorTransition::handleProcess(float dt, float outp)
+	{
+		mix_color_->setRed(mix(outp, start_color_.r(), end_color_.r()));
+		mix_color_->setGreen(mix(outp, start_color_.g(), end_color_.g()));
+		mix_color_->setBlue(mix(outp, start_color_.b(), end_color_.b()));
+		mix_color_->setAlpha(mix(outp, start_color_.a(), end_color_.a()));
 	}
 }
 

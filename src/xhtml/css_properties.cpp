@@ -108,6 +108,8 @@ namespace css
 			if(res.empty()) {
 				res.emplace(Property::BACKGROUND_COLOR);
 				res.emplace(Property::BACKGROUND_POSITION);
+				res.emplace(Property::BORDER_TOP_COLOR);
+				res.emplace(Property::BORDER_TOP_WIDTH);
 				res.emplace(Property::BORDER_BOTTOM_COLOR);
 				res.emplace(Property::BORDER_BOTTOM_WIDTH);
 				res.emplace(Property::BORDER_LEFT_COLOR);
@@ -354,6 +356,79 @@ namespace css
 	{
 		for(auto& p : plist.properties_) {
 			addProperty(p.first, p.second.style, specificity);
+		}
+	}
+
+	void PropertyList::markTransitions()
+	{
+		// annotate any styles that have transitions.
+		auto it = properties_.find(Property::TRANSITION_PROPERTY);
+		if(it == properties_.end() || it->second.style == nullptr) {
+			// no transition properties listed, just exit.
+			return;
+		}
+		// Find duration
+		auto dura_it = properties_.find(Property::TRANSITION_DURATION);
+		if(dura_it == properties_.end() || dura_it->second.style == nullptr) {
+			// no duration and default is 0s
+			return;
+		}
+		const std::vector<float>& duration = dura_it->second.style->asType<TransitionTiming>()->getTiming();
+		
+		// Find delays, if any
+		auto delay_it = properties_.find(Property::TRANSITION_DELAY);
+		std::vector<float> delay;
+		if(delay_it == properties_.end() || delay_it->second.style == nullptr) {
+			// no delay and default is 0s
+			delay.emplace_back(0.0f);
+		} else {
+			delay = delay_it->second.style->asType<TransitionTiming>()->getTiming();
+			if(delay.empty()) {
+				delay.emplace_back(0.0f);
+			}
+		}
+
+		// timing functions, if any.
+		auto ttfn_it = properties_.find(Property::TRANSITION_TIMING_FUNCTION);
+		std::vector<TimingFunction> ttfns;
+		if(ttfn_it == properties_.end() || ttfn_it->second.style == nullptr) {
+			ttfns.emplace_back(TimingFunction());
+		} else {
+			ttfns = ttfn_it->second.style->asType<TransitionTimingFunctions>()->getTimingFunctions();
+			if(ttfns.empty())  {
+				ttfns.emplace_back(TimingFunction());
+			}
+		}
+
+		auto tprops = it->second.style->asType<TransitionProperties>();
+		// we already know the properties here are transitional ones. 
+		// since we checked when parsing. Except MAX_PROPERTY which is
+		// a holder meaning all.
+		int index = 0;
+		for(auto& p : tprops->getProperties()) {
+			if(p == Property::MAX_PROPERTIES) {
+				// all
+				for(auto& prop : properties_) {
+					auto pit = get_transitional_properties().find(prop.first);
+					if(pit != get_transitional_properties().end()) {
+						// is transitional
+						prop.second.style->addTransition(duration[index % duration.size()], 
+							ttfns[index % ttfns.size()],
+							delay[index % delay.size()]);
+					}
+				}
+			} else {
+				auto it = properties_.find(p);
+				if(it == properties_.end()) {
+					// didn't find property.
+					++index;
+					continue;
+				}
+				it->second.style->addTransition(duration[index % duration.size()], 
+					ttfns[index % ttfns.size()],
+					delay[index % delay.size()]);
+			}
+			++index;
 		}
 	}
 
@@ -2762,10 +2837,10 @@ namespace css
 				const std::string ref = (*it_)->getStringValue();
 				advance();
 				if(ref == "all") {
-					plist_.addProperty(prefix, TransitionProperties::create(true));
-					return;
+					// we use MAX_PROPERTIES to mean *ALL*
+					props.emplace_back(Property::MAX_PROPERTIES);
 				} else if(ref == "none") {
-					plist_.addProperty(prefix, TransitionProperties::create(false));
+					plist_.addProperty(prefix, nullptr);
 					return;
 				} else {
 					auto pit = get_property_table().find(ref);
@@ -2913,7 +2988,10 @@ namespace css
 				const std::string ref = (*it_)->getStringValue();
 				advance();
 				if(ref == "none") {
-					ASSERT_LOG(false, "fixme");
+					throw ParserError(formatter() << "none found in transition properties list.");
+				} else if(ref == "all") {
+					// we use the MAX_PROPERTIES as a placeholder for *ALL*.
+					props.emplace_back(Property::MAX_PROPERTIES);
 				} else {
 					auto pit = get_property_table().find(ref);
 					if(pit == get_property_table().end()) {

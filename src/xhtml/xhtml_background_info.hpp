@@ -33,13 +33,13 @@ namespace xhtml
 	struct BgBoxShadow
 	{
 		BgBoxShadow();
-		explicit BgBoxShadow(FixedPoint x, FixedPoint y, FixedPoint blur, FixedPoint spread, bool ins, const KRE::Color& col); 
+		explicit BgBoxShadow(FixedPoint x, FixedPoint y, FixedPoint blur, FixedPoint spread, bool ins, const KRE::ColorPtr& col); 
 		FixedPoint x_offset;
 		FixedPoint y_offset;
 		FixedPoint blur_radius;
 		FixedPoint spread_radius;
 		bool inset;
-		KRE::Color color;
+		KRE::ColorPtr color;
 	};
 
 	class BackgroundInfo

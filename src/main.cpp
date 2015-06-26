@@ -51,7 +51,7 @@ namespace
 	static int layout_cycle_test = false;
 }
 
-void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayListPtr display_list, KRE::SceneGraphPtr graph)
+void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml::DocumentPtr doc, xhtml::DisplayListPtr display_list, KRE::SceneGraphPtr graph)
 {
 	xhtml::RenderContextManager rcm;
 	// layout has to happen after initialisation of graphics
@@ -63,16 +63,10 @@ void check_layout(int width, int height, xhtml::DocumentPtr doc, xhtml::DisplayL
 		// XXX should we should have a re-process styles flag here.
 
 		{
-			bool toggle = false;
-			doc->getElementById("content1");
-		}
-
-		{
 		profile::manager pman("apply styles");
 		doc->processStyleRules();
 		}
 
-		static xhtml::StyleNodePtr style_tree = nullptr;
 		{
 			profile::manager pman("create style tree");
 			if(style_tree == nullptr) {
@@ -204,11 +198,24 @@ int main(int argc, char* argv[])
 	xhtml::DisplayListPtr display_list = std::make_shared<xhtml::DisplayList>(scene);
 	root->attachNode(display_list);
 	xhtml::DocumentPtr doc = load_xhtml(ua_ss, test_doc);
-	check_layout(width, height, doc, display_list, scene);
+	xhtml::StyleNodePtr style_tree = nullptr;
+	check_layout(width, height, style_tree, doc, display_list, scene);
 
 	while(layout_cycle_test) {
 		doc->triggerLayout();
-		check_layout(width, height, doc, display_list, scene);
+		/* For cycle testing of ui_test2.xhtml
+		if(layout_cycle_test) {
+			bool toggle = false;
+			auto div_content1 = doc->getElementById("content1");
+			if(div_content1 != nullptr) {
+				if(toggle) {
+					div_content1->addAttribute(xhtml::Attribute::create("style", "display: none", doc));
+				} else  {
+					div_content1->addAttribute(xhtml::Attribute::create("style", "display: block", doc));
+				}
+			}
+		}*/
+		check_layout(width, height, style_tree, doc, display_list, scene);
 	}
 
 	auto canvas = Canvas::getInstance();
@@ -248,12 +255,14 @@ int main(int argc, char* argv[])
 		//main_wnd->setClearColor(KRE::Color::colorWhite());
 		main_wnd->clear(ClearFlags::ALL);
 
-		check_layout(width, height, doc, display_list, scene);
+		check_layout(width, height, style_tree, doc, display_list, scene);
 
 		// Called once a cycle before rendering.
 		Uint32 current_tick_time = SDL_GetTicks();
 		float dt = (current_tick_time - last_tick_time) / 1000.0f;
-		doc->process(dt);
+		if(style_tree != nullptr) {
+			style_tree->process(dt);
+		}
 		scene->process(dt);
 		last_tick_time = current_tick_time;
 

@@ -397,8 +397,7 @@ namespace xhtml
 
 	void BorderInfo::renderNormal(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
 	{
-		auto border = std::make_shared<SolidRenderable>();
-		std::vector<KRE::vertex_color> vc;
+		std::array<std::shared_ptr<SolidRenderable>, 4> border;
 
 		FixedPoint bw[4];
 		bw[0] = dims.border_.left; 
@@ -416,123 +415,158 @@ namespace xhtml
 		const float right_width  = static_cast<float>(dims.border_.right) / LayoutEngine::getFixedPointScaleFloat();
 		const float bottom_width = static_cast<float>(dims.border_.bottom) / LayoutEngine::getFixedPointScaleFloat();
 
-		vc.reserve(24*4);
 		auto& border_color = styles_->getBorderColor();
 		auto& border_style = styles_->getBorderStyle();
 		for(int side = 0; side != 4; ++side) {
-			// only drawing border if width > 0, alpha != 0
-			if(bw[side] > 0 && border_color[side]->ai() != 0) {
-				switch(border_style[side]) {
-					case BorderStyle::SOLID:
-						switch(side) {
-							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
-							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color[side]->as_u8vec4()); break;
-							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
-							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
-						}
-						break;
-					case BorderStyle::INSET: {
-						glm::u8vec4 inset(border_color[side]->as_u8vec4().r/2, border_color[side]->as_u8vec4().g/2, border_color[side]->as_u8vec4().b/2, border_color[side]->as_u8vec4().a);
-						switch(side) {
-							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, inset); break;
-							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, inset); break;
-							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
-							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
-						}
-						break;
-					}
-					case BorderStyle::OUTSET: {
-						glm::u8vec4 outset(border_color[side]->as_u8vec4().r/2, border_color[side]->as_u8vec4().g/2, border_color[side]->as_u8vec4().b/2, border_color[side]->as_u8vec4().a);
-						switch(side) {
-							case 0: generate_solid_left_side(&vc, side_left, left_width, side_top, top_width, side_bottom, bottom_width, border_color[side]->as_u8vec4()); break;
-							case 1: generate_solid_top_side(&vc, side_left, left_width, side_right, right_width, side_top, top_width, border_color[side]->as_u8vec4()); break;
-							case 2: generate_solid_right_side(&vc, side_right, right_width, side_top, top_width, side_bottom, bottom_width, outset); break;
-							case 3: generate_solid_bottom_side(&vc, side_left, left_width, side_right, right_width, side_bottom, bottom_width, outset); break;
-						}
-						break;
-					}
-					case BorderStyle::DOUBLE:
-						switch(side) {
-							case 0: 
-								generate_solid_left_side(&vc, side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
-								generate_solid_left_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
-								break;
-							case 1: 
-								generate_solid_top_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, border_color[side]->as_u8vec4()); 
-								generate_solid_top_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, border_color[side]->as_u8vec4()); 
-								break;
-							case 2: 
-								generate_solid_right_side(&vc, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
-								generate_solid_right_side(&vc, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
-								break;
-							case 3: 
-								generate_solid_bottom_side(&vc, side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
-								generate_solid_bottom_side(&vc, side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, border_color[side]->as_u8vec4()); 
-								break;
-						}
-						break;
-					case BorderStyle::GROOVE: {
-						glm::u8vec4 inset(border_color[side]->as_u8vec4().r/2, border_color[side]->as_u8vec4().g/2, border_color[side]->as_u8vec4().b/2, border_color[side]->as_u8vec4().a);
-						glm::u8vec4 outset(border_color[side]->as_u8vec4());
-						switch(side) {
-							case 0: 
-								generate_solid_left_side(&vc, side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, inset); 
-								generate_solid_left_side(&vc, side_left+left_width/2.0f, left_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, side_bottom, bottom_width/2.0f, outset);
-								break;
-							case 1: 
-								generate_solid_top_side(&vc, side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_top, top_width/2.0f, inset); 
-								generate_solid_top_side(&vc, side_left+left_width/2.0f, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, outset); 
-								break;
-							case 2: 
-								generate_solid_right_side(&vc, side_right, right_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, side_bottom, bottom_width/2.0f, inset); 
-								generate_solid_right_side(&vc, side_right+right_width/2.0f, right_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, outset); 
-								break;
-							case 3: 
-								generate_solid_bottom_side(&vc, side_left+left_width/2.0f, left_width/2.0f, side_right, right_width/2.0f, side_bottom, bottom_width/2.0f, inset); 
-								generate_solid_bottom_side(&vc, side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, outset);
-								break;
-						}
-						break;
-					}
-					case BorderStyle::RIDGE: {
-						glm::u8vec4 outset(border_color[side]->as_u8vec4().r/2, border_color[side]->as_u8vec4().g/2, border_color[side]->as_u8vec4().b/2, border_color[side]->as_u8vec4().a);
-						glm::u8vec4 inset(border_color[side]->as_u8vec4());
-						switch(side) {
-							case 0: 
-								generate_solid_left_side(&vc, side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, inset); 
-								generate_solid_left_side(&vc, side_left+left_width/2.0f, left_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, side_bottom, bottom_width/2.0f, outset);
-								break;
-							case 1: 
-								generate_solid_top_side(&vc, side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_top, top_width/2.0f, inset); 
-								generate_solid_top_side(&vc, side_left+left_width/2.0f, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, outset); 
-								break;
-							case 2: 
-								generate_solid_right_side(&vc, side_right, right_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, side_bottom, bottom_width/2.0f, inset); 
-								generate_solid_right_side(&vc, side_right+right_width/2.0f, right_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, outset); 
-								break;
-							case 3: 
-								generate_solid_bottom_side(&vc, side_left+left_width/2.0f, left_width/2.0f, side_right, right_width/2.0f, side_bottom, bottom_width/2.0f, inset); 
-								generate_solid_bottom_side(&vc, side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, outset);
-								break;
-						}
-						break;
-					}
-					case BorderStyle::DOTTED:
-					case BorderStyle::DASHED:
-						ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(border_style[side]));
-						break;
-					case BorderStyle::HIDDEN:
-					case BorderStyle::NONE:
-					default:
-						// these skip drawing.
-						break;
-				}
+			border[side] = std::make_shared<SolidRenderable>();
+			border[side]->setColorPointer(border_color[side]);
+		}
+
+		std::array<std::vector<KRE::vertex_color>, 4> vc;
+
+		KRE::Color white;
+		KRE::Color off_white(128, 128, 128);
+		if(bw[0] > 0 && border_color[0]->ai() != 0) {
+			switch(border_style[0]) {
+				case BorderStyle::SOLID:
+					generate_solid_top_side(&vc[0], side_left, left_width, side_right, right_width, side_top, top_width, white.as_u8vec4()); 
+					break;
+				case BorderStyle::INSET:
+					generate_solid_top_side(&vc[0], side_left, left_width, side_right, right_width, side_top, top_width, off_white.as_u8vec4());
+					break;
+				case BorderStyle::OUTSET:
+					generate_solid_top_side(&vc[0], side_left, left_width, side_right, right_width, side_top, top_width, white.as_u8vec4());
+					break;
+				case BorderStyle::DOUBLE:
+					generate_solid_top_side(&vc[0], side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, white.as_u8vec4()); 
+					generate_solid_top_side(&vc[0], side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, white.as_u8vec4()); 
+					break;
+				case BorderStyle::GROOVE:
+					generate_solid_top_side(&vc[0], side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_top, top_width/2.0f, off_white.as_u8vec4()); 
+					generate_solid_top_side(&vc[0], side_left+left_width/2.0f, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, white.as_u8vec4()); 
+					break;
+				case BorderStyle::RIDGE:
+					generate_solid_top_side(&vc[0], side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_top, top_width/2.0f, white.as_u8vec4()); 
+					generate_solid_top_side(&vc[0], side_left+left_width/2.0f, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, off_white.as_u8vec4()); 
+					break;
+				case BorderStyle::DOTTED:
+				case BorderStyle::DASHED:
+					ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(border_style[0]));
+					break;
+				case BorderStyle::HIDDEN:
+				case BorderStyle::NONE:
+				default:
+					// these skip drawing.
+					break;
+			}
+		}
+		if(bw[1] > 0 && border_color[1]->ai() != 0) {
+			switch(border_style[1]) {
+				case BorderStyle::SOLID:
+					generate_solid_left_side(&vc[1], side_left, left_width, side_top, top_width, side_bottom, bottom_width, white.as_u8vec4());
+					break;
+				case BorderStyle::INSET:
+					generate_solid_left_side(&vc[1], side_left, left_width, side_top, top_width, side_bottom, bottom_width, off_white.as_u8vec4());
+					break;
+				case BorderStyle::OUTSET:
+					generate_solid_left_side(&vc[1], side_left, left_width, side_top, top_width, side_bottom, bottom_width, white.as_u8vec4());
+					break;
+				case BorderStyle::DOUBLE:
+					generate_solid_left_side(&vc[1], side_left, left_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, white.as_u8vec4()); 
+					generate_solid_left_side(&vc[1], side_left+2.0f*left_width/3.0f, left_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, white.as_u8vec4()); 
+					break;
+				case BorderStyle::GROOVE:
+					generate_solid_left_side(&vc[1], side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, off_white.as_u8vec4()); 
+					generate_solid_left_side(&vc[1], side_left+left_width/2.0f, left_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, side_bottom, bottom_width/2.0f, white.as_u8vec4()); 
+					break;
+				case BorderStyle::RIDGE:
+					generate_solid_left_side(&vc[1], side_left, left_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, white.as_u8vec4()); 
+					generate_solid_left_side(&vc[1], side_left+left_width/2.0f, left_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, side_bottom, bottom_width/2.0f, off_white.as_u8vec4()); 
+					break;
+				case BorderStyle::DOTTED:
+				case BorderStyle::DASHED:
+					ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(border_style[0]));
+					break;
+				case BorderStyle::HIDDEN:
+				case BorderStyle::NONE:
+				default:
+					// these skip drawing.
+					break;
+			}
+		}
+		if(bw[2] > 0 && border_color[2]->ai() != 0) {
+			switch(border_style[2]) {
+				case BorderStyle::SOLID:
+					generate_solid_bottom_side(&vc[2], side_left, left_width, side_right, right_width, side_bottom, bottom_width, white.as_u8vec4());
+					break;
+				case BorderStyle::INSET:
+					generate_solid_bottom_side(&vc[2], side_left, left_width, side_right, right_width, side_bottom, bottom_width, off_white.as_u8vec4());
+					break;
+				case BorderStyle::OUTSET:
+					generate_solid_bottom_side(&vc[2], side_left, left_width, side_right, right_width, side_bottom, bottom_width, white.as_u8vec4());
+					break;
+				case BorderStyle::DOUBLE:
+					generate_solid_bottom_side(&vc[2], side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, white.as_u8vec4()); 
+					generate_solid_bottom_side(&vc[2], side_left, left_width/3.0f, side_right+2.0f*right_width/3.0f, right_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, white.as_u8vec4()); 
+					break;
+				case BorderStyle::GROOVE:
+					generate_solid_bottom_side(&vc[2], side_left+left_width/2.0f, left_width/2.0f, side_right, right_width/2.0f, side_bottom, bottom_width/2.0f, off_white.as_u8vec4()); 
+					generate_solid_bottom_side(&vc[2], side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, white.as_u8vec4());
+					break;
+				case BorderStyle::RIDGE:
+					generate_solid_bottom_side(&vc[2], side_left+left_width/2.0f, left_width/2.0f, side_right, right_width/2.0f, side_bottom, bottom_width/2.0f, white.as_u8vec4()); 
+					generate_solid_bottom_side(&vc[2], side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, off_white.as_u8vec4());
+					break;
+				case BorderStyle::DOTTED:
+				case BorderStyle::DASHED:
+					ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(border_style[0]));
+					break;
+				case BorderStyle::HIDDEN:
+				case BorderStyle::NONE:
+				default:
+					// these skip drawing.
+					break;
+			}
+		}
+		if(bw[3] > 0 && border_color[3]->ai() != 0) {
+			switch(border_style[3]) {
+				case BorderStyle::SOLID:
+					generate_solid_right_side(&vc[3], side_right, right_width, side_top, top_width, side_bottom, bottom_width, white.as_u8vec4()); 
+					break;
+				case BorderStyle::INSET:
+					generate_solid_right_side(&vc[3], side_right, right_width, side_top, top_width, side_bottom, bottom_width, off_white.as_u8vec4());
+					break;
+				case BorderStyle::OUTSET:
+					generate_solid_right_side(&vc[3], side_right, right_width, side_top, top_width, side_bottom, bottom_width, white.as_u8vec4());
+					break;
+				case BorderStyle::DOUBLE:
+					generate_solid_right_side(&vc[3], side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, white.as_u8vec4()); 
+					generate_solid_right_side(&vc[3], side_right+2.0f*right_width/3.0f, right_width/3.0f, side_top, top_width/3.0f, side_bottom+2.0f*bottom_width/3.0f, bottom_width/3.0f, white.as_u8vec4()); 
+					break;
+				case BorderStyle::GROOVE:
+					generate_solid_right_side(&vc[3], side_right, right_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, side_bottom, bottom_width/2.0f, off_white.as_u8vec4()); 
+					generate_solid_right_side(&vc[3], side_right+right_width/2.0f, right_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, white.as_u8vec4()); 
+					break;
+				case BorderStyle::RIDGE:
+					generate_solid_bottom_side(&vc[3], side_left+left_width/2.0f, left_width/2.0f, side_right, right_width/2.0f, side_bottom, bottom_width/2.0f, white.as_u8vec4()); 
+					generate_solid_bottom_side(&vc[3], side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, off_white.as_u8vec4());
+					break;
+				case BorderStyle::DOTTED:
+				case BorderStyle::DASHED:
+					ASSERT_LOG(false, "No support for border style of: " << static_cast<int>(border_style[0]));
+					break;
+				case BorderStyle::HIDDEN:
+				case BorderStyle::NONE:
+				default:
+					// these skip drawing.
+					break;
 			}
 		}
 
-		border->update(&vc);
-
-		display_list->addRenderable(border);
+		for(int side = 0; side != 4; ++side) {
+			border[side]->update(&vc[side]);
+			display_list->addRenderable(border[side]);
+		}
 	}
 
 	bool BorderInfo::render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const

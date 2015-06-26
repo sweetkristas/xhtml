@@ -287,7 +287,7 @@ namespace xhtml
 		}
 		//handleRenderTextDecoration -- underlines, then overlines
 
-		fontr->setColor(*getStyleNode()->getColor());
+		fontr->setColorPointer(getStyleNode()->getColor());
 		fontr->setPosition(offset.x / LayoutEngine::getFixedPointScaleFloat(), offset.y / LayoutEngine::getFixedPointScaleFloat());
 		display_list->addRenderable(fontr);
 

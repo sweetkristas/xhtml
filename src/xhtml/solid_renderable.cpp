@@ -33,13 +33,15 @@
 namespace xhtml
 {
 	SolidRenderable::SolidRenderable() 
-		: KRE::SceneObject("SolidRenderable")
+		: KRE::SceneObject("SolidRenderable"),
+		  color_(std::make_shared<KRE::Color>())
 	{
 		init();
 	}
 
-	SolidRenderable::SolidRenderable(const rect& r, const KRE::Color& color)
-		: KRE::SceneObject("SolidRenderable")
+	SolidRenderable::SolidRenderable(const rect& r, const KRE::ColorPtr& color)
+		: KRE::SceneObject("SolidRenderable"),
+		  color_(color == nullptr ? std::make_shared<KRE::Color>() : color)
 	{
 		init();
 
@@ -49,18 +51,20 @@ namespace xhtml
 		const float vy2 = static_cast<float>(r.y2());
 
 		std::vector<KRE::vertex_color> vc;
-		vc.emplace_back(glm::vec2(vx1, vy2), color.as_u8vec4());
-		vc.emplace_back(glm::vec2(vx1, vy1), color.as_u8vec4());
-		vc.emplace_back(glm::vec2(vx2, vy1), color.as_u8vec4());
+		KRE::Color col = KRE::Color::colorWhite();
+		vc.emplace_back(glm::vec2(vx1, vy2), col.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx1, vy1), col.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx2, vy1), col.as_u8vec4());
 
-		vc.emplace_back(glm::vec2(vx2, vy1), color.as_u8vec4());
-		vc.emplace_back(glm::vec2(vx2, vy2), color.as_u8vec4());
-		vc.emplace_back(glm::vec2(vx1, vy2), color.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx2, vy1), col.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx2, vy2), col.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx1, vy2), col.as_u8vec4());
 		attribs_->update(&vc);
 	}
 
-	SolidRenderable::SolidRenderable(const rectf& r, const KRE::Color& color)
-		: KRE::SceneObject("SolidRenderable")
+	SolidRenderable::SolidRenderable(const rectf& r, const KRE::ColorPtr& color)
+		: KRE::SceneObject("SolidRenderable"),
+		  color_(color == nullptr ? std::make_shared<KRE::Color>() : color)
 	{
 		init();
 
@@ -70,13 +74,14 @@ namespace xhtml
 		const float vy2 = r.y2();
 
 		std::vector<KRE::vertex_color> vc;
-		vc.emplace_back(glm::vec2(vx1, vy2), color.as_u8vec4());
-		vc.emplace_back(glm::vec2(vx1, vy1), color.as_u8vec4());
-		vc.emplace_back(glm::vec2(vx2, vy1), color.as_u8vec4());
+		KRE::Color col = KRE::Color::colorWhite();
+		vc.emplace_back(glm::vec2(vx1, vy2), col.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx1, vy1), col.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx2, vy1), col.as_u8vec4());
 
-		vc.emplace_back(glm::vec2(vx2, vy1), color.as_u8vec4());
-		vc.emplace_back(glm::vec2(vx2, vy2), color.as_u8vec4());
-		vc.emplace_back(glm::vec2(vx1, vy2), color.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx2, vy1), col.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx2, vy2), col.as_u8vec4());
+		vc.emplace_back(glm::vec2(vx1, vy2), col.as_u8vec4());
 		attribs_->update(&vc);
 	}
 
@@ -98,6 +103,12 @@ namespace xhtml
 		as->setDrawMode(DrawMode::TRIANGLES);
 		
 		addAttributeSet(as);
+	}
+
+	void SolidRenderable::preRender(const KRE::WindowPtr& wnd)
+	{
+		ASSERT_LOG(color_ != nullptr, "SolidRenderable without valid color pointer.");
+		setColor(*color_);
 	}
 
 	void SolidRenderable::update(std::vector<KRE::vertex_color>* coords)
