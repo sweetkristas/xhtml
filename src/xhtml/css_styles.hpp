@@ -447,7 +447,7 @@ namespace css
 		virtual ~ImageSource() {}
 		// Returns a texture to use, width/height are only suggestions because
 		// textures may not have intrinsic values (i.e. linear gradients)
-		virtual KRE::TexturePtr getTexture(int width, int height) = 0;
+		virtual KRE::TexturePtr getTexture(xhtml::FixedPoint width, xhtml::FixedPoint height) = 0;
 	private:
 	};
 	typedef std::shared_ptr<ImageSource> ImageSourcePtr;
@@ -463,7 +463,7 @@ namespace css
 		const std::string& getUri() const { return uri_; }
 		void setURI(const std::string& uri) { uri_ = uri; is_none_ = false; }
 		bool isEqual(const StylePtr& style) const override;
-		KRE::TexturePtr getTexture(int width, int height) override;
+		KRE::TexturePtr getTexture(xhtml::FixedPoint width, xhtml::FixedPoint height) override;
 	private:
 		bool is_none_;
 		std::string uri_;
@@ -485,7 +485,7 @@ namespace css
 		void addColorStop(const ColorStop& cs) { color_stops_.emplace_back(cs); }
 		const std::vector<ColorStop>& getColorStops() const { return color_stops_; }
 		bool isEqual(const StylePtr& style) const override;
-		KRE::TexturePtr getTexture(int width, int height) override;
+		KRE::TexturePtr getTexture(xhtml::FixedPoint width, xhtml::FixedPoint height) override;
 	private:
 		float angle_;	// in degrees
 		std::vector<ColorStop> color_stops_;

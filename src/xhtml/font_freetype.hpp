@@ -81,7 +81,7 @@ namespace KRE
 		int getHeight() const { return height_; }
 		void setWidth(int width) { width_ = width; }
 		void setHeight(int height) { height_ = height; }
-		void setColorPointer(const ColorPtr& color) { color_ = color; }
+		void setColorPointer(const ColorPtr& color);
 		void preRender(const WindowPtr& wnd);
 	private:
 		std::shared_ptr<Attribute<font_coord>> attribs_;

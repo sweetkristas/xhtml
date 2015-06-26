@@ -232,7 +232,7 @@ namespace xhtml
 				new_path.emplace_back(p.x + offset.x - 5 - path_width, p.y + offset.y + y);
 			}
 			auto fontr = fnt->createRenderableFromPath(nullptr, marker_, new_path);
-			fontr->setColor(*getStyleNode()->getColor());
+			fontr->setColorPointer(getStyleNode()->getColor());
 			display_list->addRenderable(fontr);
 		}
 	}

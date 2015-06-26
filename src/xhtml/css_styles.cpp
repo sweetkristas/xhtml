@@ -22,6 +22,7 @@
 */
 
 #include "asserts.hpp"
+#include "gradients.hpp"
 
 #include "css_styles.hpp"
 #include "xhtml_render_ctx.hpp"
@@ -541,7 +542,7 @@ namespace css
 		return time_value;
 	}
 
-	KRE::TexturePtr UriStyle::getTexture(int width, int height)
+	KRE::TexturePtr UriStyle::getTexture(xhtml::FixedPoint width, xhtml::FixedPoint height)
 	{
 		// width/height are only suggestions, since we should have intrinsic width
 		if(is_none_ || uri_.empty()) {
@@ -550,11 +551,91 @@ namespace css
 		return KRE::Texture::createTexture(uri_);
 	}
 
-	KRE::TexturePtr LinearGradient::getTexture(int width, int height)
+	// Convert a length value, either dimension or percentage into a value, 
+	// 0.0 -> 1.0 on a line.
+	float calculate_color_stop_length(const Length& len, const float len_gradient_line)
 	{
-		// we should cache the texture, in-case
+		if(len.isPercent()) {
+			return len.compute() / 65536.0f;
+		} else if(len.isLength()) {
+			return (len.compute() / 65536.0f) / len_gradient_line;
+		} else {
+			ASSERT_LOG(false, "Something went wrong with color stop length value, must be percentage or dimension value.");
+		}
+		return 0.0f;
+	}
+
+	KRE::TexturePtr LinearGradient::getTexture(xhtml::FixedPoint w, xhtml::FixedPoint h)
+	{
+		KRE::LinearGradient lg;
+		lg.setAngle(angle_);
+
+		const float width = static_cast<float>(w) / 65536.0f;
+		const float height = static_cast<float>(h) / 65536.0f;
+
+		// calculate length of gradient line from one side of box to the other.
+		// Is the actual value in pixels.
+		const float s_theta = std::abs(sin(angle_ / 180.0f * static_cast<float>(M_PI)));
+		const float c_theta = std::abs(cos(angle_ / 180.0f * static_cast<float>(M_PI)));
+		const float len_gradient_line = std::min(c_theta < FLT_EPSILON ? FLT_MAX : width / c_theta,  
+			s_theta < FLT_EPSILON ? FLT_MAX : height / s_theta);
+
+		if(color_stops_.empty()) {
+			LOG_ERROR("No linear-gradient color stops defined.");
+			return nullptr;
+		}
+		float previous_len = 0.0f;
+		if(color_stops_.front().length.isNumber()) {
+			// numbers are treated as a no-value-given. i.e. 0%
+			lg.addColorStop(*color_stops_.front().color->compute(), 0.0f);
+		} else {
+			previous_len = calculate_color_stop_length(color_stops_.front().length, len_gradient_line);
+			lg.addColorStop(*color_stops_.front().color->compute(), previous_len);
+		}
+
+		float last_len = 1.0f;
+		KRE::Color last_color;
+		if(color_stops_.size() != 1) {
+			last_color =*color_stops_.back().color->compute();
+			if(!color_stops_.back().length.isNumber()) {
+				last_len = calculate_color_stop_length(color_stops_.back().length, len_gradient_line);
+			}
+		}
+
+		std::vector<KRE::ColorStop> unresolved_list;
+		for(auto it = color_stops_.begin() + 1; it != color_stops_.end() - 1; ++it) {
+			auto& cs = *it;
+			if(cs.length.isNumber()) {
+				unresolved_list.emplace_back(*cs.color->compute(), 0.0f);
+			} else {
+				// XXX scan unresolved list and resolve.
+				float len = calculate_color_stop_length(cs.length, len_gradient_line);
+				if(len < previous_len) {
+					len = previous_len;
+				}
+				int index = 1;
+				for(auto& ur : unresolved_list) {
+					ur.length = (len - previous_len) * static_cast<float>(index) / static_cast<float>(unresolved_list.size() + 1);
+					lg.addColorStop(ur.color, ur.length);
+					++index;
+				}
+				lg.addColorStop(*cs.color->compute(), len);
+				unresolved_list.clear();
+				previous_len = len;
+			}
+		}
+		int index = 1;
+		for(auto& ur : unresolved_list) {
+			ur.length = (last_len - previous_len) * static_cast<float>(index) / static_cast<float>(unresolved_list.size() + 1);
+			lg.addColorStop(ur.color, ur.length);
+			++index;
+		}
+
+		lg.addColorStop(last_color, last_len);
+
+		// XXX we should cache the texture, in-case
 		// to do.
-		return nullptr;
+		return lg.createAsTexture(static_cast<int>(width), static_cast<int>(height));
 	}
 
 	bool Width::isEqual(const StylePtr& style) const

@@ -133,8 +133,16 @@ namespace KRE
 
 	void FontRenderable::preRender(const WindowPtr& wnd)
 	{
-		ASSERT_LOG(color_ != nullptr, "Color pointer was null.");
-		setColor(*color_);
+		//ASSERT_LOG(color_ != nullptr, "Color pointer was null.");
+		if(color_ != nullptr) {
+			setColor(*color_);
+		}
+	}
+
+	void FontRenderable::setColorPointer(const ColorPtr& color) 
+	{
+		ASSERT_LOG(color != nullptr, "Font color was null.");
+		color_ = color;
 	}
 
 	void FontRenderable::update(std::vector<font_coord>* queue)

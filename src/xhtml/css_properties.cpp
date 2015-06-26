@@ -1381,6 +1381,7 @@ namespace css
 			auto params = (*it_)->getParameters();
 			if(ref == "linear-gradient") {
 				plist_.addProperty(prefix, parseLinearGradient(params));
+				advance();
 			} else if(ref == "radial-gradient") {
 				ASSERT_LOG(false, "XXX: write radial-gradient parser");
 			} else if(ref == "repeating-linear-gradient") {
@@ -2250,6 +2251,7 @@ namespace css
 				auto params = (*it_)->getParameters();
 				if(ref == "linear-gradient") {
 					img = parseLinearGradient(params);
+					advance();
 				} else if(ref == "radial-gradient") {
 					ASSERT_LOG(false, "XXX: write radial-gradient parser");
 				} else if(ref == "repeating-linear-gradient") {
@@ -2708,14 +2710,15 @@ namespace css
 		IteratorContext ic(*this, tokens);
 		auto lingrad = LinearGradient::create();
 
-		float angle = 0;
+		float angle = 180.0f;
 		bool expect_comma = false;
 
 		skipWhitespace();
 		// Check for angle value first.
 		if(isToken(TokenId::IDENT) && (*it_)->getStringValue() == "to") {
 			advance();
-			if(!isToken(TokenId::IDENT)) {
+			skipWhitespace();
+			if(isToken(TokenId::IDENT)) {
 				std::string direction1 = (*it_)->getStringValue();
 				advance();
 				expect_comma = true;
@@ -2774,11 +2777,13 @@ namespace css
 		skipWhitespace();
 		lingrad->setAngle(angle);
 
-		if(expect_comma && !isToken(TokenId::COMMA)) {
-			throw ParserError(formatter() << "Expected comma while parsing linear gradient found: " << (*it_)->toString());
+		if(expect_comma) {
+			if(!isToken(TokenId::COMMA)) {
+				throw ParserError(formatter() << "Expected comma while parsing linear gradient found: " << (*it_)->toString());
+			}
+			advance();
+			skipWhitespace();
 		}
-		advance();
-		skipWhitespace();
 
 		// <color-stop> [, <color-stop>]+
 		// where <color-stop> = <color> [ <percentage> | <length> ]?

@@ -31,8 +31,8 @@ namespace KRE
 	struct ColorStop
 	{
 		ColorStop() : color(nullptr), length(0) {}
-		explicit ColorStop(const KRE::ColorPtr& col, float len) : color(col), length(len) {}
-		ColorPtr color;
+		explicit ColorStop(const KRE::Color& col, float len) : color(col), length(len) {}
+		Color color;
 		// Proportion of length from starting point (0.0) to ending point (1.0).
 		float length;
 	};
@@ -42,8 +42,9 @@ namespace KRE
 	public:
 		LinearGradient() : angle_(0.0f), color_stops_() {}
 		void setAngle(float a) { angle_ = a; }
-		void addColorStop(const KRE::ColorPtr& col, float len) { color_stops_.emplace_back(col, len); }
+		void addColorStop(const KRE::Color& col, float len) { color_stops_.emplace_back(col, len); }
 		SceneObjectPtr createRenderable();
+		TexturePtr createAsTexture(int width, int height);
 	private:
 		// angle of gradient line, 0 degrees is straight up, 90 degrees is to the right.
 		float angle_;

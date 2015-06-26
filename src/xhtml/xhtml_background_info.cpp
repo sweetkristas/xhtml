@@ -541,8 +541,8 @@ namespace xhtml
 			const float rxf = static_cast<float>(rx) / LayoutEngine::getFixedPointScaleFloat();
 			const float ryf = static_cast<float>(ry) / LayoutEngine::getFixedPointScaleFloat();
 
-			const float left = static_cast<float>(rw_offs - sw_offs + rx) / LayoutEngine::getFixedPointScaleFloat();
-			const float top = static_cast<float>(rh_offs - sh_offs + ry) / LayoutEngine::getFixedPointScaleFloat();
+			const float left = static_cast<float>(rw_offs - sw_offs /*+ rx*/) / LayoutEngine::getFixedPointScaleFloat();
+			const float top = static_cast<float>(rh_offs - sh_offs /*+ ry*/) / LayoutEngine::getFixedPointScaleFloat();
 			const float width = static_cast<float>(rw) / LayoutEngine::getFixedPointScaleFloat();
 			const float height = static_cast<float>(rh) / LayoutEngine::getFixedPointScaleFloat();
 
