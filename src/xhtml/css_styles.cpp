@@ -552,6 +552,7 @@ namespace css
 
 	KRE::TexturePtr LinearGradient::getTexture(int width, int height)
 	{
+		// we should cache the texture, in-case
 		// to do.
 		return nullptr;
 	}
