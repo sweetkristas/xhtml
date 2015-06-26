@@ -549,18 +549,19 @@ namespace xhtml
 			auto tex = texture_->clone();
 			auto ptr = std::make_shared<KRE::Blittable>(tex);
 			ptr->setCentre(KRE::Blittable::Centre::TOP_LEFT);
+			ptr->setPosition(rxf, ryf);
 			switch(styles_->getBackgroundRepeat()) {
 				case BackgroundRepeat::REPEAT:
 					tex->setSourceRect(0, rect(-left, -top, width, height));
-					ptr->setDrawRect(rectf(rxf, ryf, width, height));
+					ptr->setDrawRect(rectf(0.0f, 0.0f, width, height));
 					break;
 				case BackgroundRepeat::REPEAT_X:
 					tex->setSourceRect(0, rect(-left, 0, width, sh));
-					ptr->setDrawRect(rectf(rxf, top, width, static_cast<float>(sh)));
+					ptr->setDrawRect(rectf(0.0f, top, width, static_cast<float>(sh)));
 					break;
 				case BackgroundRepeat::REPEAT_Y:
 					tex->setSourceRect(0, rect(0, -top, sw, height));
-					ptr->setDrawRect(rectf(left, ryf, static_cast<float>(sw), height));
+					ptr->setDrawRect(rectf(left, 0.0f, static_cast<float>(sw), height));
 					break;
 				case BackgroundRepeat::NO_REPEAT:
 					tex->setSourceRect(0, rect(0, 0, sw, sh));
