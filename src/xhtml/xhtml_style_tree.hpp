@@ -122,8 +122,8 @@ namespace xhtml
 		void updateStyles();
 		void inheritProperties(const StyleNodePtr& new_styles);
 	private:
-		void processStyles();
-		void processColor(css::Property p, KRE::ColorPtr& color);
+		void processStyles(bool created);
+		void processColor(bool created, css::Property p, KRE::ColorPtr& color);
 		WeakNodePtr node_;
 		std::vector<StyleNodePtr> children_;
 		std::vector<css::TransitionPtr> transitions_;
