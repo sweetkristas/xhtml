@@ -2943,6 +2943,8 @@ namespace css
 						} else {
 							throw ParserError(formatter() << "Expected 'start' or 'end' parsing 'steps' function, found" << ref << " property: '" << prefix << "'");
 						}
+					} else {
+						fns.emplace_back(nintervals, StepChangePoint::START);
 					}
 				} else {
 					throw ParserError(formatter() << "Unrecognised function for '" << prefix << "' property: " << ref);
