@@ -96,6 +96,7 @@
     <ClCompile Include="..\src\xhtml\css_transition.cpp" />
     <ClCompile Include="..\src\xhtml\display_list.cpp" />
     <ClCompile Include="..\src\xhtml\font_freetype.cpp" />
+    <ClCompile Include="..\src\xhtml\gradients.cpp" />
     <ClCompile Include="..\src\xhtml\solid_renderable.cpp" />
     <ClCompile Include="..\src\xhtml\to_roman.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_absolute_box.cpp" />
@@ -226,6 +227,7 @@
     <ClInclude Include="..\src\xhtml\css_transition.hpp" />
     <ClInclude Include="..\src\xhtml\display_list.hpp" />
     <ClInclude Include="..\src\xhtml\font_freetype.hpp" />
+    <ClInclude Include="..\src\xhtml\gradients.hpp" />
     <ClInclude Include="..\src\xhtml\solid_renderable.hpp" />
     <ClInclude Include="..\src\xhtml\to_roman.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
