@@ -500,10 +500,10 @@ namespace xhtml
 					generate_solid_bottom_side(&vc[2], side_left, left_width, side_right, right_width, side_bottom, bottom_width, white.as_u8vec4());
 					break;
 				case BorderStyle::INSET:
-					generate_solid_bottom_side(&vc[2], side_left, left_width, side_right, right_width, side_bottom, bottom_width, off_white.as_u8vec4());
+					generate_solid_bottom_side(&vc[2], side_left, left_width, side_right, right_width, side_bottom, bottom_width, white.as_u8vec4());
 					break;
 				case BorderStyle::OUTSET:
-					generate_solid_bottom_side(&vc[2], side_left, left_width, side_right, right_width, side_bottom, bottom_width, white.as_u8vec4());
+					generate_solid_bottom_side(&vc[2], side_left, left_width, side_right, right_width, side_bottom, bottom_width, off_white.as_u8vec4());
 					break;
 				case BorderStyle::DOUBLE:
 					generate_solid_bottom_side(&vc[2], side_left+2.0f*left_width/3.0f, left_width/3.0f, side_right, right_width/3.0f, side_bottom, bottom_width/3.0f, white.as_u8vec4()); 
@@ -534,10 +534,10 @@ namespace xhtml
 					generate_solid_right_side(&vc[3], side_right, right_width, side_top, top_width, side_bottom, bottom_width, white.as_u8vec4()); 
 					break;
 				case BorderStyle::INSET:
-					generate_solid_right_side(&vc[3], side_right, right_width, side_top, top_width, side_bottom, bottom_width, off_white.as_u8vec4());
+					generate_solid_right_side(&vc[3], side_right, right_width, side_top, top_width, side_bottom, bottom_width, white.as_u8vec4());
 					break;
 				case BorderStyle::OUTSET:
-					generate_solid_right_side(&vc[3], side_right, right_width, side_top, top_width, side_bottom, bottom_width, white.as_u8vec4());
+					generate_solid_right_side(&vc[3], side_right, right_width, side_top, top_width, side_bottom, bottom_width, off_white.as_u8vec4());
 					break;
 				case BorderStyle::DOUBLE:
 					generate_solid_right_side(&vc[3], side_right, right_width/3.0f, side_top+2.0f*top_width/3.0f, top_width/3.0f, side_bottom, bottom_width/3.0f, white.as_u8vec4()); 
@@ -548,8 +548,8 @@ namespace xhtml
 					generate_solid_right_side(&vc[3], side_right+right_width/2.0f, right_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, white.as_u8vec4()); 
 					break;
 				case BorderStyle::RIDGE:
-					generate_solid_bottom_side(&vc[3], side_left+left_width/2.0f, left_width/2.0f, side_right, right_width/2.0f, side_bottom, bottom_width/2.0f, white.as_u8vec4()); 
-					generate_solid_bottom_side(&vc[3], side_left, left_width/2.0f, side_right+right_width/2.0f, right_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, off_white.as_u8vec4());
+					generate_solid_right_side(&vc[3], side_right, right_width/2.0f, side_top+top_width/2.0f, top_width/2.0f, side_bottom, bottom_width/2.0f, white.as_u8vec4()); 
+					generate_solid_right_side(&vc[3], side_right+right_width/2.0f, right_width/2.0f, side_top, top_width/2.0f, side_bottom+bottom_width/2.0f, bottom_width/2.0f, off_white.as_u8vec4());
 					break;
 				case BorderStyle::DOTTED:
 				case BorderStyle::DASHED:
