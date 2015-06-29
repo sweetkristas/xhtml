@@ -261,9 +261,6 @@
     <ClCompile Include="..\src\xhtml\xhtml_text_node.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\xhtml\font_freetype.cpp">
-      <Filter>Source Files\xhtml</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\xhtml\display_list.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
@@ -351,8 +348,14 @@
     <ClCompile Include="..\src\xhtml\xhtml_style_tree.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\xhtml\gradients.cpp">
+    <ClCompile Include="..\src\xhtml\xhtml_script_interface.cpp">
       <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\kre\FontFreetype.cpp">
+      <Filter>Source Files\kre</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\kre\Gradients.cpp">
+      <Filter>Source Files\kre</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -650,9 +653,6 @@
     <ClInclude Include="..\src\xhtml\xhtml_text_node.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\xhtml\font_freetype.hpp">
-      <Filter>Header Files\xhtml</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\xhtml\display_list.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
@@ -749,8 +749,14 @@
     <ClInclude Include="..\src\xhtml\xhtml_style_tree.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\xhtml\gradients.hpp">
+    <ClInclude Include="..\src\xhtml\xhtml_script_interface.hpp">
       <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\kre\FontFreetype.hpp">
+      <Filter>Header Files\kre</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\kre\Gradients.hpp">
+      <Filter>Header Files\kre</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

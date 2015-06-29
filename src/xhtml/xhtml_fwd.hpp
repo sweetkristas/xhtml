@@ -73,4 +73,11 @@ namespace xhtml
 	typedef std::shared_ptr<DisplayList> DisplayListPtr;
 
 	struct Dimensions;
+
+	class StyleNode;
+	typedef std::shared_ptr<StyleNode> StyleNodePtr;
+	typedef std::weak_ptr<StyleNode> WeakStyleNodePtr;
+
+	class Script;
+	typedef std::shared_ptr<Script> ScriptPtr;
 }

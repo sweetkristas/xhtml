@@ -21,44 +21,18 @@
 	   distribution.
 */
 
-#pragma once
-
-#include "css_properties.hpp"
-#include "FontFreetype.hpp"
+#include "xhtml_script_interface.hpp"
+#include "xhtml_node.hpp"
 
 namespace xhtml
 {
-	struct RenderContextManager
+	Script::Script()
 	{
-		RenderContextManager();
-		~RenderContextManager();
-	};
+	}
 
-	class RenderContext
+	void Script::addEventHandler(const NodePtr& element, EventHandlerId evtname, const std::string& script)
 	{
-	public:
-		// Returns the render context instance.
-		static RenderContext& get();
-		
-		struct Manager
-		{
-			explicit Manager(const css::PropertyList& plist);
-			~Manager();
-			std::vector<int> update_list;
-			bool pushed_font_change_;
-		};
-
-		int getDPI() const { return dpi_scale_; }
-		void setDPI(int dpi) { dpi_scale_ = dpi; }
-
-		const css::StylePtr& getComputedValue(css::Property p) const;
-
-		std::vector<css::StylePtr> getCurrentStyles() const;
-
-		// We need special case handling for the font.
-		KRE::FontHandlePtr getFontHandle() const;
-	private:
-		RenderContext();
-		int dpi_scale_;
-	};
+		preProcess(element, evtname, script);
+		element->setActiveHandler(evtname);
+	}
 }

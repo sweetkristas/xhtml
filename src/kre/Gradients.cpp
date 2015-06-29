@@ -21,36 +21,23 @@
 	   distribution.
 */
 
+#include "asserts.hpp"
+
 #include "AttributeSet.hpp"
 #include "CameraObject.hpp"
 #include "DisplayDevice.hpp"
+#include "Gradients.hpp"
 #include "RenderTarget.hpp"
 #include "SceneObject.hpp"
 #include "Shaders.hpp"
 #include "StencilSettings.hpp"
 #include "WindowManager.hpp"
 
-#include "asserts.hpp"
-#include "gradients.hpp"
-
 namespace KRE
 {
 	namespace
 	{
 		const static glm::vec3 z_axis(0.0f, 0.0f, 1.0f);
-
-		// XXX these need to go in stencil.
-		StencilSettings& get_stencil_mask_settings() 
-		{
-			static KRE::StencilSettings ss(true, 
-				KRE::StencilFace::FRONT_AND_BACK, 
-				KRE::StencilFunc::NOT_EQUAL, 
-				0xff, 0x00, 0xff, 
-				KRE::StencilOperation::INCREMENT, 
-				KRE::StencilOperation::KEEP, 
-				KRE::StencilOperation::KEEP);
-			return ss;
-		}
 
 		class SimpleClipShape : public SceneObject
 		{

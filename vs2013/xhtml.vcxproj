@@ -34,8 +34,10 @@
     <ClCompile Include="..\src\kre\EffectsOGL.cpp" />
     <ClCompile Include="..\src\kre\FboOGL.cpp" />
     <ClCompile Include="..\src\kre\Font.cpp" />
+    <ClCompile Include="..\src\kre\FontFreetype.cpp" />
     <ClCompile Include="..\src\kre\FontSDL.cpp" />
     <ClCompile Include="..\src\kre\Frustum.cpp" />
+    <ClCompile Include="..\src\kre\Gradients.cpp" />
     <ClCompile Include="..\src\kre\LightObject.cpp" />
     <ClCompile Include="..\src\kre\ModelMatrixScope.cpp" />
     <ClCompile Include="..\src\kre\ParticleSystem.cpp" />
@@ -95,8 +97,6 @@
     <ClCompile Include="..\src\xhtml\css_stylesheet.cpp" />
     <ClCompile Include="..\src\xhtml\css_transition.cpp" />
     <ClCompile Include="..\src\xhtml\display_list.cpp" />
-    <ClCompile Include="..\src\xhtml\font_freetype.cpp" />
-    <ClCompile Include="..\src\xhtml\gradients.cpp" />
     <ClCompile Include="..\src\xhtml\solid_renderable.cpp" />
     <ClCompile Include="..\src\xhtml\to_roman.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_absolute_box.cpp" />
@@ -114,6 +114,7 @@
     <ClCompile Include="..\src\xhtml\xhtml_parser.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_render_ctx.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_root_box.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_script_interface.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_style_tree.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_text_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_text_node.cpp" />
@@ -146,9 +147,11 @@
     <ClInclude Include="..\src\kre\EffectsOGL.hpp" />
     <ClInclude Include="..\src\kre\FboOGL.hpp" />
     <ClInclude Include="..\src\kre\Font.hpp" />
+    <ClInclude Include="..\src\kre\FontFreetype.hpp" />
     <ClInclude Include="..\src\kre\FontSDL.hpp" />
     <ClInclude Include="..\src\kre\Frustum.hpp" />
     <ClInclude Include="..\src\kre\geometry.hpp" />
+    <ClInclude Include="..\src\kre\Gradients.hpp" />
     <ClInclude Include="..\src\kre\LightObject.hpp" />
     <ClInclude Include="..\src\kre\ModelMatrixScope.hpp" />
     <ClInclude Include="..\src\kre\ParticleSystem.hpp" />
@@ -226,8 +229,6 @@
     <ClInclude Include="..\src\xhtml\css_stylesheet.hpp" />
     <ClInclude Include="..\src\xhtml\css_transition.hpp" />
     <ClInclude Include="..\src\xhtml\display_list.hpp" />
-    <ClInclude Include="..\src\xhtml\font_freetype.hpp" />
-    <ClInclude Include="..\src\xhtml\gradients.hpp" />
     <ClInclude Include="..\src\xhtml\solid_renderable.hpp" />
     <ClInclude Include="..\src\xhtml\to_roman.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml.hpp" />
@@ -248,6 +249,7 @@
     <ClInclude Include="..\src\xhtml\xhtml_parser.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_render_ctx.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_root_box.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_script_interface.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_style_tree.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_text_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_text_node.hpp" />

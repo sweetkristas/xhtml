@@ -37,7 +37,7 @@
 
 #include "css_parser.hpp"
 #include "display_list.hpp"
-#include "font_freetype.hpp"
+#include "FontFreetype.hpp"
 #include "xhtml.hpp"
 #include "xhtml_layout_engine.hpp"
 #include "xhtml_root_box.hpp"
@@ -101,9 +101,9 @@ xhtml::DocumentPtr load_xhtml(const std::string& ua_ss, const std::string& test_
 	auto user_agent_style_sheet = std::make_shared<css::StyleSheet>();
 	css::Parser::parse(user_agent_style_sheet, sys::read_file(ua_ss));
 
-	auto doc_frag = xhtml::parse_from_file(test_doc);
 	auto doc = xhtml::Document::create(user_agent_style_sheet);
-	doc->addChild(doc_frag);
+	auto doc_frag = xhtml::parse_from_file(test_doc, doc);
+	doc->addChild(doc_frag, doc);
 	//doc->normalize();
 	doc->processStyles();
 	// whitespace can only be processed after applying styles.

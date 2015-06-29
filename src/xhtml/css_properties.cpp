@@ -172,7 +172,7 @@ namespace css
 
 		using namespace std::placeholders;
 		
-		PropertyRegistrar property000("background-color", Property::BACKGROUND_COLOR, false, CssColor::create(CssColorParam::TRANSPARENT), std::bind(&PropertyParser::parseColor, _1, "background-color", ""));
+		PropertyRegistrar property000("background-color", Property::BACKGROUND_COLOR, false, CssColor::create(CssColorParam::CSS_TRANSPARENT), std::bind(&PropertyParser::parseColor, _1, "background-color", ""));
 		PropertyRegistrar property001("color", Property::COLOR, true, CssColor::create(CssColorParam::VALUE), std::bind(&PropertyParser::parseColor, _1, "color", ""));
 		PropertyRegistrar property002("padding-left", Property::PADDING_LEFT, false, Length::create(0, false), std::bind(&PropertyParser::parseLength, _1, "padding-left", ""));
 		PropertyRegistrar property003("padding-right", Property::PADDING_RIGHT, false, Length::create(0, false), std::bind(&PropertyParser::parseLength, _1, "padding-right", ""));
@@ -306,7 +306,7 @@ namespace css
 		// border-image-outset
 		// border-image-stretch
 	}
-
+	
 	PropertyList::PropertyList()
 		: properties_()
 	{
@@ -430,6 +430,16 @@ namespace css
 			}
 			++index;
 		}
+	}
+
+	Property get_property_by_name(const std::string& name)
+	{
+		auto prop_it = get_property_table().find(name);
+		if(prop_it == get_property_table().end()) {
+			LOG_ERROR("Not adding property '" << name << "' since we have no mapping for it.");
+			return Property::MAX_PROPERTIES;
+		}
+		return prop_it->second.value;
 	}
 
 	const std::string& get_property_name(Property p)
@@ -658,7 +668,7 @@ namespace css
 			const std::string& ref = (*it_)->getStringValue();
 			advance();
 			if(ref == "transparent") {
-				color->setParam(CssColorParam::TRANSPARENT);
+				color->setParam(CssColorParam::CSS_TRANSPARENT);
 			} else {
 				// color value is in ref.
 				color->setColor(KRE::Color(ref));
@@ -1325,9 +1335,9 @@ namespace css
 			if(ref == "static") {
 				p = Position::STATIC;
 			} else if(ref == "absolute") {
-				p = Position::ABSOLUTE;
+				p = Position::ABSOLUTE_POS;
 			} else if(ref == "relative") {
-				p = Position::RELATIVE;
+				p = Position::RELATIVE_POS;
 			} else if(ref == "fixed") {
 				p = Position::FIXED;
 			} else {
@@ -2085,7 +2095,7 @@ namespace css
 	void PropertyParser::parseBackground(const std::string& prefix, const std::string& suffix)
 	{
 		BackgroundAttachment ba = BackgroundAttachment::SCROLL;
-		auto bc = CssColor::create(CssColorParam::TRANSPARENT);
+		auto bc = CssColor::create(CssColorParam::CSS_TRANSPARENT);
 		auto br = BackgroundRepeat::REPEAT;
 		auto bp = BackgroundPosition::create();
 		ImageSourcePtr bi = nullptr;
@@ -2101,7 +2111,7 @@ namespace css
 				const std::string ref = (*it_)->getStringValue();
 				advance();
 				if(ref == "transparent") {
-					bc->setParam(CssColorParam::TRANSPARENT);
+					bc->setParam(CssColorParam::CSS_TRANSPARENT);
 				} else if(ref == "scroll") {
 					ba = BackgroundAttachment::SCROLL;
 				} else if(ref == "fixed") {

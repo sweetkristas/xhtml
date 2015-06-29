@@ -27,12 +27,14 @@
 #include "css_parser.hpp"
 #include "xhtml_text_node.hpp"
 #include "xhtml_render_ctx.hpp"
+#include "xhtml_script_interface.hpp"
 
 #include "filesystem.hpp"
 
 namespace xhtml
 {
-	namespace {
+	namespace 
+	{
 		struct DocumentImpl : public Document 
 		{
 			DocumentImpl(css::StyleSheetPtr ss) : Document(ss) {}
@@ -47,6 +49,51 @@ namespace xhtml
 		{
 			AttributeImpl(const std::string& name, const std::string& value, WeakDocumentPtr owner) : Attribute(name, value, owner) {}
 		};
+
+		typedef std::map<std::string, ScriptPtr> script_map_t;
+		script_map_t& get_script_map()
+		{
+			static script_map_t res;
+			return res;
+		}
+
+		const std::map<std::string, EventHandlerId>& get_event_handlers() 
+		{
+			static std::map<std::string, EventHandlerId> res;
+			if(res.empty()) {
+				//res["onclick"] = EventHandlerId::CLICK;
+				//res["ondblclick"] = EventHandlerId::DBL_CLICK;
+				res["onmousedown"] = EventHandlerId::MOUSE_DOWN;
+				res["onmouseup"] = EventHandlerId::MOUSE_UP;
+				res["onmousemove"] = EventHandlerId::MOUSE_MOVE;
+				res["onmouseenter"] = EventHandlerId::MOUSE_ENTER;
+				res["onmouseleave"] = EventHandlerId::MOUSE_LEAVE;
+				//res["onmouseover"] = EventHandlerId::MOUSE_OVER;
+				//res["onmouseout"] = EventHandlerId::MOUSE_OUT;
+				res["onkeypress"] = EventHandlerId::KEY_PRESS;
+				res["onkeyup"] = EventHandlerId::KEY_UP;
+				res["onkeydown"] = EventHandlerId::KEY_DOWN;
+				res["onload"] = EventHandlerId::LOAD;
+				res["onunload"] = EventHandlerId::UNLOAD;
+				res["onresize"] = EventHandlerId::RESIZE;
+				res["onwheel"] = EventHandlerId::WHEEL;
+				//res["onblur"] = EventHandlerId::BLUR;
+				//res["onscroll"] = EventHandlerId::SCROLL;
+				//res["onfocus"] = EventHandlerId::FOCUS;
+				//res["onfocusin"] = EventHandlerId::FOCUSIN;
+				//res["onfocusout"] = EventHandlerId::FOCUSOUT;
+				//res["onselect"] = EventHandlerId::SELECT;
+				//res["onerror"] = EventHandlerId::ERROR;
+				//res["oncompositionstart"] = EventHandlerId::COMPOSITIONSTART;
+				//res["oncompositionupdate"] = EventHandlerId::COMPOSITIONUPDATE;
+				//res["oncompositionend"] = EventHandlerId::COMPOSITIONEND;
+				//res["onabort"] = EventHandlerId::ABORT;
+				//res["onbeforeinput"] = EventHandlerId::BEFOREINPUT;
+				//res["oninput"] = EventHandlerId::INPUT;
+				
+			}
+			return res;
+		}
 	}
 
 	Node::Node(NodeId id, WeakDocumentPtr owner)
@@ -61,15 +108,32 @@ namespace xhtml
 		  pclass_(css::PseudoClass::NONE),
 		  active_pclass_(css::PseudoClass::NONE),
 		  active_rect_(),
-		  dimensions_()
+		  dimensions_(),
+		  script_handler_(nullptr),
+		  active_handlers_()
 	{
+		active_handlers_.resize(static_cast<int>(EventHandlerId::MAX_EVENT_HANDLERS));
 	}
 
 	Node::~Node()
 	{
 	}
 	
-	void Node::addChild(NodePtr child)
+	void Node::setActiveHandler(EventHandlerId id, bool active)
+	{
+		int index = static_cast<int>(id);
+		ASSERT_LOG(index < static_cast<int>(active_handlers_.size()), "index exceeds bounds.");
+		active_handlers_[index] = active;
+	}
+
+	bool Node::hasActiveHandler(EventHandlerId id)
+	{
+		int index = static_cast<int>(id);
+		ASSERT_LOG(index < static_cast<int>(active_handlers_.size()), "index exceeds bounds.");
+		return active_handlers_[index];
+	}
+
+	void Node::addChild(NodePtr child, const DocumentPtr& owner)
 	{		
 		if(child->id() == NodeId::DOCUMENT_FRAGMENT) {
 			// we add the children of a document fragment rather than the node itself.
@@ -275,8 +339,39 @@ namespace xhtml
 		}
 	}
 
-	bool Node::handleMouseButtonUp(bool* trigger, const point& p)
+	void Node::processScriptAttributes()
 	{
+		if(id() == NodeId::ELEMENT) {
+			auto handler = Document::findScriptHandler();
+			script_handler_ = handler;
+			if(handler != nullptr) {
+				for(auto& attr : getAttributes()) {
+					auto it = get_event_handlers().find(attr.first);
+					if(it != get_event_handlers().end()) {
+						handler->addEventHandler(shared_from_this(), it->second, attr.second->getValue());
+					}
+				}
+			}
+		}
+		for(auto& c : children_) {
+			c->processScriptAttributes();
+		}
+	}
+
+	bool Node::handleMouseButtonUp(bool* trigger, const point& p, unsigned button)
+	{
+		if(!active_rect_.empty()) {
+			if(geometry::pointInRect(p, active_rect_)) {
+				if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_UP)) {
+					std::map<variant, variant> m;
+					m[variant("clientX")] = variant(p.x);
+					m[variant("clientY")] = variant(p.y);
+					m[variant("button")] = variant(static_cast<int>(button - 1));
+					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_UP, variant(&m));
+				}
+			}
+		}
+
 		if(!handleMouseButtonUpInt(trigger, p)) {
 			return false;
 		}
@@ -284,8 +379,20 @@ namespace xhtml
 		return true;
 	}
 
-	bool Node::handleMouseButtonDown(bool* trigger, const point& p)
+	bool Node::handleMouseButtonDown(bool* trigger, const point& p, unsigned button)
 	{
+		if(!active_rect_.empty()) {
+			if(geometry::pointInRect(p, active_rect_)) {
+				if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_DOWN)) {
+					std::map<variant, variant> m;
+					m[variant("clientX")] = variant(p.x);
+					m[variant("clientY")] = variant(p.y);
+					m[variant("button")] = variant(static_cast<int>(button - 1));
+					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_DOWN, variant(&m));
+				}
+			}
+		}
+
 		if(!handleMouseButtonDownInt(trigger, p)) {
 			return false;
 		}
@@ -295,6 +402,33 @@ namespace xhtml
 
 	bool Node::handleMouseMotion(bool* trigger, const point& p)
 	{
+		if(!active_rect_.empty()) {
+			if(geometry::pointInRect(p, active_rect_)) {
+				if(mouse_entered_ == false && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_ENTER)) {
+					std::map<variant, variant> m;
+					m[variant("clientX")] = variant(p.x);
+					m[variant("clientY")] = variant(p.y);
+					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_ENTER, variant(&m));
+				}
+				mouse_entered_ = true;
+			} else {
+				if(mouse_entered_ == true && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_LEAVE)) {
+					std::map<variant, variant> m;
+					m[variant("clientX")] = variant(p.x);
+					m[variant("clientY")] = variant(p.y);
+					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_LEAVE, variant(&m));
+				}
+				mouse_entered_ = false;
+			}
+
+			if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_MOVE)) {
+				std::map<variant, variant> m;
+				m[variant("clientX")] = variant(p.x);
+				m[variant("clientY")] = variant(p.y);
+				getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_MOVE, variant(&m));
+			}
+		}
+
 		if(!handleMouseMotionInt(trigger, p)) {
 			return false;
 		}
@@ -302,7 +436,7 @@ namespace xhtml
 		if(!hover || active_rect_.empty()) {
 			return true;
 		}
-		if(geometry::pointInRect(p, active_rect_)) {
+		if(mouse_entered_) {
 			if((active_pclass_ & css::PseudoClass::HOVER) != css::PseudoClass::HOVER) {
 				active_pclass_ = active_pclass_ | css::PseudoClass::HOVER;
 				*trigger = true;
@@ -316,7 +450,7 @@ namespace xhtml
 	}
 
 	bool Document::handleMouseMotion(bool claimed, int x, int y)
-	{		
+	{
 		bool trigger = false;
 		point p(x, y);
 		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
@@ -331,8 +465,8 @@ namespace xhtml
 	{
 		bool trigger = false;
 		point p(x, y);
-		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
-			node->handleMouseButtonDown(&trigger, p);
+		claimed = !preOrderTraversal([&trigger, &p, button](NodePtr node) {
+			node->handleMouseButtonDown(&trigger, p, button);
 			return true;
 		});
 		trigger_layout_ |= trigger;
@@ -343,8 +477,8 @@ namespace xhtml
 	{
 		bool trigger = false;
 		point p(x, y);
-		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
-			node->handleMouseButtonUp(&trigger, p);
+		claimed = !preOrderTraversal([&trigger, &p, button](NodePtr node) {
+			node->handleMouseButtonUp(&trigger, p, button);
 			return true;
 		});
 		trigger_layout_ |= trigger;
@@ -431,6 +565,26 @@ namespace xhtml
 	DocumentPtr Document::create(css::StyleSheetPtr ss)
 	{
 		return std::make_shared<DocumentImpl>(ss);
+	}
+
+	void Document::registerScriptHandler(const std::string& type, std::function<ScriptPtr()> fn)
+	{
+		get_script_map()[type] = fn();
+	}
+
+	ScriptPtr Document::findScriptHandler(const std::string& type)
+	{
+		if(type.empty()) {
+			if(get_script_map().empty()) {
+				return nullptr;
+			}
+			return get_script_map().begin()->second;
+		}
+		auto it = get_script_map().find(type);
+		if(it == get_script_map().end()) {
+			return nullptr;
+		}
+		return it->second;
 	}
 
 	DocumentFragment::DocumentFragment(WeakDocumentPtr owner)

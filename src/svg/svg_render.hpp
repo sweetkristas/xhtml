@@ -27,7 +27,7 @@
 #include <stack>
 
 #include "asserts.hpp"
-#include "font_freetype.hpp"
+#include "FontFreetype.hpp"
 #include "Color.hpp"
 
 namespace KRE
