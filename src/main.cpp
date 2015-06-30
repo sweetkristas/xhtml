@@ -23,6 +23,7 @@
 
 #include "asserts.hpp"
 #include "filesystem.hpp"
+#include "Blittable.hpp"
 #include "CameraObject.hpp"
 #include "Canvas.hpp"
 #include "Font.hpp"
@@ -30,6 +31,7 @@
 #include "SceneGraph.hpp"
 #include "SceneNode.hpp"
 #include "SDLWrapper.hpp"
+#include "SurfaceBlur.hpp"
 #include "WindowManager.hpp"
 #include "profile_timer.hpp"
 #include "variant_utils.hpp"
@@ -222,6 +224,10 @@ int main(int argc, char* argv[])
 
 	//auto txt = Font::getInstance()->renderText("Thequickbrownfoxjumpsoverthelazydog.", Color::colorWhite(), static_cast<int>(24.0*96.0/72.0), true, "FreeSerif.ttf");
 
+	auto surf = Surface::create("test1.png");
+	surface_alpha_blur(surf, 3.0f);
+	auto bt = std::make_shared<Blittable>(Texture::createTexture(surf));	
+
 	SDL_Event e;
 	bool done = false;
 	Uint32 last_tick_time = SDL_GetTicks();
@@ -268,6 +274,9 @@ int main(int argc, char* argv[])
 
 		scene->renderScene(rman);
 		rman->render(main_wnd);
+
+		bt->preRender(main_wnd);
+		main_wnd->render(bt.get());
 
 		main_wnd->swap();
 	}

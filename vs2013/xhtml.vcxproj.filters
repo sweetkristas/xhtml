@@ -357,6 +357,9 @@
     <ClCompile Include="..\src\kre\Gradients.cpp">
       <Filter>Source Files\kre</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\kre\SurfaceBlur.cpp">
+      <Filter>Source Files\kre</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -756,6 +759,9 @@
       <Filter>Header Files\kre</Filter>
     </ClInclude>
     <ClInclude Include="..\src\kre\Gradients.hpp">
+      <Filter>Header Files\kre</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\kre\SurfaceBlur.hpp">
       <Filter>Header Files\kre</Filter>
     </ClInclude>
   </ItemGroup>
