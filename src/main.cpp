@@ -39,7 +39,7 @@
 
 #include "css_parser.hpp"
 #include "display_list.hpp"
-#include "FontFreetype.hpp"
+#include "FontDriver.hpp"
 #include "xhtml.hpp"
 #include "xhtml_layout_engine.hpp"
 #include "xhtml_root_box.hpp"
@@ -162,6 +162,7 @@ int main(int argc, char* argv[])
 	sys::file_path_map font_files;
 	sys::get_unique_files(data_path + "fonts/", font_files);
 	KRE::FontDriver::setAvailableFonts(font_files);
+	KRE::FontDriver::setFontProvider("stb");
 
 #if 1
 	WindowManager wm("SDL");
@@ -224,9 +225,30 @@ int main(int argc, char* argv[])
 
 	//auto txt = Font::getInstance()->renderText("Thequickbrownfoxjumpsoverthelazydog.", Color::colorWhite(), static_cast<int>(24.0*96.0/72.0), true, "FreeSerif.ttf");
 
-	auto surf = Surface::create("test1.png");
-	surface_alpha_blur(surf, 3.0f);
-	auto bt = std::make_shared<Blittable>(Texture::createTexture(surf));	
+	SurfacePtr surf = nullptr;
+	surf = Surface::create("summer.png");
+	//std::vector<unsigned char> pixels;
+	//pixels.resize(512 * 512);
+	{
+		//profile::manager pman("fill rect");
+		//for(int y = 32; y < (512-32); ++y) {
+		//	std::fill(&pixels[y * 512 + 32], &pixels[y * 512 + 512-32], 255);
+		//}
+	}
+	//pixels_alpha_blur(pixels.data(), 512, 512, 512, 64.0f);
+	//surf = Surface::create(512, 512, 8, 512, 0, 0, 0, 0xff, pixels.data());
+	surface_alpha_blur(surf, 6.0f);
+	auto bt = std::make_shared<Blittable>(Texture::createTexture(surf));
+	//bt->setShader(ShaderProgram::getProgram("font_shader"));
+	//bt->setColor(Color::colorBlue());
+	bt->setCentre(Blittable::Centre::MIDDLE);
+	bt->setPosition(width/2, 5 * height / 6);
+
+	SurfacePtr surf2 = Surface::create("summer2.png");
+	auto bt2 = std::make_shared<Blittable>(Texture::createTexture(surf2));
+	bt2->setColor(Color::colorBlue());
+	bt2->setCentre(Blittable::Centre::MIDDLE);
+	bt2->setPosition(width/2, 5 * height / 6);
 
 	SDL_Event e;
 	bool done = false;
@@ -277,6 +299,8 @@ int main(int argc, char* argv[])
 
 		bt->preRender(main_wnd);
 		main_wnd->render(bt.get());
+		bt2->preRender(main_wnd);
+		main_wnd->render(bt2.get());
 
 		main_wnd->swap();
 	}

@@ -27,5 +27,8 @@
 
 namespace KRE
 {
+	// N.B. Operates only an array of alpha values 0-255.
+	void pixels_alpha_blur(void* pixels, int w, int h, int stride, float blur);
+
 	void surface_alpha_blur(const SurfacePtr& surface, float blur);
 }

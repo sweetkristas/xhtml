@@ -34,8 +34,10 @@
     <ClCompile Include="..\src\kre\EffectsOGL.cpp" />
     <ClCompile Include="..\src\kre\FboOGL.cpp" />
     <ClCompile Include="..\src\kre\Font.cpp" />
+    <ClCompile Include="..\src\kre\FontDriver.cpp" />
     <ClCompile Include="..\src\kre\FontFreetype.cpp" />
     <ClCompile Include="..\src\kre\FontSDL.cpp" />
+    <ClCompile Include="..\src\kre\FontSTB.cpp" />
     <ClCompile Include="..\src\kre\Frustum.cpp" />
     <ClCompile Include="..\src\kre\Gradients.cpp" />
     <ClCompile Include="..\src\kre\LightObject.cpp" />
@@ -148,7 +150,8 @@
     <ClInclude Include="..\src\kre\EffectsOGL.hpp" />
     <ClInclude Include="..\src\kre\FboOGL.hpp" />
     <ClInclude Include="..\src\kre\Font.hpp" />
-    <ClInclude Include="..\src\kre\FontFreetype.hpp" />
+    <ClInclude Include="..\src\kre\FontDriver.hpp" />
+    <ClInclude Include="..\src\kre\FontImpl.hpp" />
     <ClInclude Include="..\src\kre\FontSDL.hpp" />
     <ClInclude Include="..\src\kre\Frustum.hpp" />
     <ClInclude Include="..\src\kre\geometry.hpp" />
@@ -181,6 +184,8 @@
     <ClInclude Include="..\src\kre\ShadersOGL.hpp" />
     <ClInclude Include="..\src\kre\spline.hpp" />
     <ClInclude Include="..\src\kre\spline3d.hpp" />
+    <ClInclude Include="..\src\kre\stb_rect_pack.h" />
+    <ClInclude Include="..\src\kre\stb_truetype.h" />
     <ClInclude Include="..\src\kre\StencilScope.hpp" />
     <ClInclude Include="..\src\kre\StencilScopeOGL.hpp" />
     <ClInclude Include="..\src\kre\StencilSettings.hpp" />
