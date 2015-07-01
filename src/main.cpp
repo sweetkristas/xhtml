@@ -237,18 +237,18 @@ int main(int argc, char* argv[])
 	}
 	//pixels_alpha_blur(pixels.data(), 512, 512, 512, 64.0f);
 	//surf = Surface::create(512, 512, 8, 512, 0, 0, 0, 0xff, pixels.data());
-	surface_alpha_blur(surf, 6.0f);
-	auto bt = std::make_shared<Blittable>(Texture::createTexture(surf));
+	//surface_alpha_blur(surf, 6.0f);
+	//auto bt = std::make_shared<Blittable>(Texture::createTexture(surf));
 	//bt->setShader(ShaderProgram::getProgram("font_shader"));
 	//bt->setColor(Color::colorBlue());
-	bt->setCentre(Blittable::Centre::MIDDLE);
-	bt->setPosition(width/2, 5 * height / 6);
+	//bt->setCentre(Blittable::Centre::MIDDLE);
+	//bt->setPosition(width/2, 5 * height / 6);
 
-	SurfacePtr surf2 = Surface::create("summer2.png");
+	/*SurfacePtr surf2 = Surface::create("summer2.png");
 	auto bt2 = std::make_shared<Blittable>(Texture::createTexture(surf2));
 	bt2->setColor(Color::colorBlue());
 	bt2->setCentre(Blittable::Centre::MIDDLE);
-	bt2->setPosition(width/2, 5 * height / 6);
+	bt2->setPosition(width/2, 5 * height / 6);*/
 
 	SDL_Event e;
 	bool done = false;
@@ -297,10 +297,10 @@ int main(int argc, char* argv[])
 		scene->renderScene(rman);
 		rman->render(main_wnd);
 
-		bt->preRender(main_wnd);
+		/*bt->preRender(main_wnd);
 		main_wnd->render(bt.get());
 		bt2->preRender(main_wnd);
-		main_wnd->render(bt2.get());
+		main_wnd->render(bt2.get());*/
 
 		main_wnd->swap();
 	}

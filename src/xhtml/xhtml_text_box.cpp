@@ -160,7 +160,8 @@ namespace xhtml
 		const int kernel_radius = 7;
 
 		for(auto shadow : shadows_) {
-			if(std::abs(shadow.blur) < FLT_EPSILON) {
+			if(std::abs(shadow.blur) < FLT_EPSILON || 
+				!KRE::DisplayDevice::checkForFeature(KRE::DisplayDeviceCapabilties::RENDER_TO_TEXTURE)) {
 				// no blur
 				KRE::FontRenderablePtr shadow_font(new KRE::FontRenderable(*fontr));
 				shadow_font->setPosition(shadow.x_offset + offset.x / LayoutEngine::getFixedPointScaleFloat(), 
