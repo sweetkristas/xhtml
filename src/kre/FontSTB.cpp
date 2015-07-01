@@ -201,7 +201,7 @@ namespace KRE
 
 				stbtt_packedchar *b = it->second.data() + cp - it->first.first;
 
-				width += pt.x >> 16;
+				//width += pt.x >> 16;
 				//width += static_cast<int>(b->xoff2 - b->xoff);
 				height = std::max(height, static_cast<int>(b->yoff2 - b->yoff));
 
@@ -223,6 +223,7 @@ namespace KRE
 				coords.emplace_back(glm::vec2(x2, y2), glm::vec2(u2, v2));
 				++n;
 			}
+			width = path.back().x >> 16;
 
 			font_renderable->setWidth(width);
 			font_renderable->setHeight(height);
