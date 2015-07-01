@@ -115,7 +115,7 @@ namespace KRE
 
 	struct FontDriverRegistrar
 	{
-		FontDriverRegistrar(const std::string& name, font_impl_creation_fn create_fn) 
+		explicit FontDriverRegistrar(const std::string& name, font_impl_creation_fn create_fn) 
 		{
 			FontDriver::registerFontProvider(name, create_fn);
 		}

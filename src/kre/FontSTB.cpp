@@ -41,10 +41,6 @@ namespace KRE
 		const int default_dpi = 96;
 		const int surface_width = 512;
 		const int surface_height = 512;
-
-		FontDriverRegistrar freeytype_font_impl("stb", [](const std::string& fnt_name, const std::string& fnt_path, float size, const Color& color, bool init_texture){ 
-			return std::make_unique<stb_impl>(fnt_name, fnt_path, size, color, init_texture);
-		});
 	}
 
 	// Implication of non-overlapping ranges.
@@ -310,4 +306,8 @@ namespace KRE
 		std::vector<unsigned char> pixels_;
 		TexturePtr font_texture_;
 	};
+
+	FontDriverRegistrar stb_font_impl("stb", [](const std::string& fnt_name, const std::string& fnt_path, float size, const Color& color, bool init_texture){ 
+		return std::unique_ptr<stb_impl>(new stb_impl(fnt_name, fnt_path, size, color, init_texture));
+	});
 }

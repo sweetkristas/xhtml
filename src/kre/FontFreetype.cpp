@@ -48,9 +48,6 @@ namespace KRE
 		const int surface_width = 2048;
 		const int surface_height = 2048;
 
-		FontDriverRegistrar freeytype_font_impl("freetype", [](const std::string& fnt_name, const std::string& fnt_path, float size, const Color& color, bool init_texture){ 
-			return std::make_unique<FreetypeImpl>(fnt_name, fnt_path, size, color, init_texture);
-		});
 
 		FT_Library& get_ft_library()
 		{
@@ -429,4 +426,8 @@ namespace KRE
 		std::map<char32_t, GlyphInfo> glyph_info_;
 	};
 
+
+		FontDriverRegistrar freeytype_font_impl("freetype", [](const std::string& fnt_name, const std::string& fnt_path, float size, const Color& color, bool init_texture){ 
+			return std::unique_ptr<FreetypeImpl>(new FreetypeImpl(fnt_name, fnt_path, size, color, init_texture));
+		});
 }
