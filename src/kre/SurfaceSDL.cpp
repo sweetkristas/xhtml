@@ -31,6 +31,7 @@
 #include "SDL_image.h"
 
 #include "asserts.hpp"
+#include "formatter.hpp"
 #include "SurfaceSDL.hpp"
 
 enum {
@@ -148,7 +149,9 @@ namespace KRE
 		auto surface_ = IMG_Load(filter(filename).c_str());
 		if(surface_ == nullptr) {
 			LOG_ERROR("Failed to load image file: '" << filename << "' : " << IMG_GetError());
-			throw ImageLoadError();
+			std::stringstream ss;
+			ss << "Failed to load image file: '" << filename << "' : " << IMG_GetError();
+			throw ImageLoadError(ss.str());
 		}
 		auto pf = std::make_shared<SDLPixelFormat>(surface_->format->format);
 		setPixelFormat(PixelFormatPtr(pf));
@@ -361,25 +364,27 @@ namespace KRE
 
 	void SurfaceSDL::setBlendMode(Surface::BlendMode bm) 
 	{
-		SDL_BlendMode sdl_bm;
+		SDL_BlendMode sdl_bm = SDL_BLENDMODE_NONE;
 		switch(bm) {
 			case BLEND_MODE_NONE:	sdl_bm = SDL_BLENDMODE_NONE; break;
 			case BLEND_MODE_BLEND:	sdl_bm = SDL_BLENDMODE_BLEND; break;
 			case BLEND_MODE_ADD:	sdl_bm = SDL_BLENDMODE_ADD; break;
 			case BLEND_MODE_MODULATE:	sdl_bm = SDL_BLENDMODE_MOD; break;
+			default: break;
 		}
 		SDL_SetSurfaceBlendMode(surface_, sdl_bm);
 	}
 
 	Surface::BlendMode SurfaceSDL::getBlendMode() const 
 	{
-		SDL_BlendMode sdl_bm;
+		SDL_BlendMode sdl_bm = SDL_BLENDMODE_NONE;
 		SDL_GetSurfaceBlendMode(surface_, &sdl_bm);
 		switch(sdl_bm) {
 		case SDL_BLENDMODE_NONE:	return BLEND_MODE_NONE;
 		case SDL_BLENDMODE_BLEND:	return BLEND_MODE_BLEND;
 		case SDL_BLENDMODE_ADD:		return BLEND_MODE_ADD;
 		case SDL_BLENDMODE_MOD:		return BLEND_MODE_MODULATE;
+		default: break;
 		}
 		ASSERT_LOG(false, "Unrecognised SDL blend mode: " << sdl_bm);
 		return BLEND_MODE_NONE;
@@ -399,7 +404,7 @@ namespace KRE
 		{
 			v = v - ((v >> 1) & 0x55555555);
 			v = (v & 0x33333333) + ((v >> 2) & 0x33333333);
-			return uint8_t(((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24);
+			return uint8_t((((v + (v >> 4)) & 0xF0F0F0F) * 0x1010101) >> 24);
 		}
 	}
 
@@ -670,6 +675,7 @@ namespace KRE
 			case SDL_PIXELFORMAT_UYVY:	        return PF::PIXELFORMAT_UYVY;
 			case SDL_PIXELFORMAT_YVYU:	        return PF::PIXELFORMAT_YVYU;
 			case SDL_PIXELFORMAT_R8:			return PF::PIXELFORMAT_R8;
+			default: break;
 		}
 		return PF::PIXELFORMAT_UNKNOWN;
 	}
@@ -679,16 +685,23 @@ namespace KRE
 		auto filter = Surface::getFileFilter(FileFilterType::LOAD);
 		auto s = IMG_Load(filter(filename).c_str());
 		if(s == nullptr) {
-			LOG_ERROR("Failed to load image file: '" << filename << "' : " << IMG_GetError());
-			throw ImageLoadError();
+			std::stringstream ss;
+			ss << "Failed to load image file: '" << filename << "' : " << IMG_GetError();
+			LOG_ERROR(ss.str());
+			throw ImageLoadError(ss.str());
 		}
-		auto surf = std::make_shared<SurfaceSDL>(s);
-		surf->setFlags(flags);
-		// format means don't convert the surface from the loaded format.
-		if(fmt != PixelFormat::PF::PIXELFORMAT_UNKNOWN) {
-			return surf->convert(fmt, fn)->runGlobalAlphaFilter();
+		try {
+			auto surf = std::make_shared<SurfaceSDL>(s);
+			surf->setFlags(flags);
+			// format means don't convert the surface from the loaded format.
+			if(fmt != PixelFormat::PF::PIXELFORMAT_UNKNOWN) {
+				return surf->convert(fmt, fn)->runGlobalAlphaFilter();
+			}
+			return surf->runGlobalAlphaFilter();
+		} catch(ImageLoadError& e) {
+			throw ImageLoadError(formatter() << "Failed to load image file: '" << filename << "' : " << e.what());
 		}
-		return surf->runGlobalAlphaFilter();
+		return nullptr;
 	}
 
 	void SDLPixelFormat::extractRGBA(const void* pixels, int ndx, int& red, int& green, int& blue, int& alpha)

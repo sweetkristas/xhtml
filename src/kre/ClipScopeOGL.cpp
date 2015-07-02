@@ -34,27 +34,6 @@
 
 namespace KRE
 {
-	namespace
-	{
-		static const StencilSettings keep_stencil_settings(true,
-			StencilFace::FRONT_AND_BACK, 
-			StencilFunc::EQUAL, 
-			0xff,
-			0x01,
-			0x00,
-			StencilOperation::KEEP,
-			StencilOperation::KEEP,
-			StencilOperation::KEEP);
-
-		static const StencilSettings mask_stencil_settings(true, 
-			KRE::StencilFace::FRONT_AND_BACK, 
-			KRE::StencilFunc::NOT_EQUAL, 
-			0xff, 0x00, 0xff, 
-			KRE::StencilOperation::INCREMENT, 
-			KRE::StencilOperation::KEEP, 
-			KRE::StencilOperation::KEEP);
-	}
-
 	ClipScopeOGL::ClipScopeOGL(const rect& r)
 		: ClipScope(r),
 		  stencil_scope_(nullptr)
@@ -66,9 +45,9 @@ namespace KRE
 		stencil_scope_.reset();
 	}
 
-	void ClipScopeOGL::apply() const 
+	void ClipScopeOGL::apply(const CameraPtr& cam) const 
 	{
-		stencil_scope_.reset(new StencilScopeOGL(mask_stencil_settings));
+		stencil_scope_.reset(new StencilScopeOGL(get_stencil_mask_settings()));
 
 		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
 		glDepthMask(GL_FALSE);
@@ -80,12 +59,15 @@ namespace KRE
 			area().x(), area().y2(),
 			area().x2(), area().y2(),
 		};
+		
+		CameraPtr clip_cam = cam;
+		if(cam == nullptr) {
+			clip_cam = DisplayDevice::getCurrent()->getDefaultCamera();
+		}
 
-		auto cam = DisplayDevice::getCurrent()->getDefaultCamera();
-
-		glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3((area().x()+area().x2())/2.0f,(area().y()+area().y2())/2.0f,0.0f)) 
-			* glm::translate(glm::mat4(1.0f), glm::vec3(-(area().x()+area().y())/2.0f,-(area().y()+area().y())/2.0f,0.0f));
-		glm::mat4 mvp = cam->getProjectionMat() * cam->getViewMat() * get_global_model_matrix() * model;
+		//glm::mat4 model = glm::translate(glm::mat4(1.0f), glm::vec3((area().x()+area().x2())/2.0f,(area().y()+area().y2())/2.0f,0.0f)) 
+		//	* glm::translate(glm::mat4(1.0f), glm::vec3(-(area().x()+area().y())/2.0f,-(area().y()+area().y())/2.0f,0.0f));
+		glm::mat4 mvp = clip_cam->getProjectionMat() * clip_cam->getViewMat() * get_global_model_matrix() /** model*/;
 		
 		static OpenGL::ShaderProgramPtr shader = OpenGL::ShaderProgram::factory("simple");
 		shader->makeActive();
@@ -96,7 +78,7 @@ namespace KRE
 		glVertexAttribPointer(shader->getVertexAttribute(), 2, GL_FLOAT, GL_FALSE, 0, varray);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-		stencil_scope_->applyNewSettings(keep_stencil_settings);
+		stencil_scope_->applyNewSettings(get_stencil_keep_settings());
 
 		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glDepthMask(GL_TRUE);
