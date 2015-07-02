@@ -38,6 +38,7 @@ namespace xhtml
 	{
 	public:
 		explicit ObjectProxy(const AttributeMap& attributes);
+		virtual ~ObjectProxy() {}
 		virtual void init() {}
 		virtual void process(float dt) {}
 		virtual KRE::SceneObjectPtr getRenderable() = 0;
