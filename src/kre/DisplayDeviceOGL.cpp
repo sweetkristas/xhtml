@@ -535,6 +535,11 @@ namespace KRE
 		return ClipScopePtr(new ClipScopeOGL(r));
 	}
 
+	ClipShapeScopePtr DisplayDeviceOpenGL::createClipShapeScope(const RenderablePtr& r)
+	{
+		return ClipShapeScopePtr(new ClipShapeScopeOGL(r));
+	}
+
 	StencilScopePtr DisplayDeviceOpenGL::createStencilScope(const StencilSettings& settings)
 	{
 		auto ss = new StencilScopeOGL(settings);
