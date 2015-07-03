@@ -55,6 +55,7 @@
     <ClCompile Include="..\src\kre\SceneNode.cpp" />
     <ClCompile Include="..\src\kre\SceneObject.cpp" />
     <ClCompile Include="..\src\kre\SceneParameters.cpp" />
+    <ClCompile Include="..\src\kre\SceneTree.cpp" />
     <ClCompile Include="..\src\kre\Scissor.cpp" />
     <ClCompile Include="..\src\kre\ScissorOGL.cpp" />
     <ClCompile Include="..\src\kre\Shaders.cpp" />
@@ -175,6 +176,7 @@
     <ClInclude Include="..\src\kre\SceneNode.hpp" />
     <ClInclude Include="..\src\kre\SceneObject.hpp" />
     <ClInclude Include="..\src\kre\SceneParameters.hpp" />
+    <ClInclude Include="..\src\kre\SceneTree.hpp" />
     <ClInclude Include="..\src\kre\SceneUtil.hpp" />
     <ClInclude Include="..\src\kre\Scissor.hpp" />
     <ClInclude Include="..\src\kre\ScissorOGL.hpp" />

@@ -155,6 +155,9 @@ namespace css
 		BORDER_IMAGE_OUTSET,
 		BORDER_IMAGE_REPEAT,
 		BACKGROUND_CLIP,
+		FILTER,
+		TRANSFORM,
+		TRANSFORM_ORIGIN,
 
 		MAX_PROPERTIES,
 	};
@@ -223,6 +226,8 @@ namespace css
 		FONT_STYLE,
 		ClEAR,
 		TEXT_SHADOW,
+		FILTER,
+		TRANSFORM,
 	};
 
 	enum class CssTransitionTimingFunction {
@@ -397,7 +402,7 @@ namespace css
 		Angle() : value_(0), units_(AngleUnits::DEGREES) {}
 		explicit Angle(float angle, AngleUnits units) : value_(angle), units_(units) {}
 		explicit Angle(float angle, const std::string& units);		
-		float getAngle(AngleUnits units=AngleUnits::DEGREES);
+		float getAngle(AngleUnits units=AngleUnits::DEGREES) const;
 	private:
 		float value_;
 		AngleUnits units_;
@@ -1151,5 +1156,114 @@ namespace css
 		std::string toString(Property p) const override;
 	private:
 		std::vector<TextShadow> shadows_;
+	};
+
+	enum class CssFilterId {
+		BLUR,
+		BRIGHTNESS,
+		CONTRAST,
+		DROP_SHADOW,
+		GRAYSCALE,
+		HUE_ROTATE,
+		INVERT,
+		OPACITY,
+		SEPIA,
+		SATURATE,
+	};
+
+	class Filter
+	{
+	public:
+		explicit Filter(CssFilterId id) : id_(id), angle_(nullptr), value_(nullptr), drop_shadow_(nullptr) {}
+		explicit Filter(CssFilterId id, const Angle& a);
+		explicit Filter(CssFilterId id, const Length& len);
+		explicit Filter(CssFilterId id, const BoxShadow& ds);
+		std::shared_ptr<Angle> getAngle() const { return angle_; }
+		std::shared_ptr<Length> getLength() const { return value_; }
+		std::shared_ptr<BoxShadow> getShadow() const { return drop_shadow_; }
+		std::string toString() const;
+	private:
+		CssFilterId id_;
+		//UriStyle uri_;
+		std::shared_ptr<Angle> angle_;
+		std::shared_ptr<Length> value_;
+		std::shared_ptr<BoxShadow> drop_shadow_;
+	};
+	typedef std::shared_ptr<Filter> FilterPtr;
+
+	class FilterStyle : public Style
+	{
+	public:
+		MAKE_FACTORY(FilterStyle);
+		FilterStyle() : Style(StyleId::FILTER), filters_() {}
+		explicit FilterStyle(const std::vector<FilterPtr>& filters) : Style(StyleId::FILTER), filters_(filters) {}
+		std::string toString(Property p) const override;
+		std::vector<FilterPtr> getFilters() const { return filters_; }
+	private:
+		std::vector<FilterPtr> filters_;
+	};
+
+	enum class TransformId {
+		NONE,
+		MATRIX_2D,
+		TRANSLATE_2D,
+		SCALE_2D,
+		ROTATE_2D,
+		SKEW_2D,
+		SKEWX_2D,
+		SKEWY_2D,
+		// XXX 3D functions go here.
+	};
+
+	class Transform
+	{
+	public:
+		Transform() : id_(TransformId::NONE) {}
+		explicit Transform(TransformId id, const Length& x, const Length& y)
+			: id_(id),
+			  lengths_{},
+			  angles_{},
+			  matrix_{}
+		{
+			lengths_[0] = x;
+			lengths_[1] = y;
+		}
+		explicit Transform(TransformId id, const std::array<Angle, 2>& a)
+			: id_(id),
+			  lengths_{},
+			  angles_{},
+			  matrix_{}
+		{
+			angles_[0] = a[0];
+			angles_[1] = a[1];
+		}
+		explicit Transform(const std::array<float, 6>& vals)
+			: id_(TransformId::MATRIX_2D),
+			  lengths_{},
+			  angles_{},
+			  matrix_{}
+		{
+			for(int n = 0; n != 6; ++n) {
+				matrix_[n] = vals[n]; 
+			}
+		}
+		std::string toString() const;
+	private:
+		TransformId id_;
+		std::array<Length, 2> lengths_;
+		std::array<Angle, 2> angles_;
+		std::array<float, 6> matrix_;
+	};
+
+	class TransformStyle : public Style
+	{
+	public:
+		MAKE_FACTORY(TransformStyle);
+		TransformStyle() : Style(StyleId::TRANSFORM), transforms_() {}
+		explicit TransformStyle(const std::vector<Transform>& transforms) : Style(StyleId::TRANSFORM), transforms_(transforms) {}
+		std::string toString(Property p) const override;
+		std::vector<Transform> getTransforms() const { return transforms_; }
+	private:
+		std::vector<Transform> transforms_;
 	};
 }

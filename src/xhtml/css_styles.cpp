@@ -743,7 +743,7 @@ namespace css
 		}
 	}
 
-	float Angle::getAngle(AngleUnits units)
+	float Angle::getAngle(AngleUnits units) const
 	{
 		// early return if units are the same.
 		if(units == units_) {
@@ -1501,33 +1501,128 @@ namespace css
 		return ss.str();
     }
 
-	/*
-		// XXX roughly compute what the stops should be, there doesn't seem to be an algorithm specfied for this, so we
-		// make one up.
+	Filter::Filter(CssFilterId id, const Angle& a)
+		: id_(id),
+		  angle_(std::make_shared<Angle>(a)),
+		  value_(nullptr),
+		  drop_shadow_(nullptr)
+	{
+	}
 
-		// Make first and last stops be 0% and 100% respectively if they weren't specified.
-		if(stops.size() > 0 && stops.front().length.isNumber()) {
-			stops.front().length = Length(0, true);
+	Filter::Filter(CssFilterId id, const Length& len)
+		: id_(id),
+		  angle_(nullptr),
+		  value_(std::make_shared<Length>(len)),
+		  drop_shadow_(nullptr)
+	{
+	}
+
+	Filter::Filter(CssFilterId id, const BoxShadow& ds)
+		: id_(id),
+		  angle_(nullptr),
+		  value_(nullptr),
+		  drop_shadow_(std::make_shared<BoxShadow>(ds))
+	{
+	}
+
+	std::string Filter::toString() const
+	{
+		std::stringstream ss;
+		switch(id_) {
+			case CssFilterId::BLUR:
+				ss << "blur(" << value_->toString(Property::FILTER) << ")";
+				break;
+			case CssFilterId::BRIGHTNESS:
+				ss << "brightness(" << value_->toString(Property::FILTER) << ")";
+				break;
+			case CssFilterId::CONTRAST:
+				ss << "contrast(" << value_->toString(Property::FILTER) << ")";
+				break;
+			case CssFilterId::DROP_SHADOW:
+				ss << "drop-shadow(" 
+					<< drop_shadow_-> getX().toString(Property::FILTER) << " "
+					<< drop_shadow_-> getY().toString(Property::FILTER) << " "
+					<< drop_shadow_-> getBlur().toString(Property::FILTER) << " "
+					<< drop_shadow_-> getColor().toString(Property::FILTER)
+					<< ")";
+				break;
+			case CssFilterId::GRAYSCALE:
+				ss << "grayscale(" << value_->toString(Property::FILTER) << ")";
+				break;
+			case CssFilterId::HUE_ROTATE:
+				ss << "hue-rotate(" << angle_->getAngle() << "deg)";
+				break;
+			case CssFilterId::INVERT:
+				ss << "invert(" << value_->toString(Property::FILTER) << ")";
+				break;
+			case CssFilterId::OPACITY:
+				ss << "opacity(" << value_->toString(Property::FILTER) << ")";
+				break;
+			case CssFilterId::SEPIA:
+				ss << "sepia(" << value_->toString(Property::FILTER) << ")";
+				break;
+			case CssFilterId::SATURATE:
+				ss << "saturate(" << value_->toString(Property::FILTER) << ")";
+				break;
+			default: break;
 		}
-		if(stops.size() > 1 && stops.back().length.isNumber()) {
-			stops.back().length = Length(0, true);
+		return ss.str();
+	}
+
+	std::string FilterStyle::toString(Property p) const
+	{
+		std::stringstream ss;
+		for(auto it = filters_.cbegin(); it != filters_.cend(); ++it) {
+			auto& f = *it;
+			ss << (it != filters_.cbegin() ? " " : "") << f->toString();
 		}
-		if(stops.size() > 2) {
-			auto it = stops.begin() + 1;
-			auto end = stops.end() - 1;
-			for(; it != end; ++it) {
-				auto prev = it - 1;
-				auto next = it + 1;
-				if(it->length.isNumber()) {
-					it->length = Length();
+		return ss.str();
+	}
+
+	std::string Transform::toString() const
+	{
+		std::stringstream ss;
+		switch(id_)
+		{
+			case TransformId::NONE:				
+				ss << "none";		
+				break;
+			case TransformId::MATRIX_2D:
+				ss << "matrix(";
+				for(int n = 0; n != 6; ++n) {
+					ss << (n > 0 ? ", " : "") << matrix_[n];
 				}
-			}
+				break;
+			case TransformId::TRANSLATE_2D:		
+				ss << "translate(" << lengths_[0].toString(Property::TRANSFORM) << ", " << lengths_[1].toString(Property::TRANSFORM) << ")";
+				break;
+			case TransformId::SCALE_2D:
+				ss << "scale(" << lengths_[0].toString(Property::TRANSFORM) << ", " << lengths_[1].toString(Property::TRANSFORM) << ")";
+				break;
+			case TransformId::ROTATE_2D:
+				ss << "rotate(" << angles_[0].getAngle() << "deg)";
+				break;
+			case TransformId::SKEW_2D:
+				ss << "skew(" << angles_[0].getAngle() << "deg, " << angles_[1].getAngle() << "deg)";
+				break;
+			case TransformId::SKEWX_2D:
+				ss << "skewX(" << angles_[0].getAngle() << "deg)";
+				break;
+			case TransformId::SKEWY_2D:
+				ss << "skewY(" << angles_[0].getAngle() << "deg)";
+				break;
+			default: break;
 		}
-	*/
-}
+		return ss.str();
+	}
 
-void test()
-{
-	using namespace css;
-	auto p = Style::create<Display>(StyleId::DISPLAY, Display::BLOCK);
+	std::string TransformStyle::toString(Property p) const
+	{
+		std::stringstream ss;
+		for(auto it = transforms_.cbegin(); it != transforms_.cend(); ++it) {
+			auto& t = *it;
+			ss << (it != transforms_.cbegin() ? " " : "") << t.toString();
+		}
+		return ss.str();
+	}
 }

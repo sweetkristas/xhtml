@@ -427,6 +427,106 @@ namespace KRE
 				{"", ""},
 			};
 
+			const char* const filter_vs =
+				"uniform mat4 u_mvp_matrix;\n"
+				"attribute vec2 a_position;\n"
+				"attribute vec2 a_texcoord;\n"
+				"varying vec2 v_texcoords;\n"
+				"\n"
+				"void main()\n"
+				"{\n"
+				"    gl_Position = u_mvp_matrix * vec4(a_position, 0.0, 1.0);\n"
+				"    v_texcoords = a_texcoord;\n"
+				"}\n";
+			const char* const filter_fs =
+				"#version 120\n"
+				"uniform sampler2D u_tex_map;\n"
+				"uniform float texel_width_offset;\n"
+				"uniform float texel_height_offset;\n"
+				"uniform bool u_blur;\n"
+				"uniform float u_sepia;\n"
+				"uniform float u_brightness;\n"
+				"uniform float u_contrast;\n"
+				"uniform float u_grayscale;\n"
+				"uniform float u_hue_rotate;\n"
+				"uniform float u_invert;\n"
+				"uniform float u_opacity;\n"
+				"uniform float u_saturate;\n"
+				"uniform vec4 u_color;\n"
+				"uniform float gaussian[15];\n"
+				"varying vec2 v_texcoords;\n"
+				"\n"
+				"float sRGB_to_linear(float x) {\n"
+				"    if (x < 0.04045) return x/12.92;\n"
+				"    return pow((x+0.055)/1.055, 2.4);\n"
+				"}\n"
+				"\n"
+				"float linear_to_sRGB(float y) {\n"
+				"    if (y <= 0.0031308) return 12.92 * y;\n"
+				"    return 1.055 * pow(y, 1/2.4) - 0.055;\n"
+				"}\n"
+				"\n"
+				"float calc_grayscale(vec3 color) {\n"
+				"    float gray_linear = 0.2126 * sRGB_to_linear(color.r) + 0.7152 * sRGB_to_linear(color.g) + 0.0722 * sRGB_to_linear(color.b);\n"
+				"    return linear_to_sRGB(gray_linear);\n"
+				"}\n"
+				"\n"
+				"vec3 sRGB_to_sepia(vec3 color) {\n"
+				"     return vec3(color.r * 0.393 + color.g * 0.769 + color.b * 0.189,\n"
+				"          color.r * 0.349 + color.g * 0.686 + color.b * 0.168,\n"
+				"          color.r * 0.272 + color.g * 0.534 + color.b * 0.131);\n"
+				"}\n"
+				"\n"
+				"vec3 saturate(vec3 color, float s) {\n"
+				"     return vec3(color.r * (0.213 + 0.787 * s) + color.g * (0.715 - 0.715 * s) + color.b * (0.072 - 0.072 * s),\n"
+				"          color.r * (0.213 - 0.213 * s) + color.g * (0.715 + 0.285 * s) + color.b * (0.072 - 0.072 * s),\n"
+				"          color.r * (0.213 - 0.213 * s) + color.g * (0.715 - 0.715 * s) + color.b * (0.072 + 0.928 * s));\n"
+				"}\n"
+				"\n"
+				"vec3 hue_rotate(vec3 color, float angle) {\n"
+				"     float sa = sin(angle);\n"
+				"     float ca = cos(angle);\n"
+				"     return vec3(color.r*(0.213 + ca*0.787 - sa*0.213) + color.g*(0.715 - 0.715*ca - 0.715*sa) + color.b * (0.072 - 0.072*ca + 0.928*sa),\n"
+				"          color.r*(0.213 - ca*0.213 + sa*0.143) + color.g*(0.715 + 0.285*ca + 0.140*sa) + color.b * (0.072 - 0.072*ca - 0.283*sa),\n"
+				"          color.r*(0.213 - ca*0.213 - sa*0.787) + color.g*(0.715 - 0.715*ca + 0.715*sa) + color.b * (0.072 + 0.928*ca + 0.072*sa));\n"
+				"}\n"
+				"\n"
+				"void main()\n"
+				"{\n"
+				"	gl_FragColor = texture2D(u_tex_map, v_texcoords);\n"
+				"    if(u_blur) {\n"
+				"        vec4 sum = vec4(0.0, 0.0, 0.0, 0.0);\n"
+				"        vec2 step_offset = vec2(texel_width_offset, texel_height_offset);\n"
+				"        for(int index = 0; index < 15; ++index) {\n"
+				"            sum += texture2D(u_tex_map, v_texcoords + step_offset * (index - 7)) * gaussian[index];\n"
+				"        }\n"
+				"        gl_FragColor = sum;\n"
+				"    }\n"
+				"    gl_FragColor.rgb = gl_FragColor.rgb * (1.0 - u_sepia) + sRGB_to_sepia(gl_FragColor.rgb) * u_sepia;\n"
+				"    gl_FragColor.rgb = saturate(gl_FragColor.rgb, u_saturate);\n"
+				"    gl_FragColor.rgb = gl_FragColor.rgb * (0.5 + u_contrast * 0.5);\n"
+				"    gl_FragColor.rgb *= u_brightness;\n"
+				"    gl_FragColor.rgb = hue_rotate(gl_FragColor.rgb, u_hue_rotate);\n"
+				"    float gs = calc_grayscale(gl_FragColor.rgb);\n"
+				"	 gl_FragColor.rgb = u_grayscale * vec3(gs, gs, gs) + (1.0 - u_grayscale) * gl_FragColor.rgb;\n"
+				"    gl_FragColor.rgb = (1.0 - u_invert) * gl_FragColor.rgb + u_invert * (vec3(1.0, 1.0, 1.0) - gl_FragColor.rgb);\n"
+				"    gl_FragColor.a *= u_opacity;\n"
+				"    gl_FragColor = gl_FragColor * u_color;\n"
+				"}\n";
+			// XXX Need to implement u_hue_rotate -- see http://www.w3.org/TR/SVG/filters.html#feColorMatrixValuesAttribute
+			const uniform_mapping filter_uniform_mapping[] = 
+			{
+				{"mvp_matrix", "u_mvp_matrix"},
+				{"tex_map", "u_tex_map"},
+				{"color", "u_color"},
+				{"", ""},
+			};
+			const attribute_mapping filter_attribute_mapping[] = 
+			{
+				{"position", "a_position"},
+				{"texcoord", "a_texcoord"},
+				{"", ""},
+			};
 
 			const struct {
 				const char* shader_name;
@@ -447,6 +547,7 @@ namespace KRE
 				{ "point_shader", "point_shader_vs", point_shader_vs, "point_shader_fs", point_shader_fs, point_shader_uniform_mapping, point_shader_attribute_mapping },
 				{ "font_shader", "font_shader_vs", font_shader_vs, "font_shader_fs", font_shader_fs, font_shader_uniform_mapping, font_shader_attribute_mapping },
 				{ "blur7", "blur_vs", blur_vs, "blur7_fs", blur7_fs, blur_uniform_mapping, blur_attribute_mapping },
+				{ "filter_shader", "filter_vs", filter_vs, "filter_fs", filter_fs, filter_uniform_mapping, filter_attribute_mapping },
 			};
 
 			typedef std::map<std::string, ShaderProgramPtr> shader_factory_map;

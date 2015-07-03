@@ -28,6 +28,7 @@
 #include "Canvas.hpp"
 #include "Font.hpp"
 #include "RenderManager.hpp"
+#include "RenderTarget.hpp"
 #include "SceneGraph.hpp"
 #include "SceneNode.hpp"
 #include "SDLWrapper.hpp"
@@ -119,6 +120,83 @@ xhtml::DocumentPtr load_xhtml(const std::string& ua_ss, const std::string& test_
 	// XXX - open question. Should we generate another tree for handling mouse events.
 
 	return doc;
+}
+
+KRE::SceneObjectPtr test_filter_shader(const std::string& filename)
+{
+	using namespace KRE;
+	auto wnd = WindowManager::getMainWindow();
+
+	const int gaussian_radius = 7;
+	const float sigma = 3.0f;
+	const std::vector<float> gaussian = generate_gaussian(sigma, gaussian_radius);
+
+	auto bt = std::make_shared<Blittable>(Texture::createTexture(filename));
+	const int img_width  = bt->getTexture()->width();
+	const int img_height = bt->getTexture()->height();
+	bt->setCamera(Camera::createInstance("ortho7", 0, img_width, 0, img_height));
+	auto blur7_shader = ShaderProgram::getProgram("blur7")->clone();
+	const int blur7_two = blur7_shader->getUniform("texel_height_offset");
+	const int blur7_tho = blur7_shader->getUniform("texel_height_offset");
+	const int u_gaussian7 = blur7_shader->getUniform("gaussian");
+	blur7_shader->setUniformDrawFunction([blur7_two, blur7_tho, u_gaussian7, gaussian, img_height](ShaderProgramPtr shader) {
+		shader->setUniformValue(blur7_two, 0.0f);
+		shader->setUniformValue(blur7_tho, 1.0f / (static_cast<float>(img_height)-1.0f));
+		shader->setUniformValue(u_gaussian7,  gaussian.data());
+	});
+	bt->setShader(blur7_shader);
+	auto rt = RenderTarget::create(img_width, img_height);
+	{
+		RenderTarget::RenderScope rs(rt, rect(0, 0, img_width, img_height));
+		bt->preRender(wnd);
+		wnd->render(bt.get());
+	}	
+
+	rt->setCentre(Blittable::Centre::MIDDLE);
+	rt->setDrawRect(rect(0, 0, img_width * 2, img_height * 2));
+	rt->setPosition(wnd->width()/2, wnd->height()/2);
+	auto filter_shader = ShaderProgram::getProgram("filter_shader")->clone();
+	const int u_blur = filter_shader->getUniform("u_blur");
+	const int u_sepia = filter_shader->getUniform("u_sepia");
+	const int u_brightness = filter_shader->getUniform("u_brightness");
+	const int u_contrast = filter_shader->getUniform("u_contrast");
+	const int u_grayscale = filter_shader->getUniform("u_grayscale");
+	const int u_hue_rotate = filter_shader->getUniform("u_hue_rotate");
+	const int u_invert = filter_shader->getUniform("u_invert");
+	const int u_opacity = filter_shader->getUniform("u_opacity");
+	const int u_saturate = filter_shader->getUniform("u_saturate");
+	const int blur_two = filter_shader->getUniform("texel_width_offset");
+	const int blur_tho = filter_shader->getUniform("texel_height_offset");
+	const int u_gaussian = filter_shader->getUniform("gaussian");
+	filter_shader->setUniformDrawFunction([u_blur, u_sepia, u_brightness, u_contrast, 
+		u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+		u_saturate, blur_two, blur_tho, 
+		u_gaussian, gaussian, img_width](ShaderProgramPtr shader) {		
+		shader->setUniformValue(u_blur, 1);
+		shader->setUniformValue(blur_two, 1.0f / (static_cast<float>(img_width) - 1.0f));
+		shader->setUniformValue(blur_tho, 0.0f);
+		shader->setUniformValue(u_gaussian,  gaussian.data());
+
+		/*shader->setUniformValue(u_sepia, 0.0f);
+		shader->setUniformValue(u_brightness, 1.0f);
+		shader->setUniformValue(u_contrast, 1.0f);
+		shader->setUniformValue(u_grayscale, 0.0f);
+		shader->setUniformValue(u_hue_rotate, 0.0f / 180.0f * 3.141592653f);		// angle in radians
+		shader->setUniformValue(u_invert, 0.0f);
+		shader->setUniformValue(u_opacity, 1.0f);
+		shader->setUniformValue(u_saturate, 1.0f);*/
+		shader->setUniformValue(u_sepia, 1.0f);
+		shader->setUniformValue(u_brightness, 0.5f);
+		shader->setUniformValue(u_contrast, 2.0f);
+		shader->setUniformValue(u_grayscale, 1.0f);
+		shader->setUniformValue(u_hue_rotate, 90.0f / 180.0f * 3.141592653f);		// angle in radians
+		shader->setUniformValue(u_invert, 1.0f);
+		shader->setUniformValue(u_opacity, 0.5f);
+		shader->setUniformValue(u_saturate, 2.0f);
+	});
+	rt->setShader(filter_shader);
+
+	return rt;
 }
 
 int main(int argc, char* argv[])
@@ -250,6 +328,9 @@ int main(int argc, char* argv[])
 	bt2->setCentre(Blittable::Centre::MIDDLE);
 	bt2->setPosition(width/2, 5 * height / 6);*/
 
+	SceneObjectPtr bt = nullptr;
+	bt = test_filter_shader("test_npc.png");
+
 	SDL_Event e;
 	bool done = false;
 	Uint32 last_tick_time = SDL_GetTicks();
@@ -297,9 +378,11 @@ int main(int argc, char* argv[])
 		scene->renderScene(rman);
 		rman->render(main_wnd);
 
-		/*bt->preRender(main_wnd);
-		main_wnd->render(bt.get());
-		bt2->preRender(main_wnd);
+		if(bt) {
+			bt->preRender(main_wnd);
+			main_wnd->render(bt.get());
+		}
+		/*bt2->preRender(main_wnd);
 		main_wnd->render(bt2.get());*/
 
 		main_wnd->swap();

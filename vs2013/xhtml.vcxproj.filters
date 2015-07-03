@@ -366,6 +366,9 @@
     <ClCompile Include="..\src\kre\FontDriver.cpp">
       <Filter>Source Files\kre</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\kre\SceneTree.cpp">
+      <Filter>Source Files\kre</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -777,6 +780,9 @@
       <Filter>Header Files\kre</Filter>
     </ClInclude>
     <ClInclude Include="..\src\kre\stb_rect_pack.h">
+      <Filter>Header Files\kre</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\kre\SceneTree.hpp">
       <Filter>Header Files\kre</Filter>
     </ClInclude>
   </ItemGroup>
