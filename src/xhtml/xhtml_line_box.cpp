@@ -261,12 +261,12 @@ namespace xhtml
 		}
 	}
 
-	void LineBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	void LineBox::handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		// do nothing
 	}
 
-	void LineBox::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
+	void LineBox::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 	}
 }

@@ -261,9 +261,6 @@
     <ClCompile Include="..\src\xhtml\xhtml_text_node.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\xhtml\display_list.cpp">
-      <Filter>Source Files\xhtml</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\xhtml\to_roman.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
@@ -663,9 +660,6 @@
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
     <ClInclude Include="..\src\xhtml\xhtml_text_node.hpp">
-      <Filter>Header Files\xhtml</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\xhtml\display_list.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
     <ClInclude Include="..\src\xhtml\to_roman.hpp">

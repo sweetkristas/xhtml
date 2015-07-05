@@ -25,7 +25,6 @@
 #include "SceneObject.hpp"
 #include "DisplayDevice.hpp"
 
-#include "display_list.hpp"
 #include "solid_renderable.hpp"
 #include "xhtml_border_info.hpp"
 #include "xhtml_box.hpp"
@@ -395,7 +394,7 @@ namespace xhtml
 		}
 	}
 
-	void BorderInfo::renderNormal(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
+	void BorderInfo::renderNormal(const KRE::SceneTreePtr& scene_tree, const point& offset, const Dimensions& dims) const
 	{
 		std::array<std::shared_ptr<SolidRenderable>, 4> border;
 
@@ -565,11 +564,11 @@ namespace xhtml
 
 		for(int side = 0; side != 4; ++side) {
 			border[side]->update(&vc[side]);
-			display_list->addRenderable(border[side]);
+			scene_tree->addObject(border[side]);
 		}
 	}
 
-	bool BorderInfo::render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
+	bool BorderInfo::render(const KRE::SceneTreePtr& scene_tree, const point& offset, const Dimensions& dims) const
 	{
 		if(styles_ == nullptr) {
 			return false;
@@ -577,7 +576,7 @@ namespace xhtml
 
 		if(image_ == nullptr) {
 			// no image, indicate we should try fallback.
-			renderNormal(display_list, offset, dims);
+			renderNormal(scene_tree, offset, dims);
 			return false;
 		}
 		bool no_fill = false;
@@ -759,7 +758,7 @@ namespace xhtml
 
 		// pass co-ordinates to renderable object and add to display list ready for rendering.
 		ptr->update(&coords);
-		display_list->addRenderable(ptr);
+		scene_tree->addObject(ptr);
 		// returning true indicates we handled drawing the border
 		return true;
 	}

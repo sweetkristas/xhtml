@@ -139,19 +139,19 @@ namespace xhtml
 		justification_ = (containing_width - calculateWidth()) / word_count;
 	}
 
-	void TextBox::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
+	void TextBox::handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		point offs = offset - point(0, getDimensions().content_.height);
-		Box::handleRenderBackground(display_list, offs);
+		Box::handleRenderBackground(scene_tree, offs);
 	}
 
-	void TextBox::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
+	void TextBox::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		point offs = offset - point(0, getDimensions().content_.height);
-		Box::handleRenderBorder(display_list, offs);
+		Box::handleRenderBorder(scene_tree, offs);
 	}
 
-	void TextBox::handleRenderShadow(DisplayListPtr display_list, const point& offset, KRE::FontRenderablePtr fontr, float w, float h) const
+	void TextBox::handleRenderShadow(const KRE::SceneTreePtr& scene_tree, const point& offset, KRE::FontRenderablePtr fontr, float w, float h) const
 	{
 		// make a copy of the font object.
 		//KRE::FontRenderablePtr shadow_font(new KRE::FontRenderable(*fontr));
@@ -167,7 +167,7 @@ namespace xhtml
 				shadow_font->setPosition(shadow.x_offset + offset.x / LayoutEngine::getFixedPointScaleFloat(), 
 					shadow.y_offset + offset.y / LayoutEngine::getFixedPointScaleFloat());
 				shadow_font->setColor(shadow.color != nullptr ? *shadow.color : *getStyleNode()->getColor());
-				display_list->addRenderable(shadow_font);
+				scene_tree->addObject(shadow_font);
 			} else {
 				using namespace KRE;
 				// more complex case where we need to blur, so we render the text to a 
@@ -235,7 +235,7 @@ namespace xhtml
 
 				rt_blur_v->setPosition(shadow.x_offset + offset.x / LayoutEngine::getFixedPointScaleFloat() - extra_border, 
 					shadow.y_offset + (offset.y) / LayoutEngine::getFixedPointScaleFloat() - xheight - extra_border);
-				display_list->addRenderable(rt_blur_v);
+				scene_tree->addObject(rt_blur_v);
 				// XXX isnstead of adding all the textures here, we should add them to an array, then
 				// render them all to an FBO so we only have one final texture.
 				/*shadow_list.emplace_back(rt_blur_v);
@@ -265,7 +265,7 @@ namespace xhtml
 		}*/
 	}
 
-	void TextBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	void TextBox::handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		ASSERT_LOG(line_ != nullptr, "TextBox has not had layout done. line_ is nullptr");
 		std::vector<point> path;
@@ -286,13 +286,13 @@ namespace xhtml
 		if(!shadows_.empty()) {
 			float w = fontr->getWidth() + (line_->space_advance + justification_) * line_->line.size() / LayoutEngine::getFixedPointScaleFloat();
 			float h = static_cast<float>(fontr->getHeight());
-			handleRenderShadow(display_list, offset, fontr, w, h);
+			handleRenderShadow(scene_tree, offset, fontr, w, h);
 		}
 		//handleRenderTextDecoration -- underlines, then overlines
 
 		fontr->setColorPointer(getStyleNode()->getColor());
 		fontr->setPosition(offset.x / LayoutEngine::getFixedPointScaleFloat(), offset.y / LayoutEngine::getFixedPointScaleFloat());
-		display_list->addRenderable(fontr);
+		scene_tree->addObject(fontr);
 
 		//handleRenderEmphasis -- text-emphasis
 		//handleRenderTextDecoration -- line-through

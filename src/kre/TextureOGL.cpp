@@ -595,14 +595,16 @@ namespace KRE
 
 		ASSERT_LOG(is_yuv_planar_ == false, "XXX Need to fix yuv planar textures now!");
 
-		auto it = get_id_cache().find(surf->id());
-		if(it != get_id_cache().end()) {
-			auto cached_id = it->second.lock();
-			if(cached_id != nullptr) {
-				texture_data_[n].id = cached_id;
-				return;
+		if(surf != nullptr) {
+			auto it = get_id_cache().find(surf->id());
+			if(it != get_id_cache().end()) {
+				auto cached_id = it->second.lock();
+				if(cached_id != nullptr) {
+					texture_data_[n].id = cached_id;
+					return;
+				}
+				// if we couldn't lock the id fall through and create a new one
 			}
-			// if we couldn't lock the id fall through and create a new one
 		}
 
 		GLuint new_id;

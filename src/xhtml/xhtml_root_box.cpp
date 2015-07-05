@@ -62,11 +62,11 @@ namespace xhtml
 		layoutFixed(eng, containing);
 	}
 
-	void RootBox::handleEndRender(DisplayListPtr display_list, const point& offset) const
+	void RootBox::handleEndRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		// render fixed boxes.
 		for(auto& fix : fixed_boxes_) {
-			fix->render(display_list, point(0, 0));
+			fix->render(point(0, 0));
 		}
 	}
 

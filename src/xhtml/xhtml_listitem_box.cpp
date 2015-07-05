@@ -201,7 +201,7 @@ namespace xhtml
 		setContentHeight(getHeight() + child->getHeight() + child->getMBPBottom());
 	}
 
-	void ListItemBox::handleRender(DisplayListPtr display_list, const point& offset) const 
+	void ListItemBox::handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const 
 	{
 		// XXX should figure out if there is a cleaner way of doing this, basically we want the list marker to be offset by the 
 		// content's first child's position.
@@ -223,7 +223,7 @@ namespace xhtml
 				auto rend = std::make_shared<KRE::Blittable>(tex);
 				rend->setCentre(KRE::Blittable::Centre::BOTTOM_LEFT);
 				rend->setCentreCoords(pointf(0.0f, y / LayoutEngine::getFixedPointScaleFloat()));
-				display_list->addRenderable(rend);
+				scene_tree->addObject(rend);
 			}
 		} else {
 			auto path = fnt->getGlyphPath(marker_);
@@ -235,7 +235,7 @@ namespace xhtml
 			}
 			auto fontr = fnt->createRenderableFromPath(nullptr, marker_, new_path);
 			fontr->setColorPointer(getStyleNode()->getColor());
-			display_list->addRenderable(fontr);
+			scene_tree->addObject(fontr);
 		}
 	}
 

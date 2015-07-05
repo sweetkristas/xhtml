@@ -242,15 +242,10 @@ namespace xhtml
 		//}
 	}
 
-	void BlockBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	void BlockBox::handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		if(isReplaceable()) {
-			NodePtr node = getNode();
-			auto r = node->getRenderable();
-			r->setPosition(glm::vec3(static_cast<float>(offset.x)/65536.0f,
-				static_cast<float>(offset.y)/65536.0f,
-				0.0f));
-			display_list->addRenderable(r);
+			scene_tree->addObject(getNode()->getRenderable());
 		}
 	}
 

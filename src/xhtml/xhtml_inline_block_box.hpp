@@ -43,7 +43,7 @@ namespace xhtml
 		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) override;
 		void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) override;
-		void handleRender(DisplayListPtr display_list, const point& offset) const override;
+		void handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
 		
 		// If it's one line or more than one, if it's non-replaceable
 		bool multiline_;

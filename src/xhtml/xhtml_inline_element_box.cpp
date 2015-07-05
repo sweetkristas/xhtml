@@ -69,14 +69,13 @@ namespace xhtml
 		return ss.str();
 	}
 
-	void InlineElementBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	void InlineElementBox::handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		auto node = getNode();
 		if(node != nullptr) {
 			auto r = node->getRenderable();
 			if(r != nullptr) {
-				r->setPosition(glm::vec3(offset.x/LayoutEngine::getFixedPointScaleFloat(), offset.y/LayoutEngine::getFixedPointScaleFloat(), 0.0f));
-				display_list->addRenderable(r);
+				scene_tree->addObject(r);
 			}
 		}
 	}

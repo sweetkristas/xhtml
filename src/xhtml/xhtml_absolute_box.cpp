@@ -118,7 +118,7 @@ namespace xhtml
 		setContentHeight(height - getMBPHeight());
 	}
 
-	void AbsoluteBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	void AbsoluteBox::handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		// XXX
 	}

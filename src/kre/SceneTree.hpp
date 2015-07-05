@@ -37,6 +37,8 @@ namespace KRE
 	typedef std::shared_ptr<SceneTree> SceneTreePtr;
 	typedef std::weak_ptr<SceneTree> WeakSceneTreePtr;
 
+	typedef std::function<void(SceneTree*)> prerender_fn;
+
 	class SceneTree : public std::enable_shared_from_this<SceneTree>
 	{
 	public:
@@ -68,9 +70,17 @@ namespace KRE
 		void addRenderTarget(const RenderTargetPtr& render_target) { render_targets_.emplace_back(render_target); }
 		const std::vector<RenderTargetPtr>& getRenderTargets() const { return render_targets_; }
 
-		const glm::mat4& getModelMatrix() const;
+		void setCamera(const CameraPtr& cam) { camera_ = cam; }
+		const CameraPtr& getCamera() const { return camera_; }
+
+		// This is a third party matrix set, it is applied to content *before* any translation/rotation/scaling set on us.
+		const glm::mat4& getModelMatrix() const { return model_matrix_; }
+		void setModelMatrix(const glm::mat4& m) { model_matrix_ = m; model_changed_ = true; }
 
 		static SceneTreePtr create(SceneTreePtr parent);
+
+		// callback used during pre-render.
+		prerender_fn setOnPreRenderFunction(prerender_fn fn) { auto current_fn = pre_render_fn_ ; pre_render_fn_ = fn; return current_fn; }
 	protected:
 		explicit SceneTree(const SceneTreePtr& parent);
 	private:
@@ -90,10 +100,13 @@ namespace KRE
 		glm::quat rotation_;
 		glm::vec3 scale_;
 
-		bool model_changed_;
-		mutable glm::mat4 model_matrix_;
+		mutable bool model_changed_;
+		glm::mat4 model_matrix_;
+		mutable glm::mat4 cached_model_matrix_;
 
 		ColorPtr color_;
+
+		prerender_fn pre_render_fn_;
 	};
 
 	const glm::vec3& get_xaxis();

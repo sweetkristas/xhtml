@@ -159,7 +159,7 @@ namespace xhtml
 		calculateVertMPB(containing.content_.height);
 	}
 
-	void InlineBlockBox::handleRender(DisplayListPtr display_list, const point& offset) const
+	void InlineBlockBox::handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		NodePtr node = getNode();
 		if(node != nullptr && node->isReplaced()) {
@@ -167,10 +167,7 @@ namespace xhtml
 			if(r == nullptr) {
 				LOG_ERROR("No renderable returned for repalced element: " << node->toString());
 			} else {
-				r->setPosition(glm::vec3(static_cast<float>(offset.x)/LayoutEngine::getFixedPointScaleFloat(),
-					static_cast<float>(offset.y)/LayoutEngine::getFixedPointScaleFloat(),
-					0.0f));
-				display_list->addRenderable(r);
+				scene_tree->addObject(r);
 			}
 		}
 	}

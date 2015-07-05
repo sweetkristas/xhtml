@@ -350,7 +350,7 @@ namespace xhtml
 		}
 	}
 
-	void BackgroundInfo::renderBoxShadow(DisplayListPtr display_list, const point& offset, const Dimensions& dims, KRE::RenderablePtr clip_shape) const
+	void BackgroundInfo::renderBoxShadow(const KRE::SceneTreePtr& scene_tree, const point& offset, const Dimensions& dims, KRE::RenderablePtr clip_shape) const
 	{
 		using namespace KRE;
 
@@ -390,7 +390,7 @@ namespace xhtml
 					}
 					box->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScaleFloat() - ssr, 
 						(shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScaleFloat() - ssr);
-					display_list->addRenderable(box);
+					scene_tree->addObject(box);
 				} else {
 					const int gaussian_radius = 7;
 				
@@ -455,13 +455,13 @@ namespace xhtml
 
 					rt_blur_v->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScaleFloat() - ssr - gaussian_radius * 2, 
 						(shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScaleFloat() - ssr - gaussian_radius * 2);
-					display_list->addRenderable(rt_blur_v);
+					scene_tree->addObject(rt_blur_v);
 				}
 			}
 		}
 	}
 
-	void BackgroundInfo::render(DisplayListPtr display_list, const point& offset, const Dimensions& dims) const
+	void BackgroundInfo::render(const KRE::SceneTreePtr& scene_tree, const point& offset, const Dimensions& dims) const
 	{
 		if(styles_ == nullptr) {
 			return;
@@ -503,7 +503,7 @@ namespace xhtml
 				break;
 		}
 
-		renderBoxShadow(display_list, offset, dims, clip_shape);
+		renderBoxShadow(scene_tree, offset, dims, clip_shape);
 
 		if(styles_->getBackgroundColor()->ai() != 0) {
 			auto solid = std::make_shared<SolidRenderable>(rect(0, 0, rw, rh), styles_->getBackgroundColor());
@@ -511,7 +511,7 @@ namespace xhtml
 			if(clip_shape != nullptr) {
 				solid->setClipSettings(get_stencil_mask_settings(), clip_shape);
 			}
-			display_list->addRenderable(solid);
+			scene_tree->addObject(solid);
 		}
 		// XXX if texture is set then use background position and repeat as appropriate.
 		if(texture_ != nullptr) {
@@ -573,7 +573,7 @@ namespace xhtml
 			if(clip_shape != nullptr) {
 				ptr->setClipSettings(get_stencil_mask_settings(), clip_shape);
 			}
-			display_list->addRenderable(ptr);
+			scene_tree->addObject(ptr);
 		}
 	}
 }

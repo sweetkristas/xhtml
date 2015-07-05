@@ -27,6 +27,7 @@
 #include "ColorScope.hpp"
 #include "DisplayDevice.hpp"
 #include "LightObject.hpp"
+#include "ModelMatrixScope.hpp"
 #include "Renderable.hpp"
 #include "RenderManager.hpp"
 #include "RenderTarget.hpp"
@@ -37,6 +38,30 @@
 
 namespace KRE
 {
+	const glm::vec3& get_xaxis()
+	{
+		static glm::vec3 x_axis(1.0f, 0.0f, 0.0f);
+		return x_axis;
+	}
+
+	const glm::vec3& get_yaxis()
+	{
+		static glm::vec3 y_axis(0.0f, 1.0f, 0.0f);
+		return y_axis;
+	}
+
+	const glm::vec3& get_zaxis()
+	{
+		static glm::vec3 z_axis(0.0f, 0.0f, 1.0f);
+		return z_axis;
+	}
+
+	const glm::mat4& get_identity_matrix()
+	{
+		static glm::mat4 imatrix(1.0f);
+		return imatrix;
+	}
+
 	namespace
 	{
 		struct CameraScope
@@ -77,7 +102,9 @@ namespace KRE
 		  scale_(1.0f),
 		  model_changed_(true),
 		  model_matrix_(1.0f),
-		  color_(nullptr)
+		  cached_model_matrix_(1.0f),
+		  color_(nullptr),
+		  pre_render_fn_()
 	{
 	}
 
@@ -135,18 +162,18 @@ namespace KRE
 		model_changed_ = true;
 	}
 
-	const glm::mat4& SceneTree::getModelMatrix() const 
-	{
-		if(model_changed_) {
-			model_matrix_ = glm::translate(get_identity_matrix(), position_) * glm::toMat4(rotation_) * glm::scale(get_identity_matrix(), scale_);
-		}
-		return model_matrix_;
-	}
-
 	void SceneTree::preRender(const WindowPtr& wnd)
 	{
+		if(pre_render_fn_) {
+			pre_render_fn_(this);
+		}
+
 		for(auto& obj : objects_) {
 			obj->preRender(wnd);
+		}
+
+		for(auto& rt : render_targets_) {
+			rt->preRender(wnd);
 		}
 
 		for(auto& child : children_) {
@@ -159,64 +186,55 @@ namespace KRE
 		//if(scopeable_.isBlendEnabled()) {
 		//}
 
-		CameraScope cs(camera_);
-		ClipShapeScope::Manager cssm(clip_shape_, nullptr);
-		// blend
-		// color
-		//BlendModeScope bms(scopeable_);
-		//BlendEquationScope bes(scopeable_);
-		ColorScope color_scope(color_);
-
 		//XXX set global model matrix here. getModelMatrix()
+		//XXX temporary workaround.
+		if(model_changed_) {
+			model_changed_ = false;
+			glm::mat4 m = glm::scale(model_matrix_, scale_);
+			m = glm::toMat4(rotation_) * m;
+			cached_model_matrix_ = glm::translate(m, position_);
+		}
+		// XXX use cached_model_matrix_ as current global matrix.
+		glm::mat4 current_model = set_global_model_matrix(cached_model_matrix_);
 
-		// render all the objects and children into a render target if one exists.
-		// which is why we introduce a new scope
 		{
-			RenderTarget::RenderScope(!render_targets_.empty() ? render_targets_.front() : nullptr, render_target_window_);
+			CameraScope cs(camera_);
+			ClipShapeScope::Manager cssm(clip_shape_, nullptr);
+			// blend
+			// color
+			//BlendModeScope bms(scopeable_);
+			//BlendEquationScope bes(scopeable_);
+			ColorScope color_scope(color_);
 
-			for(auto& obj : objects_) {
-				wnd->render(obj.get());
+			// render all the objects and children into a render target if one exists.
+			// which is why we introduce a new scope
+			{
+				auto rt = !render_targets_.empty() ? render_targets_.front() : nullptr;
+				RenderTarget::RenderScope rs(rt, rect(0, 0, rt ? rt->width() : 0, rt ? rt->height() : 0));
+
+				for(auto& obj : objects_) {
+					wnd->render(obj.get());
+				}
+
+				for(auto& child : children_) {
+					child->render(wnd);
+				}
 			}
 
-			for(auto& child : children_) {
-				child->render(wnd);
+			if(render_targets_.size() > 1) {
+				for(auto it = render_targets_.cbegin() + 1; it != render_targets_.cend(); ++it) {
+					RenderTarget::RenderScope rs(*it, rect(0, 0, (*it)->width(), (*it)->height()));
+					wnd->render((it-1)->get());
+				}
 			}
-		}
-
-		if(render_targets_.size() > 1) {
-			for(auto it = render_targets_.cbegin() + 1; it != render_targets_.cend(); ) {
-				RenderTarget::RenderScope(*it, render_target_window_);
-				wnd->render((it-1)->get());
-			}
-		}
+		} // camera scope ends
 
 		// Output the last render target
 		if(!render_targets_.empty()) {
+			ModelManager2D mm(position_.x, position_.y);
 			wnd->render(render_targets_.back().get());
 		}
-	}
 
-	const glm::vec3& get_xaxis()
-	{
-		static glm::vec3 x_axis(1.0f, 0.0f, 0.0f);
-		return x_axis;
-	}
-
-	const glm::vec3& get_yaxis()
-	{
-		static glm::vec3 y_axis(0.0f, 1.0f, 0.0f);
-		return y_axis;
-	}
-
-	const glm::vec3& get_zaxis()
-	{
-		static glm::vec3 z_axis(0.0f, 0.0f, 1.0f);
-		return z_axis;
-	}
-
-	const glm::mat4& get_identity_matrix()
-	{
-		static glm::mat4 imatrix(1.0f);
-		return imatrix;
+		set_global_model_matrix(current_model);
 	}
 }

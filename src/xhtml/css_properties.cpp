@@ -3243,20 +3243,25 @@ namespace css
 					std::shared_ptr<CssColor> color = std::make_shared<CssColor>(CssColorParam::CURRENT);
 					bool inset = false;
 					while(!isEndToken()) {
+						skipWhitespace();
 						if(isToken(TokenId::DIMENSION)) {
 							xhtml::FixedPoint value = static_cast<xhtml::FixedPoint>((*it_)->getNumericValue() * fixed_point_scale);
 							lengths.emplace_back(Length(value, (*it_)->getStringValue()));
+							advance();
+						} else if(isToken(TokenId::IDENT)) {
+							std::string colval = (*it_)->getStringValue();
+							color->setColor(KRE::Color(colval));
 							advance();
 						} else {
 							parseColor2(color);
 						}
 					}
-					if(lengths.size() == 2 || lengths.size() == 3) {
+					if(lengths.size() >= 2 && lengths.size() <= 4) {
 						filter_list.emplace_back(std::make_shared<Filter>(CssFilterId::DROP_SHADOW, BoxShadow(inset, 
 							lengths[0], 
 							lengths[1], 
-							lengths.size() == 2 ? Length() : lengths[2], 
-							Length(),	// drop shadows have no spread value.
+							lengths.size() < 3 ? Length() : lengths[2], 
+							lengths.size() < 4 ? Length() : lengths[3],
 							*color)));
 					} else {
 						throw ParserError(formatter() << "Unrecognised parmeters to drop-shadow function in property '" << prefix << "')");
@@ -3332,22 +3337,22 @@ namespace css
 					transforms.emplace_back(TransformId::TRANSLATE_2D, Length(), ty);
 				} else if(ref == "scale") {
 					Length sx = parseLengthInternal(NumericParseOptions::NUMBER);
-					Length sy(fixed_point_scale, false);
+					Length sy = sx;
 					skipWhitespace();
 					if(isToken(TokenId::COMMA)) {
 						advance();
 						skipWhitespace();
 						sy = parseLengthInternal(NumericParseOptions::NUMBER);
 					}
-					transforms.emplace_back(TransformId::SCALE_2D, sy, sy);
+					transforms.emplace_back(TransformId::SCALE_2D, sx, sy);
 				} else if(ref == "scaleX") {
 					Length sx = parseLengthInternal(NumericParseOptions::NUMBER);
 					Length sy(fixed_point_scale, false);
-					transforms.emplace_back(TransformId::SCALE_2D, sy, sy);
+					transforms.emplace_back(TransformId::SCALE_2D, sx, sy);
 				} else if(ref == "scaleY") {
 					Length sx(fixed_point_scale, false);
 					Length sy = parseLengthInternal(NumericParseOptions::NUMBER);
-					transforms.emplace_back(TransformId::SCALE_2D, sy, sy);
+					transforms.emplace_back(TransformId::SCALE_2D, sx, sy);
 				} else if(ref == "rotate") {
 					if(isToken(TokenId::DIMENSION)) {
 						std::array<Angle, 2> angles;

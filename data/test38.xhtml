@@ -4,16 +4,19 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
 	<style>
-img {
-    -webkit-filter: blur(3px) sepia(100%) saturate(200%) contrast(200%) brightness(50%) hue-rotate(90deg) grayscale(100%) invert(100%) opacity(50%);
-    filter: blur(3px) sepia(100%) brightness(50%) contrast(200%) grayscale(100%) hue-rotate(90deg) invert(100%) opacity(50%) saturate(200%);
-}
 body {
     background-color: black;
+}
+img {
+	transform: rotate(0deg);
+}
+img:hover {
+	transform: rotate(360deg);
+	transition: transform 1s;
 }
     </style>
 </head>
 <body>
-    <img src="../images/test_npc.png" />
+    <img src="../images/test_npc.png" width="200" height="200"/>
 </body>
 </html>

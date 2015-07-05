@@ -398,10 +398,12 @@ namespace KRE
 			const char* const blur7_fs =
 				"#version 120\n"
 				"uniform sampler2D u_tex_map;\n"
+				"uniform sampler2D u_tex_map1;\n"
 				"uniform float texel_width_offset;\n"
 				"uniform float texel_height_offset;\n"
 				"uniform vec4 u_color;\n"
 				"uniform float gaussian[15];\n"
+				"uniform bool tex_overlay;\n"
 				"varying vec2 v_texcoords;\n"
 				"\n"
 				"void main()\n"
@@ -411,12 +413,18 @@ namespace KRE
 				"    for(int index = 0; index < 15; ++index) {\n"
 				"        sum += texture2D(u_tex_map, v_texcoords + step_offset * (index - 7)) * gaussian[index];\n"
 				"    }\n"
+				"    sum = vec4(sum.rgb * 5.0, sum.a*1.2);\n"
 				"    gl_FragColor = sum * u_color;\n"
+				"    vec4 color1 = texture2D(u_tex_map1, v_texcoords);\n"
+				"    if(tex_overlay && color1.a > 0.05) {\n"
+				"        gl_FragColor = color1;\n"
+				"    }\n"
 				"}\n";
 			const uniform_mapping blur_uniform_mapping[] = 
 			{
 				{"mvp_matrix", "u_mvp_matrix"},
 				{"tex_map", "u_tex_map"},
+				{"tex_map1", "u_tex_map1"},
 				{"color", "u_color"},
 				{"", ""},
 			};
@@ -426,6 +434,51 @@ namespace KRE
 				{"texcoord", "a_texcoord"},
 				{"", ""},
 			};
+
+			const char* const overlay_vs =
+				"uniform mat4 u_mvp_matrix;\n"
+				"attribute vec2 a_position;\n"
+				"attribute vec2 a_texcoord;\n"
+				"varying vec2 v_texcoords;\n"
+				"\n"
+				"void main()\n"
+				"{\n"
+				"    gl_Position = u_mvp_matrix * vec4(a_position, 0.0, 1.0);\n"
+				"    v_texcoords = a_texcoord;\n"
+				"}\n";
+			const char* const overlay_fs =
+				"#version 120\n"
+				"uniform sampler2D u_tex_map;\n"
+				"uniform sampler2D u_tex_map1;\n"
+				"uniform vec4 u_color;\n"
+				"varying vec2 v_texcoords;\n"
+				"\n"
+				"void main()\n"
+				"{\n"
+				"    vec4 t0 = texture2D(u_tex_map, v_texcoords);\n"
+				"    vec4 t1 = texture2D(u_tex_map1, v_texcoords);\n"
+				"    if(t1.a > 0.05) {"
+				"        gl_FragColor = t1;\n"
+				"    } else {\n"
+				"        gl_FragColor = t0;\n"
+				"    }\n"
+				"    gl_FragColor *= u_color;\n"
+				"}\n";
+			const uniform_mapping overlay_uniform_mapping[] = 
+			{
+				{"mvp_matrix", "u_mvp_matrix"},
+				{"tex_map", "u_tex_map"},
+				{"tex_map1", "u_tex_map1"},
+				{"color", "u_color"},
+				{"", ""},
+			};
+			const attribute_mapping overlay_attribute_mapping[] = 
+			{
+				{"position", "a_position"},
+				{"texcoord", "a_texcoord"},
+				{"", ""},
+			};
+
 
 			const char* const filter_vs =
 				"uniform mat4 u_mvp_matrix;\n"
@@ -513,7 +566,6 @@ namespace KRE
 				"    gl_FragColor.a *= u_opacity;\n"
 				"    gl_FragColor = gl_FragColor * u_color;\n"
 				"}\n";
-			// XXX Need to implement u_hue_rotate -- see http://www.w3.org/TR/SVG/filters.html#feColorMatrixValuesAttribute
 			const uniform_mapping filter_uniform_mapping[] = 
 			{
 				{"mvp_matrix", "u_mvp_matrix"},
@@ -522,6 +574,42 @@ namespace KRE
 				{"", ""},
 			};
 			const attribute_mapping filter_attribute_mapping[] = 
+			{
+				{"position", "a_position"},
+				{"texcoord", "a_texcoord"},
+				{"", ""},
+			};
+
+			// converts the alpha map to a white version
+			const char* const alphaizer_vs =
+				"uniform mat4 u_mvp_matrix;\n"
+				"attribute vec2 a_position;\n"
+				"attribute vec2 a_texcoord;\n"
+				"varying vec2 v_texcoords;\n"
+				"\n"
+				"void main()\n"
+				"{\n"
+				"    gl_Position = u_mvp_matrix * vec4(a_position, 0.0, 1.0);\n"
+				"    v_texcoords = a_texcoord;\n"
+				"}\n";
+			const char* const alphaizer_fs =
+				"#version 120\n"
+				"uniform sampler2D u_tex_map;\n"
+				"varying vec2 v_texcoords;\n"
+				"\n"
+				"void main()\n"
+				"{\n"
+				"    vec4 color = texture2D(u_tex_map, v_texcoords);\n"
+				"    gl_FragData[0] = vec4(1.0, 1.0, 1.0, color.a);\n"
+				"    gl_FragData[1] = color;\n"
+				"}\n";
+			const uniform_mapping alphaizer_uniform_mapping[] = 
+			{
+				{"mvp_matrix", "u_mvp_matrix"},
+				{"tex_map", "u_tex_map"},
+				{"", ""},
+			};
+			const attribute_mapping alphaizer_attribute_mapping[] = 
 			{
 				{"position", "a_position"},
 				{"texcoord", "a_texcoord"},
@@ -547,7 +635,9 @@ namespace KRE
 				{ "point_shader", "point_shader_vs", point_shader_vs, "point_shader_fs", point_shader_fs, point_shader_uniform_mapping, point_shader_attribute_mapping },
 				{ "font_shader", "font_shader_vs", font_shader_vs, "font_shader_fs", font_shader_fs, font_shader_uniform_mapping, font_shader_attribute_mapping },
 				{ "blur7", "blur_vs", blur_vs, "blur7_fs", blur7_fs, blur_uniform_mapping, blur_attribute_mapping },
+				{ "overlay", "overlay_vs", overlay_vs, "overlay_fs", overlay_fs, overlay_uniform_mapping, overlay_attribute_mapping },
 				{ "filter_shader", "filter_vs", filter_vs, "filter_fs", filter_fs, filter_uniform_mapping, filter_attribute_mapping },
+				{ "alphaizer", "alphaizer_vs", alphaizer_vs, "alphaizer_fs", alphaizer_fs, alphaizer_uniform_mapping, alphaizer_attribute_mapping },				
 			};
 
 			typedef std::map<std::string, ShaderProgramPtr> shader_factory_map;

@@ -126,16 +126,20 @@ namespace KRE
 		  mix_ratio_(0.0f),
 		  mix_palettes_(false)
 	{
+		ASSERT_LOG(count > 0, "Insufficient number of textures specified: " << count);
 		palette_[0] = palette_[1] = 0;
-		texture_params_.resize(1);
-		texture_params_[0].surface = Surface::create(width, height, fmt);
-		texture_params_[0].surface_width = width;
-		texture_params_[0].surface_height = height;
-		texture_params_[0].width = width;
-		texture_params_[0].height = height;
-		texture_params_[0].depth = depth;
-		texture_params_[0].type = type;
-		internalInit(texture_params_.begin());
+		texture_params_.resize(count);
+		for(int n = 0; n != count; ++n) {
+			auto& tp = texture_params_[n];
+			tp.surface = Surface::create(width, height, fmt);
+			tp.surface_width = width;
+			tp.surface_height = height;
+			tp.width = width;
+			tp.height = height;
+			tp.depth = depth;
+			tp.type = type;
+			internalInit(texture_params_.begin()+n);
+		}
 	}
 
 	Texture::~Texture()

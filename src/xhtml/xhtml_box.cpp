@@ -21,6 +21,10 @@
 	   distribution.
 */
 
+#include "CameraObject.hpp"
+#include "RenderTarget.hpp"
+#include "Shaders.hpp"
+
 #include "solid_renderable.hpp"
 
 #include "xhtml_absolute_box.hpp"
@@ -245,7 +249,7 @@ namespace xhtml
 		}
 	}
 
-	void Box::render(DisplayListPtr display_list, const point& offset) const
+	void Box::render(const point& offset) const
 	{
 		auto node = getNode();
 		std::unique_ptr<RenderContext::Manager> ctx_manager;
@@ -289,23 +293,57 @@ namespace xhtml
 			}
 		}
 
-		handleRenderBackground(display_list, offs);
-		handleRenderBorder(display_list, offs);
-		handleRender(display_list, offs);
+		KRE::SceneTreePtr scene_tree = nullptr;
+		if(node_ != nullptr) {
+			scene_tree = node_->getSceneTree();
+			scene_tree->setPosition(offs.x / LayoutEngine::getFixedPointScaleFloat(), offs.y / LayoutEngine::getFixedPointScaleFloat());
+
+			// XXX needs a modifer for transform origin.
+			auto transform = node_->getTransform();
+			if(!transform->getTransforms().empty()) {
+				// XX active rect needs to be modifed by these 
+				// or alternatively rotate the mouse position based on this transform. which is only one 
+				// vertex to transform.
+				const float tw = (getWidth() + getMBPWidth()) / LayoutEngine::getFixedPointScaleFloat();
+				const float th = (getHeight() + getMBPHeight()) / LayoutEngine::getFixedPointScaleFloat();
+				glm::mat4 m1 = glm::translate(glm::mat4(1.0f), glm::vec3(-tw/2.0f, -th/2.0f, 0.0f));
+				glm::mat4 m2 = glm::translate(glm::mat4(1.0f), glm::vec3(tw/2.0f, th/2.0f, 0.0f));
+				LOG_DEBUG("transform: " << transform);
+				scene_tree->setOnPreRenderFunction([m1, m2, transform](KRE::SceneTree* st) {
+					glm::mat4 combined_matrix = m2 * transform->getComputedMatrix() * m1;
+					st->setModelMatrix(combined_matrix);
+					//node->setModelMatrix(combined_matrix);
+				});
+				
+			}
+		}
+
+		if(scene_tree != nullptr) {
+			// XXX find a way to ameliorate this
+			scene_tree->clearObjects();
+			scene_tree->clearRenderTargets();
+
+			handleRenderBackground(scene_tree, offs);
+			handleRenderBorder(scene_tree, offs);
+			handleRender(scene_tree, offs);
+			handleRenderFilters(scene_tree, offs);
+		}
 		for(auto& child : getChildren()) {
 			if(!child->isFloat()) {
-				child->render(display_list, offs);
+				child->render(offs);
 			}
 		}
 		for(auto& child : getChildren()) {
 			if(child->isFloat()) {
-				child->render(display_list, offs);
+				child->render(offs);
 			}
 		}
 		for(auto& ab : absolute_boxes_) {
-			ab->render(display_list, point(0, 0));
+			ab->render(point(0, 0));
 		}
-		handleEndRender(display_list, offs);
+		if(scene_tree != nullptr) {
+			handleEndRender(scene_tree, offs);
+		}
 
 		// set the active rect on any parent node.
 		if(node != nullptr) {
@@ -318,19 +356,343 @@ namespace xhtml
 		}
 	}
 
-	void Box::handleRenderBackground(DisplayListPtr display_list, const point& offset) const
+	void Box::handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
 		auto& dims = getDimensions();
 		NodePtr node = getNode();
 		if(node != nullptr && node->hasTag(ElementId::BODY)) {
 			//dims = getRootDimensions();
 		}
-		background_info_.render(display_list, offset, dims);
+		background_info_.render(scene_tree, offset, dims);
 	}
 
-	void Box::handleRenderBorder(DisplayListPtr display_list, const point& offset) const
+	void Box::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
-		border_info_.render(display_list, offset, getDimensions());
+		border_info_.render(scene_tree, offset, getDimensions());
 	}
 
+	void Box::handleRenderFilters(const KRE::SceneTreePtr& scene_tree, const point& offset) const
+	{
+		using namespace KRE;
+
+		auto node = getStyleNode();
+		if(node == nullptr || node->getFilters() == nullptr) {
+			return;
+		}
+
+		// if we have a drop-shadow filter, w/h need to be bigger.
+		// with all the changes that implies.
+		const int w = (getMBPWidth() + getWidth()) / LayoutEngine::getFixedPointScale();
+		const int h = (getMBPHeight() + getHeight()) / LayoutEngine::getFixedPointScale();
+
+		const int x = offset.x / LayoutEngine::getFixedPointScale();
+		const int y = offset.y / LayoutEngine::getFixedPointScale();
+		
+		auto filters = node->getFilters()->getFilters();
+
+		if(!filters.empty()) {
+			// Need to render the scene at full-size into the render buffer.
+			auto camera = Camera::createInstance("SceneTree:Camera", 0, w, 0, h);
+			camera->setOrthoWindow(0, w, 0, h);
+			scene_tree->setCamera(camera);
+		}
+
+		for(auto& filter : filters) {
+			auto filter_shader = ShaderProgram::getProgram("filter_shader")->clone();
+
+			const int u_blur = filter_shader->getUniform("u_blur");
+			const int u_sepia = filter_shader->getUniform("u_sepia");
+			const int u_brightness = filter_shader->getUniform("u_brightness");
+			const int u_contrast = filter_shader->getUniform("u_contrast");
+			const int u_grayscale = filter_shader->getUniform("u_grayscale");
+			const int u_hue_rotate = filter_shader->getUniform("u_hue_rotate");
+			const int u_invert = filter_shader->getUniform("u_invert");
+			const int u_opacity = filter_shader->getUniform("u_opacity");
+			const int u_saturate = filter_shader->getUniform("u_saturate");
+			const int blur_two = filter_shader->getUniform("texel_width_offset");
+			const int blur_tho = filter_shader->getUniform("texel_height_offset");
+			const int u_gaussian = filter_shader->getUniform("gaussian");
+
+			switch(filter->id()) {
+				case CssFilterId::BRIGHTNESS: {
+					auto rt = RenderTarget::create(w, h);
+					rt->setShader(filter_shader);
+					rt->setClearColor(Color(0,0,0,0));
+					filter_shader->setUniformDrawFunction([filter, u_blur, u_sepia, u_brightness, u_contrast, 
+						u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+						u_saturate](ShaderProgramPtr shader) {
+						shader->setUniformValue(u_blur, 0);
+						shader->setUniformValue(u_sepia, 0.0f);
+						shader->setUniformValue(u_brightness, filter->getComputedLength());
+						shader->setUniformValue(u_contrast, 1.0f);
+						shader->setUniformValue(u_grayscale, 0.0f);
+						// angle in radians
+						shader->setUniformValue(u_hue_rotate, 0.0f / 180.0f * 3.141592653f);
+						shader->setUniformValue(u_invert, 0.0f);
+						shader->setUniformValue(u_opacity, 1.0f);
+						shader->setUniformValue(u_saturate, 1.0f);
+					});
+					scene_tree->addRenderTarget(rt);
+					break;
+				}
+				case CssFilterId::CONTRAST: {
+					auto rt = RenderTarget::create(w, h);
+					rt->setShader(filter_shader);
+					rt->setClearColor(Color(0,0,0,0));
+					filter_shader->setUniformDrawFunction([filter, u_blur, u_sepia, u_brightness, u_contrast, 
+						u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+						u_saturate](ShaderProgramPtr shader) {
+						shader->setUniformValue(u_blur, 0);
+						shader->setUniformValue(u_sepia, 0.0f);
+						shader->setUniformValue(u_brightness, 1.0f);
+						shader->setUniformValue(u_contrast, filter->getComputedLength());
+						shader->setUniformValue(u_grayscale, 0.0f);
+						// angle in radians
+						shader->setUniformValue(u_hue_rotate, 0.0f / 180.0f * 3.141592653f);
+						shader->setUniformValue(u_invert, 0.0f);
+						shader->setUniformValue(u_opacity, 1.0f);
+						shader->setUniformValue(u_saturate, 1.0f);
+					});
+					scene_tree->addRenderTarget(rt);
+					break;
+				}
+				case CssFilterId::GRAYSCALE: {
+					auto rt = RenderTarget::create(w, h);
+					rt->setShader(filter_shader);
+					rt->setClearColor(Color(0,0,0,0));
+					filter_shader->setUniformDrawFunction([filter, u_blur, u_sepia, u_brightness, u_contrast, 
+						u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+						u_saturate](ShaderProgramPtr shader) {
+						shader->setUniformValue(u_blur, 0);
+						shader->setUniformValue(u_sepia, 0.0f);
+						shader->setUniformValue(u_brightness, 1.0f);
+						shader->setUniformValue(u_contrast, 1.0f);
+						shader->setUniformValue(u_grayscale, filter->getComputedLength());
+						// angle in radians
+						shader->setUniformValue(u_hue_rotate, 0.0f / 180.0f * 3.141592653f);
+						shader->setUniformValue(u_invert, 0.0f);
+						shader->setUniformValue(u_opacity, 1.0f);
+						shader->setUniformValue(u_saturate, 1.0f);
+					});
+					scene_tree->addRenderTarget(rt);
+					break;
+				}
+				case CssFilterId::HUE_ROTATE: {
+					auto rt = RenderTarget::create(w, h);
+					rt->setShader(filter_shader);
+					rt->setClearColor(Color(0,0,0,0));
+					filter_shader->setUniformDrawFunction([filter, u_blur, u_sepia, u_brightness, u_contrast, 
+						u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+						u_saturate](ShaderProgramPtr shader) {
+						shader->setUniformValue(u_blur, 0);
+						shader->setUniformValue(u_sepia, 0.0f);
+						shader->setUniformValue(u_brightness, 1.0f);
+						shader->setUniformValue(u_contrast, 1.0f);
+						shader->setUniformValue(u_grayscale, 0.0f);
+						// angle in radians
+						shader->setUniformValue(u_hue_rotate, filter->getComputedAngle());
+						shader->setUniformValue(u_invert, 0.0f);
+						shader->setUniformValue(u_opacity, 1.0f);
+						shader->setUniformValue(u_saturate, 1.0f);
+					});
+					scene_tree->addRenderTarget(rt);
+					break;
+				}
+				case CssFilterId::INVERT: {
+					auto rt = RenderTarget::create(w, h);
+					rt->setShader(filter_shader);
+					rt->setClearColor(Color(0,0,0,0));
+					filter_shader->setUniformDrawFunction([filter, u_blur, u_sepia, u_brightness, u_contrast, 
+						u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+						u_saturate](ShaderProgramPtr shader) {
+						shader->setUniformValue(u_blur, 0);
+						shader->setUniformValue(u_sepia, 0.0f);
+						shader->setUniformValue(u_brightness, 1.0f);
+						shader->setUniformValue(u_contrast, 1.0f);
+						shader->setUniformValue(u_grayscale, 0.0f);
+						// angle in radians
+						shader->setUniformValue(u_hue_rotate, 0.0f / 180.0f * 3.141592653f);
+						shader->setUniformValue(u_invert, filter->getComputedLength());
+						shader->setUniformValue(u_opacity, 1.0f);
+						shader->setUniformValue(u_saturate, 1.0f);
+					});
+					scene_tree->addRenderTarget(rt);
+					break;
+				}
+				case CssFilterId::OPACITY: {
+					auto rt = RenderTarget::create(w, h);
+					rt->setShader(filter_shader);
+					rt->setClearColor(Color(0,0,0,0));
+					filter_shader->setUniformDrawFunction([filter, u_blur, u_sepia, u_brightness, u_contrast, 
+						u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+						u_saturate](ShaderProgramPtr shader) {
+						shader->setUniformValue(u_blur, 0);
+						shader->setUniformValue(u_sepia, 0.0f);
+						shader->setUniformValue(u_brightness, 1.0f);
+						shader->setUniformValue(u_contrast, 1.0f);
+						shader->setUniformValue(u_grayscale, 0.0f);
+						// angle in radians
+						shader->setUniformValue(u_hue_rotate, 0.0f / 180.0f * 3.141592653f);
+						shader->setUniformValue(u_invert, 0.0f);
+						shader->setUniformValue(u_opacity, filter->getComputedLength());
+						shader->setUniformValue(u_saturate, 1.0f);
+					});
+					scene_tree->addRenderTarget(rt);
+					break;
+				}
+				case CssFilterId::SEPIA: {
+					auto rt = RenderTarget::create(w, h);
+					rt->setShader(filter_shader);
+					rt->setClearColor(Color(0,0,0,0));
+					filter_shader->setUniformDrawFunction([filter, u_blur, u_sepia, u_brightness, u_contrast, 
+						u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+						u_saturate](ShaderProgramPtr shader) {
+						shader->setUniformValue(u_blur, 0);
+						shader->setUniformValue(u_sepia, filter->getComputedLength());
+						shader->setUniformValue(u_brightness, 1.0f);
+						shader->setUniformValue(u_contrast, 1.0f);
+						shader->setUniformValue(u_grayscale, 0.0f);
+						// angle in radians
+						shader->setUniformValue(u_hue_rotate, 0.0f / 180.0f * 3.141592653f);
+						shader->setUniformValue(u_invert, 0.0f);
+						shader->setUniformValue(u_opacity, 1.0f);
+						shader->setUniformValue(u_saturate, 1.0f);
+					});
+					scene_tree->addRenderTarget(rt);
+					break;
+				}
+				case CssFilterId::SATURATE: {
+					auto rt = RenderTarget::create(w, h);
+					rt->setShader(filter_shader);
+					rt->setClearColor(Color(0,0,0,0));
+					filter_shader->setUniformDrawFunction([filter, u_blur, u_sepia, u_brightness, u_contrast, 
+						u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+						u_saturate](ShaderProgramPtr shader) {
+						shader->setUniformValue(u_blur, 0);
+						shader->setUniformValue(u_sepia, 0.0f);
+						shader->setUniformValue(u_brightness, 1.0f);
+						shader->setUniformValue(u_contrast, 1.0f);
+						shader->setUniformValue(u_grayscale, 0.0f);
+						// angle in radians
+						shader->setUniformValue(u_hue_rotate, 0.0f / 180.0f * 3.141592653f);
+						shader->setUniformValue(u_invert, 0.0f);
+						shader->setUniformValue(u_opacity, 1.0f);
+						shader->setUniformValue(u_saturate, filter->getComputedLength());
+						//LOG_DEBUG("filter->getComputedLength(): " << filter->getComputedLength());
+					});
+					scene_tree->addRenderTarget(rt);
+					break;
+				}
+				case CssFilterId::BLUR: {
+					if(filter->getComputedLength() == 0) {
+						continue;
+					}
+					const int kernel_radius = filter->getKernelRadius();
+					const float sigma = filter->getComputedLength();
+
+					auto blur7_shader = ShaderProgram::createGaussianShader(kernel_radius)->clone();
+					const int blur7_two = blur7_shader->getUniform("texel_height_offset");
+					const int blur7_tho = blur7_shader->getUniform("texel_height_offset");
+					const int u_gaussian7 = blur7_shader->getUniform("gaussian");
+					const int tex_overlayh = blur7_shader->getUniform("tex_overlay");
+					blur7_shader->setUniformDrawFunction([tex_overlayh, filter, blur7_two, blur7_tho, u_gaussian7, h](ShaderProgramPtr shader) {
+						shader->setUniformValue(blur7_two, 0.0f);
+						shader->setUniformValue(blur7_tho, 1.0f / (static_cast<float>(h)-1.0f));
+						auto gaussian = KRE::generate_gaussian(filter->getComputedLength(), filter->getKernelRadius());
+						shader->setUniformValue(u_gaussian7,  gaussian.data());
+						shader->setUniformValue(tex_overlayh, 0);
+					});
+					auto rt_hblur = RenderTarget::create(w, h);
+					rt_hblur->setShader(blur7_shader);
+					scene_tree->addRenderTarget(rt_hblur);
+
+					auto rt = RenderTarget::create(w, h);
+					rt->setShader(filter_shader);
+					rt->setClearColor(Color(0,0,0,0));
+					filter_shader->setUniformDrawFunction([filter, w, u_blur, u_sepia, u_brightness, u_contrast, 
+						u_grayscale, u_hue_rotate, u_invert, u_opacity, 
+						u_saturate, blur_two, blur_tho, u_gaussian](ShaderProgramPtr shader) {
+						shader->setUniformValue(u_blur, 1);
+						shader->setUniformValue(blur_two, 1.0f / (static_cast<float>(w) - 1.0f));
+						shader->setUniformValue(blur_tho, 0.0f);
+						auto gaussian = KRE::generate_gaussian(filter->getComputedLength(), filter->getKernelRadius());
+						shader->setUniformValue(u_gaussian,  gaussian.data());
+
+						shader->setUniformValue(u_sepia, 0.0f);
+						shader->setUniformValue(u_brightness, 1.0f);
+						shader->setUniformValue(u_contrast, 1.0f);
+						shader->setUniformValue(u_grayscale, 0.0f);
+						// angle in radians
+						shader->setUniformValue(u_hue_rotate, 0.0f / 180.0f * 3.141592653f);
+						shader->setUniformValue(u_invert, 0.0f);
+						shader->setUniformValue(u_opacity, 1.0f);
+						shader->setUniformValue(u_saturate, 1.0f);
+					});
+					scene_tree->addRenderTarget(rt);
+					break;
+				}
+				case CssFilterId::DROP_SHADOW: {
+					/*auto& shadow = filter->getShadow();
+					if(shadow == nullptr || shadow->getBlur().compute() == 0) {
+						continue;					
+					}
+
+					// 1) Render alpha map to texture.
+					// 2) blur it
+					auto rta = RenderTarget::create(w, h);
+					auto ashader = ShaderProgram::getProgram("alphaizer");
+					rta->setShader(ashader);
+					scene_tree->addRenderTarget(rta);
+
+					const int kernel_radius = filter->getKernelRadius();
+					// XXX fix this - the gaussian should come from the BoxShadow structure in this case
+					const float sigma = shadow->getBlur().compute() / LayoutEngine::getFixedPointScaleFloat();
+					const std::shared_ptr<std::vector<float>> gaussian = filter->getGaussian(sigma);
+
+					int bw = w + 4*kernel_radius;
+					int bh = h + 4*kernel_radius;
+					rta->setPosition(2 * kernel_radius, 2 * kernel_radius);
+					auto blur_camera = Camera::createInstance("SceneTree:Camera", 0, bw, 0, bh);
+					blur_camera->setOrthoWindow(0, bw, 0, bh);
+					rta->setCamera(blur_camera);
+
+					auto blur7_shader = ShaderProgram::createGaussianShader(kernel_radius)->clone();
+					const int blur7_two = blur7_shader->getUniform("texel_width_offset");
+					const int blur7_tho = blur7_shader->getUniform("texel_height_offset");
+					const int u_gaussian7 = blur7_shader->getUniform("gaussian");
+					const int tex_overlayh = blur7_shader->getUniform("tex_overlay");
+					blur7_shader->setUniformDrawFunction([blur7_two, blur7_tho, u_gaussian7, gaussian, tex_overlayh, bh](ShaderProgramPtr shader) {
+						shader->setUniformValue(blur7_two, 0.0f);
+						shader->setUniformValue(blur7_tho, 2.0f / (static_cast<float>(bh - 1)));
+						shader->setUniformValue(u_gaussian7,  gaussian->data());
+						shader->setUniformValue(tex_overlayh, 0);
+					});
+					auto rt_hblur = RenderTarget::create(bw, bh, 2);
+					rt_hblur->setShader(blur7_shader);
+					scene_tree->addRenderTarget(rt_hblur);
+					rt_hblur->setCamera(blur_camera);
+
+					auto blur7w_shader = ShaderProgram::createGaussianShader(kernel_radius)->clone();
+					const int blur7w_two = blur7w_shader->getUniform("texel_width_offset");
+					const int blur7w_tho = blur7w_shader->getUniform("texel_height_offset");
+					const int u_gaussian7w= blur7w_shader->getUniform("gaussian");
+					const int tex_overlay = blur7w_shader->getUniform("tex_overlay");
+					const int tm1 = blur7w_shader->getUniform("u_tex_map1");
+					blur7w_shader->setUniformDrawFunction([blur7w_two, blur7w_tho, u_gaussian7w, gaussian, bw, tex_overlay, tm1](ShaderProgramPtr shader) {
+						shader->setUniformValue(blur7w_two, 2.0f / (static_cast<float>(bw - 1)));
+						shader->setUniformValue(blur7w_tho, 0.0f);
+						shader->setUniformValue(u_gaussian7w,  gaussian->data());
+						shader->setUniformValue(tex_overlay, 1);
+						shader->setUniformValue(tm1, 1);
+					});
+					auto rt_wblur = RenderTarget::create(bw, bh);
+					rt_wblur->setShader(blur7w_shader);
+					rt_wblur->setColor(*shadow->getColor().compute());
+					scene_tree->addRenderTarget(rt_wblur);*/
+					break;
+				}
+				default: break;
+			}
+		}
+	}
 }

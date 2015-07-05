@@ -31,6 +31,7 @@
 #include "RenderTarget.hpp"
 #include "SceneGraph.hpp"
 #include "SceneNode.hpp"
+#include "SceneTree.hpp"
 #include "SDLWrapper.hpp"
 #include "SurfaceBlur.hpp"
 #include "WindowManager.hpp"
@@ -39,7 +40,6 @@
 #include "unit_test.hpp"
 
 #include "css_parser.hpp"
-#include "display_list.hpp"
 #include "FontDriver.hpp"
 #include "xhtml.hpp"
 #include "xhtml_layout_engine.hpp"
@@ -54,14 +54,14 @@ namespace
 	static int layout_cycle_test = false;
 }
 
-void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml::DocumentPtr doc, xhtml::DisplayListPtr display_list, KRE::SceneGraphPtr graph)
+void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml::DocumentPtr doc, KRE::SceneTreePtr& scene_tree, KRE::SceneGraphPtr graph)
 {
 	xhtml::RenderContextManager rcm;
 	// layout has to happen after initialisation of graphics
 	if(doc->needsLayout()) {
 		LOG_DEBUG("Triggered layout!");
 
-		display_list->clear();
+		//display_list->clear();
 
 		// XXX should we should have a re-process styles flag here.
 
@@ -74,6 +74,7 @@ void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml:
 			profile::manager pman("create style tree");
 			if(style_tree == nullptr) {
 				style_tree = xhtml::StyleNode::createStyleTree(doc);
+				scene_tree = style_tree->getSceneTree();
 			} else {
 				style_tree->updateStyles();
 			}
@@ -86,7 +87,7 @@ void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml:
 		}
 		{
 		profile::manager pman_render("render");
-		layout->render(display_list, point());
+		layout->render(point());
 		}
 
 		if(display_tree_parse) {
@@ -276,11 +277,10 @@ int main(int argc, char* argv[])
 	auto rman = std::make_shared<RenderManager>();
 	auto rq = rman->addQueue(0, "opaques");
 
-	xhtml::DisplayListPtr display_list = std::make_shared<xhtml::DisplayList>(scene);
-	root->attachNode(display_list);
 	xhtml::DocumentPtr doc = load_xhtml(ua_ss, test_doc);
 	xhtml::StyleNodePtr style_tree = nullptr;
-	check_layout(width, height, style_tree, doc, display_list, scene);
+	KRE::SceneTreePtr scene_tree = nullptr;
+	check_layout(width, height, style_tree, doc, scene_tree, scene);
 
 	while(layout_cycle_test) {
 		doc->triggerLayout();
@@ -296,7 +296,7 @@ int main(int argc, char* argv[])
 				}
 			}
 		}*/
-		check_layout(width, height, style_tree, doc, display_list, scene);
+		check_layout(width, height, style_tree, doc, scene_tree, scene);
 	}
 
 	auto canvas = Canvas::getInstance();
@@ -329,7 +329,7 @@ int main(int argc, char* argv[])
 	bt2->setPosition(width/2, 5 * height / 6);*/
 
 	SceneObjectPtr bt = nullptr;
-	bt = test_filter_shader("test_npc.png");
+	//bt = test_filter_shader("test_npc.png");
 
 	SDL_Event e;
 	bool done = false;
@@ -364,7 +364,7 @@ int main(int argc, char* argv[])
 		//main_wnd->setClearColor(KRE::Color::colorWhite());
 		main_wnd->clear(ClearFlags::ALL);
 
-		check_layout(width, height, style_tree, doc, display_list, scene);
+		check_layout(width, height, style_tree, doc, scene_tree, scene);
 
 		// Called once a cycle before rendering.
 		Uint32 current_tick_time = SDL_GetTicks();
@@ -375,8 +375,13 @@ int main(int argc, char* argv[])
 		scene->process(dt);
 		last_tick_time = current_tick_time;
 
-		scene->renderScene(rman);
-		rman->render(main_wnd);
+		//scene->renderScene(rman);
+		//rman->render(main_wnd);
+
+		if(scene_tree != nullptr) {
+			scene_tree->preRender(main_wnd);
+			scene_tree->render(main_wnd);
+		}
 
 		if(bt) {
 			bt->preRender(main_wnd);

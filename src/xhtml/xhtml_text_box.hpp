@@ -41,10 +41,10 @@ namespace xhtml
 		void justify(FixedPoint containing_width) override;
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
-		void handleRender(DisplayListPtr display_list, const point& offset) const override;
-		void handleRenderBackground(DisplayListPtr display_list, const point& offset) const override;
-		void handleRenderBorder(DisplayListPtr display_list, const point& offset) const override;
-		void handleRenderShadow(DisplayListPtr display_list, const point& offset, KRE::FontRenderablePtr fontr, float w, float h) const;
+		void handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
+		void handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
+		void handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
+		void handleRenderShadow(const KRE::SceneTreePtr& scene_tree, const point& offset, KRE::FontRenderablePtr fontr, float w, float h) const;
 		FixedPoint calculateWidth() const;
 		LinePtr line_;
 		TextPtr txt_;

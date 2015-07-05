@@ -453,6 +453,36 @@ namespace xhtml
 		return true;
 	}
 
+	std::string Node::writeXHTML()
+	{
+		std::ostringstream ss;
+		for(auto& child : children_) {
+			switch(child->id()) {
+				case NodeId::DOCUMENT: break;
+				case NodeId::ATTRIBUTE: break;
+				case NodeId::DOCUMENT_FRAGMENT: break;
+				case NodeId::ELEMENT: {
+					ss << "<" << child->getTag();
+					for(auto& attr : attributes_) {
+						ss << " \"" << attr.first << "\"=\"" << attr.second << "\"";
+					}
+					std::string child_xml = child->writeXHTML();
+					if(child_xml.empty()) {
+						ss << "/>";
+					} else {
+						ss << ">" << child_xml << "</" << child->getTag() << ">";
+					}
+					break;
+				}
+				case NodeId::TEXT:
+					ss << child->getValue();
+					break;
+				default: break;
+			}
+		}
+		return ss.str();
+	}
+
 	bool Document::handleMouseMotion(bool claimed, int x, int y)
 	{
 		bool trigger = false;
@@ -493,7 +523,9 @@ namespace xhtml
 	Document::Document(css::StyleSheetPtr ss)
 		: Node(NodeId::DOCUMENT, WeakDocumentPtr()),
 		  style_sheet_(ss == nullptr ? std::make_shared<css::StyleSheet>() : ss),
-		  trigger_layout_(true)
+		  trigger_layout_(true),
+		  trigger_render_(false),
+		  trigger_rebuild_(false)
 	{
 	}
 

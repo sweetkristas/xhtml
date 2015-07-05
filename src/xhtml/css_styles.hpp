@@ -1174,20 +1174,33 @@ namespace css
 	class Filter
 	{
 	public:
-		explicit Filter(CssFilterId id) : id_(id), angle_(nullptr), value_(nullptr), drop_shadow_(nullptr) {}
+		explicit Filter(CssFilterId id);
 		explicit Filter(CssFilterId id, const Angle& a);
 		explicit Filter(CssFilterId id, const Length& len);
 		explicit Filter(CssFilterId id, const BoxShadow& ds);
+		CssFilterId id() const { return id_; }
 		std::shared_ptr<Angle> getAngle() const { return angle_; }
 		std::shared_ptr<Length> getLength() const { return value_; }
 		std::shared_ptr<BoxShadow> getShadow() const { return drop_shadow_; }
+		const std::vector<float>& getGaussian() const; 
+		int getKernelRadius() const { return kernel_radius_; }
 		std::string toString() const;
+		// is angle in radians
+		float getComputedAngle() const { return computed_angle_; }
+		float getComputedLength() const { return computed_length_; }
+		void setComputedAngle(float a) { computed_angle_ = a; }
+		void setComputedLength(float len) { computed_length_ = len; }
+		void calculateComputedValues();
 	private:
 		CssFilterId id_;
 		//UriStyle uri_;
+		float computed_angle_;
+		float computed_length_;		
 		std::shared_ptr<Angle> angle_;
 		std::shared_ptr<Length> value_;
 		std::shared_ptr<BoxShadow> drop_shadow_;
+		std::vector<float> gaussian_;
+		int kernel_radius_;
 	};
 	typedef std::shared_ptr<Filter> FilterPtr;
 
@@ -1199,6 +1212,11 @@ namespace css
 		explicit FilterStyle(const std::vector<FilterPtr>& filters) : Style(StyleId::FILTER), filters_(filters) {}
 		std::string toString(Property p) const override;
 		std::vector<FilterPtr> getFilters() const { return filters_; }
+		bool requiresLayout(Property p) const override { return false; }
+		bool requiresRender(Property p) const override { return false; }
+		void addFilter(const FilterPtr& f) { filters_.emplace_back(f); }
+		void clearFilters() { filters_.clear(); }
+		void calculateComputedValues();
 	private:
 		std::vector<FilterPtr> filters_;
 	};
@@ -1248,8 +1266,21 @@ namespace css
 			}
 		}
 		std::string toString() const;
+		TransformId id() const { return id_; }
+		const std::array<Length, 2>& getTranslation() const { return lengths_; }
+		const Angle& getRotation() const { return angles_[0]; }
+		const std::array<Length, 2>& getScale() const { return lengths_; }
+		const std::array<float, 6>& getMatrix() const { return matrix_; }
+		const std::array<Angle, 2> getSkew() const { return angles_; }
+		void setComputedAngle(float a, float b) { computed_angles_[0] = a; computed_angles_[1] = b; }
+		void setComputedLength(float a, float b) { computed_lengths_[0] = a; computed_lengths_[0] = b; }
+		const std::array<float, 2>& getComputedAngle() const { return computed_angles_; }
+		const std::array<float, 2>& getComputedLength() const { return computed_lengths_; }
+		void calculateComputedValues();
 	private:
 		TransformId id_;
+		std::array<float, 2> computed_lengths_;
+		std::array<float, 2> computed_angles_;
 		std::array<Length, 2> lengths_;
 		std::array<Angle, 2> angles_;
 		std::array<float, 6> matrix_;
@@ -1259,11 +1290,18 @@ namespace css
 	{
 	public:
 		MAKE_FACTORY(TransformStyle);
-		TransformStyle() : Style(StyleId::TRANSFORM), transforms_() {}
-		explicit TransformStyle(const std::vector<Transform>& transforms) : Style(StyleId::TRANSFORM), transforms_(transforms) {}
+		TransformStyle() : Style(StyleId::TRANSFORM), transforms_(), matrix_(1.0f) {}
+		explicit TransformStyle(const std::vector<Transform>& transforms) : Style(StyleId::TRANSFORM), transforms_(transforms), matrix_(1.0f) {}
 		std::string toString(Property p) const override;
 		std::vector<Transform> getTransforms() const { return transforms_; }
+		const glm::mat4& getComputedMatrix() const;
+		bool requiresLayout(Property p) const override { return false; }
+		bool requiresRender(Property p) const override { return false; }
+		void addTransform(const Transform& trf) { transforms_.emplace_back(trf); }
+		void clearTransforms() { transforms_.clear(); }
+		void calculateComputedValues();
 	private:
 		std::vector<Transform> transforms_;
+		mutable glm::mat4 matrix_;
 	};
 }

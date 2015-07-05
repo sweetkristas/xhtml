@@ -27,7 +27,6 @@
 
 #include "geometry.hpp"
 
-#include "display_list.hpp"
 #include "xhtml.hpp"
 #include "xhtml_background_info.hpp"
 #include "xhtml_border_info.hpp"
@@ -127,43 +126,43 @@ namespace xhtml
 		FixedPoint getWidth() const { return dimensions_.content_.width; }
 		FixedPoint getHeight() const { return dimensions_.content_.height; }
 
-		FixedPoint getMBPWidth() { 
+		FixedPoint getMBPWidth() const { 
 			return dimensions_.margin_.left + dimensions_.margin_.right
 				+ dimensions_.padding_.left + dimensions_.padding_.right
 				+ dimensions_.border_.left + dimensions_.border_.right;
 		}
 
-		FixedPoint getMBPHeight() { 
+		FixedPoint getMBPHeight() const { 
 			return dimensions_.margin_.top + dimensions_.margin_.bottom
 				+ dimensions_.padding_.top + dimensions_.padding_.bottom
 				+ dimensions_.border_.top + dimensions_.border_.bottom;
 		}
 
-		FixedPoint getMBPLeft() {
+		FixedPoint getMBPLeft() const {
 			return dimensions_.margin_.left
 				+ dimensions_.padding_.left
 				+ dimensions_.border_.left;
 		}
 
-		FixedPoint getMBPTop() {
+		FixedPoint getMBPTop() const {
 			return dimensions_.margin_.top
 				+ dimensions_.padding_.top
 				+ dimensions_.border_.top;
 		}
 
-		FixedPoint getMBPBottom() {
+		FixedPoint getMBPBottom() const {
 			return dimensions_.margin_.bottom
 				+ dimensions_.padding_.bottom
 				+ dimensions_.border_.bottom;
 		}
 
-		FixedPoint getMBPRight() {
+		FixedPoint getMBPRight() const {
 			return dimensions_.margin_.right
 				+ dimensions_.padding_.right
 				+ dimensions_.border_.right;
 		}
 
-		Rect getAbsBoundingBox() {
+		Rect getAbsBoundingBox() const {
 			return Rect(dimensions_.content_.x - getMBPLeft() + getOffset().x, 
 				dimensions_.content_.y - getMBPTop() + getOffset().y, 
 				getMBPWidth() + getWidth(),
@@ -182,7 +181,7 @@ namespace xhtml
 
 		const point& getOffset() const { return offset_; }
 
-		void render(DisplayListPtr display_list, const point& offset) const;
+		void render(const point& offset) const;
 
 		BorderInfo& getBorderInfo() { return border_info_; }
 		const BorderInfo& getBorderInfo() const { return border_info_; }
@@ -203,16 +202,17 @@ namespace xhtml
 		virtual void justify(FixedPoint containing_width) {};
 	protected:
 		void clearChildren() { boxes_.clear(); } 
-		virtual void handleRenderBackground(DisplayListPtr display_list, const point& offset) const;
-		virtual void handleRenderBorder(DisplayListPtr display_list, const point& offset) const;
+		virtual void handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const;
+		virtual void handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const;
+		virtual void handleRenderFilters(const KRE::SceneTreePtr& scene_tree, const point& offset) const;
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) {}
 		virtual void postParentLayout(LayoutEngine& eng, const Dimensions& containing) {}
-		virtual void handleRender(DisplayListPtr display_list, const point& offset) const = 0;
-		virtual void handleEndRender(DisplayListPtr display_list, const point& offset) const {}
+		virtual void handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const = 0;
+		virtual void handleEndRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const {}
 
 		void setParent(BoxPtr parent) { parent_ = parent; }
 		void init();

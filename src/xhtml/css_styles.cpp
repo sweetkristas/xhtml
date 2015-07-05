@@ -21,8 +21,12 @@
 	   distribution.
 */
 
+#include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+
 #include "asserts.hpp"
 #include "Gradients.hpp"
+#include "Shaders.hpp"
 
 #include "css_styles.hpp"
 #include "xhtml_render_ctx.hpp"
@@ -1500,12 +1504,24 @@ namespace css
 		ss << index_;
 		return ss.str();
     }
+	
+	Filter::Filter(CssFilterId id) 
+		: id_(id), 
+		  angle_(nullptr), 
+		  value_(nullptr), 
+		  drop_shadow_(nullptr), 
+		  gaussian_(), 
+		  kernel_radius_(7) 
+	{
+	}
 
 	Filter::Filter(CssFilterId id, const Angle& a)
 		: id_(id),
 		  angle_(std::make_shared<Angle>(a)),
 		  value_(nullptr),
-		  drop_shadow_(nullptr)
+		  drop_shadow_(nullptr),
+		  gaussian_(), 
+		  kernel_radius_(7) 
 	{
 	}
 
@@ -1513,7 +1529,9 @@ namespace css
 		: id_(id),
 		  angle_(nullptr),
 		  value_(std::make_shared<Length>(len)),
-		  drop_shadow_(nullptr)
+		  drop_shadow_(nullptr),
+		  gaussian_(), 
+		  kernel_radius_(7) 
 	{
 	}
 
@@ -1521,8 +1539,31 @@ namespace css
 		: id_(id),
 		  angle_(nullptr),
 		  value_(nullptr),
-		  drop_shadow_(std::make_shared<BoxShadow>(ds))
+		  drop_shadow_(std::make_shared<BoxShadow>(ds)),
+		  gaussian_(), 
+		  kernel_radius_(7) 
 	{
+	}
+
+	const std::vector<float>& Filter::getGaussian() const
+	{
+		return gaussian_;
+	}
+
+	void Filter::calculateComputedValues()
+	{
+		if(angle_) {
+			computed_angle_ = angle_->getAngle(AngleUnits::RADIANS);
+		}
+		if(value_) {
+			computed_length_ = value_->compute() / 65536.0f;
+			if(id_ == CssFilterId::BLUR) {
+				gaussian_ = KRE::generate_gaussian(computed_length_, kernel_radius_);
+			}
+		}
+		if(drop_shadow_) {
+			//drop_shadow_->calculateComputedValues();
+		}
 	}
 
 	std::string Filter::toString() const
@@ -1562,7 +1603,7 @@ namespace css
 				ss << "sepia(" << value_->toString(Property::FILTER) << ")";
 				break;
 			case CssFilterId::SATURATE:
-				ss << "saturate(" << value_->toString(Property::FILTER) << ")";
+				ss << "saturate(" << computed_length_ << ")";
 				break;
 			default: break;
 		}
@@ -1577,6 +1618,13 @@ namespace css
 			ss << (it != filters_.cbegin() ? " " : "") << f->toString();
 		}
 		return ss.str();
+	}
+
+	void FilterStyle::calculateComputedValues()
+	{
+		for(auto& f : filters_) {
+			f->calculateComputedValues();
+		}
 	}
 
 	std::string Transform::toString() const
@@ -1624,5 +1672,106 @@ namespace css
 			ss << (it != transforms_.cbegin() ? " " : "") << t.toString();
 		}
 		return ss.str();
+	}
+
+	void Transform::calculateComputedValues()
+	{
+		switch(id_) {
+			case TransformId::TRANSLATE_2D:
+			case TransformId::SCALE_2D:
+				computed_lengths_[0] = lengths_[0].compute() / 65536.0f;
+				computed_lengths_[1] = lengths_[1].compute() / 65536.0f;
+				break;
+			case TransformId::ROTATE_2D:
+				computed_angles_[0] = angles_[0].getAngle();
+				break;
+			case TransformId::SKEW_2D:
+			case TransformId::SKEWX_2D:
+			case TransformId::SKEWY_2D:
+				computed_angles_[0] = angles_[0].getAngle(AngleUnits::RADIANS);
+				computed_angles_[1] = angles_[1].getAngle(AngleUnits::RADIANS);
+				break;
+			case TransformId::NONE:			
+			case TransformId::MATRIX_2D:	
+			default: break;
+		}
+	}
+
+	const glm::mat4& TransformStyle::getComputedMatrix() const
+	{
+		// XXX should cache
+		matrix_ = glm::mat4(1.0f);
+		for(auto& trf : transforms_) {
+			switch(trf.id()) {
+				case TransformId::NONE:			
+					break;
+				case TransformId::MATRIX_2D: {
+					const std::array<float, 6>& vals = trf.getMatrix();
+					glm::mat4 mat(1.0f);
+					mat[0][0] = vals[0];
+					mat[0][1] = vals[1];
+					mat[1][0] = vals[2];
+					mat[1][1] = vals[3];
+					mat[3][0] = vals[4];
+					mat[3][1] = vals[5];
+					matrix_ = matrix_ * mat;
+					break;
+				}
+				case TransformId::TRANSLATE_2D:	{
+					matrix_ = glm::translate(matrix_, glm::vec3(trf.getComputedLength()[0], trf.getComputedLength()[1], 0.0f));
+					break;
+				}
+				case TransformId::SCALE_2D: {
+					//const float sx = trf.getScale()[0].compute() / 65536.0f;
+					//const float sy = trf.getScale()[1].compute() / 65536.0f;
+					matrix_ = glm::scale(matrix_, glm::vec3(trf.getComputedLength()[0], trf.getComputedLength()[1], 0.0f));
+					break;
+				}
+				case TransformId::ROTATE_2D: {
+					// glm needs angle in degrees.
+					//const float angle = trf.getRotation().getAngle(AngleUnits::DEGREES);
+					const float angle = trf.getComputedAngle()[0];
+					matrix_ = glm::rotate(matrix_, angle, glm::vec3(0.0f, 0.0f, 1.0f));
+					break;
+				}
+				case TransformId::SKEW_2D: {
+					//const float skx = tan(trf.getSkew()[0].getAngle(AngleUnits::RADIANS));
+					//const float sky = tan(trf.getSkew()[1].getAngle(AngleUnits::RADIANS));
+					const float skx = trf.getComputedAngle()[0];
+					const float sky = trf.getComputedAngle()[1];
+					glm::mat4 skew(1.0f);
+					skew[1][0] = skx;
+					skew[0][1] = sky;
+					matrix_ = matrix_ * skew;
+					break;
+				}
+				case TransformId::SKEWX_2D: {
+					//const float skx = tan(trf.getSkew()[0].getAngle(AngleUnits::RADIANS));
+					const float skx = trf.getComputedAngle()[0];
+					glm::mat4 skew(1.0f);
+					skew[1][0] = skx;
+					matrix_ = matrix_ * skew;
+					break;
+				}
+				case TransformId::SKEWY_2D: {
+					//const float sky = tan(trf.getSkew()[1].getAngle(AngleUnits::RADIANS));
+					const float sky = trf.getComputedAngle()[1];
+					glm::mat4 skew(1.0f);
+					skew[0][1] = sky;
+					matrix_ = matrix_ * skew;
+					break;
+				}
+				default: break;
+			}
+		}
+		return matrix_;
+	}
+
+	void TransformStyle::calculateComputedValues()
+	{
+		matrix_ = glm::mat4(1.0f);
+		for(auto it = transforms_.begin(); it != transforms_.end(); ++it) {
+			it->calculateComputedValues();
+		}
 	}
 }
