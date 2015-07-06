@@ -111,7 +111,9 @@ namespace xhtml
 		  model_matrix_(1.0f),
 		  dimensions_(),
 		  script_handler_(nullptr),
-		  active_handlers_()
+		  active_handlers_(),
+		  mouse_entered_(false),
+		  style_node_()
 	{
 		active_handlers_.resize(static_cast<int>(EventHandlerId::MAX_EVENT_HANDLERS));
 	}
