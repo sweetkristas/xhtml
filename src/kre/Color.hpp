@@ -26,9 +26,11 @@
 #include <iostream>
 #include <memory>
 #include <string>
+
 #include <glm/gtc/type_precision.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "AlignedAllocator.hpp"
 #include "variant.hpp"
 
 namespace KRE
@@ -50,7 +52,7 @@ namespace KRE
 		DECIMAL,
 	};
 
-	class Color
+	class Color : public AlignedAllocator16
 	{
 	public:
 		Color();
@@ -149,28 +151,6 @@ namespace KRE
 		void preMultiply(float alpha);
 
 		static ColorPtr factory(const std::string& name);
-
-#ifdef _MSC_VER
-		void* operator new(size_t i)
-		{
-			return _mm_malloc(i, 16);
-		}
-
-		void operator delete(void* p)
-		{
-			_mm_free(p);
-		}
-#else
-		void* operator new(size_t i)
-		{
-			return std::aligned_alloc(16, i);
-		}
-
-		void operator delete(void* p)
-		{
-			free(p);
-		}
-#endif
 
 		static const Color& colorAliceblue() { static Color res(240, 248, 255); return res; }
 		static const Color& colorAntiquewhite() { static Color res(250, 235, 215); return res; }

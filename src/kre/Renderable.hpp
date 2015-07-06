@@ -25,6 +25,7 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include "AlignedAllocator.hpp"
 #include "RenderQueue.hpp"
 #include "SceneFwd.hpp"
 #include "ScopeableValue.hpp"
@@ -34,7 +35,7 @@
 
 namespace KRE
 {
-	class Renderable : public ScopeableValue
+	class Renderable : public ScopeableValue, public AlignedAllocator16
 	{
 	public:
 		explicit Renderable();
@@ -105,28 +106,6 @@ namespace KRE
 		virtual void renderBegin() {}
 		// Called after draw commands have been sent before anything is torn down.
 		virtual void renderEnd() {}
-
-#ifdef _MSC_VER
-		void* operator new(size_t i)
-		{
-			return _mm_malloc(i, 16);
-		}
-
-		void operator delete(void* p)
-		{
-			_mm_free(p);
-		}
-#else
-		void* operator new(size_t i)
-		{
-			return std::aligned_alloc(16, i);
-		}
-
-		void operator delete(void* p)
-		{
-			free(p);
-		}
-#endif
 	private:
 		virtual void onTextureChanged() {}
 

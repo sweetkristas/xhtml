@@ -62,27 +62,6 @@ namespace KRE
 			bool apply(const element* parent, render_context& ctx) const;
 
 			static paint_ptr from_string(const std::string& s);
-#ifdef _MSC_VER
-		void* operator new(size_t i)
-		{
-			return _mm_malloc(i, 16);
-		}
-
-		void operator delete(void* p)
-		{
-			_mm_free(p);
-		}
-#else
-		void* operator new(size_t i)
-		{
-			return std::aligned_alloc(16, i);
-		}
-
-		void operator delete(void* p)
-		{
-			free(p);
-		}
-#endif
 		private:
 			explicit paint(const std::string& s);
 

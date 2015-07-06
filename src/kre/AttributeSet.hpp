@@ -31,6 +31,7 @@
 #include <memory>
 #include <vector>
 #include "asserts.hpp"
+#include "AlignedAllocator.hpp"
 #include "DisplayDeviceFwd.hpp"
 #include "ScopeableValue.hpp"
 #include "Util.hpp"
@@ -129,7 +130,7 @@ namespace KRE
 		COPY,
 	};
 
-	class AttributeBase
+	class AttributeBase : public AlignedAllocator16
 	{
 	public:
 		AttributeBase(AccessFreqHint freq, AccessTypeHint type)
@@ -163,27 +164,6 @@ namespace KRE
 		virtual AttributeBasePtr clone() = 0;
 		void setParent(std::weak_ptr<AttributeSet> attrset) { parent_ = attrset; }
 		AttributeSetPtr getParent() const;
-#ifdef _MSC_VER
-		void* operator new(size_t i)
-		{
-			return _mm_malloc(i, 16);
-		}
-
-		void operator delete(void* p)
-		{
-			_mm_free(p);
-		}
-#else
-		void* operator new(size_t i)
-		{
-			return std::aligned_alloc(16, i);
-		}
-
-		void operator delete(void* p)
-		{
-			free(p);
-		}
-#endif
 	private:
 		virtual void handleAttachHardwareBuffer() = 0;
 		AccessFreqHint access_freq_;

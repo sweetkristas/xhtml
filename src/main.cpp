@@ -397,16 +397,3 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
-/*
-p = _aligned_malloc(size, 16);
-_aligned_free(p);
-    void* operator new(size_t i)
-    {
-        return _mm_malloc(i,16);
-    }
-
-    void operator delete(void* p)
-    {
-        _mm_free(p);
-    }
-*/

@@ -80,7 +80,7 @@ namespace KRE
 		long bearing_y;
 	};
 
-	class FreetypeImpl : public FontHandle::Impl
+	class FreetypeImpl : public FontHandle::Impl, public AlignedAllocator16
 	{
 	public:
 		FreetypeImpl(const std::string& fnt_name, const std::string& fnt_path, float size, const Color& color, bool init_texture)
@@ -413,27 +413,6 @@ namespace KRE
 		{
 			return face_;
 		}
-#ifdef _MSC_VER
-		void* operator new(size_t i)
-		{
-			return _mm_malloc(i, 16);
-		}
-
-		void operator delete(void* p)
-		{
-			_mm_free(p);
-		}
-#else
-		void* operator new(size_t i)
-		{
-			return std::aligned_alloc(16, i);
-		}
-
-		void operator delete(void* p)
-		{
-			free(p);
-		}
-#endif
 	private:
 		FT_Face face_;
 		int font_load_flags_;

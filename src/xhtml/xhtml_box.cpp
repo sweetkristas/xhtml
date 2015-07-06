@@ -252,9 +252,9 @@ namespace xhtml
 
 	void Box::render(const point& offset) const
 	{
-		point offs/* = offset*/;
-		if(id() != BoxId::TEXT) {
-			offs += point(dimensions_.content_.x, dimensions_.content_.y);
+		point offs = point(dimensions_.content_.x, dimensions_.content_.y);
+		if(id() == BoxId::TEXT) {
+			offs.x = offs.y = 0;
 		}
 
 		if(node_ != nullptr && node_->getPosition() == Position::RELATIVE_POS) {

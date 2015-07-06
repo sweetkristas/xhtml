@@ -127,6 +127,7 @@
     <ClInclude Include="..\src\filesystem.hpp" />
     <ClInclude Include="..\src\formatter.hpp" />
     <ClInclude Include="..\src\json.hpp" />
+    <ClInclude Include="..\src\kre\AlignedAllocator.hpp" />
     <ClInclude Include="..\src\kre\AttributeSet.hpp" />
     <ClInclude Include="..\src\kre\AttributeSetOGL.hpp" />
     <ClInclude Include="..\src\kre\Blend.hpp" />
