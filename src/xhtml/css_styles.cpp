@@ -1710,7 +1710,8 @@ namespace css
 		}
 
 		matrix_ = glm::mat4(1.0f);
-		for(auto& trf : transforms_) {
+		for(auto it = transforms_.begin(); it != transforms_.end(); ++it) {
+			auto& trf = *it;
 			trf.clearModified();
 			switch(trf.id()) {
 				case TransformId::NONE:			

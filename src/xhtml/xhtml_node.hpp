@@ -139,6 +139,8 @@ namespace xhtml
 		// This sets the rectangle that should be active for mouse presses.
 		void setActiveRect(const rect& r) { active_rect_ = r; }
 		const rect& getActiveRect() const { return active_rect_; }
+		void setModelMatrix(const glm::mat4& model) { model_matrix_ = model; }
+		const glm::mat4& getModelMatrix() const { return model_matrix_; }
 		void processScriptAttributes();
 		virtual void layoutComplete() {}
 
@@ -186,6 +188,7 @@ namespace xhtml
 		css::PseudoClass pclass_;
 		css::PseudoClass active_pclass_;
 		rect active_rect_;
+		glm::mat4 model_matrix_;
 
 		rect dimensions_;
 

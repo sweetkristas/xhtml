@@ -108,6 +108,7 @@ namespace xhtml
 		  pclass_(css::PseudoClass::NONE),
 		  active_pclass_(css::PseudoClass::NONE),
 		  active_rect_(),
+		  model_matrix_(1.0f),
 		  dimensions_(),
 		  script_handler_(nullptr),
 		  active_handlers_()
@@ -362,14 +363,16 @@ namespace xhtml
 		}
 	}
 
-	bool Node::handleMouseButtonUp(bool* trigger, const point& p, unsigned button)
+	bool Node::handleMouseButtonUp(bool* trigger, const point& mp, unsigned button)
 	{
+		auto pos = model_matrix_ * glm::vec4(static_cast<float>(mp.x), static_cast<float>(mp.y), 0.0f, 1.0f);
+		point p(static_cast<int>(pos.x), static_cast<int>(pos.y));
 		if(!active_rect_.empty()) {
 			if(geometry::pointInRect(p, active_rect_)) {
 				if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_UP)) {
 					std::map<variant, variant> m;
-					m[variant("clientX")] = variant(p.x);
-					m[variant("clientY")] = variant(p.y);
+					m[variant("clientX")] = variant(mp.x);
+					m[variant("clientY")] = variant(mp.y);
 					m[variant("button")] = variant(static_cast<int>(button - 1));
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_UP, variant(&m));
 				}
@@ -383,14 +386,16 @@ namespace xhtml
 		return true;
 	}
 
-	bool Node::handleMouseButtonDown(bool* trigger, const point& p, unsigned button)
+	bool Node::handleMouseButtonDown(bool* trigger, const point& mp, unsigned button)
 	{
+		auto pos = model_matrix_ * glm::vec4(static_cast<float>(mp.x), static_cast<float>(mp.y), 0.0f, 1.0f);
+		point p(static_cast<int>(pos.x), static_cast<int>(pos.y));
 		if(!active_rect_.empty()) {
 			if(geometry::pointInRect(p, active_rect_)) {
 				if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_DOWN)) {
 					std::map<variant, variant> m;
-					m[variant("clientX")] = variant(p.x);
-					m[variant("clientY")] = variant(p.y);
+					m[variant("clientX")] = variant(mp.x);
+					m[variant("clientY")] = variant(mp.y);
 					m[variant("button")] = variant(static_cast<int>(button - 1));
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_DOWN, variant(&m));
 				}
@@ -404,22 +409,25 @@ namespace xhtml
 		return true;
 	}
 
-	bool Node::handleMouseMotion(bool* trigger, const point& p)
+	bool Node::handleMouseMotion(bool* trigger, const point& mp)
 	{
+		auto pos = model_matrix_ * glm::vec4(static_cast<float>(mp.x), static_cast<float>(mp.y), 0.0f, 1.0f);
+		point p(static_cast<int>(pos.x), static_cast<int>(pos.y));
+		LOG_DEBUG("mp: " << mp << ", p: " << p << ", ar: " <<  active_rect_);
 		if(!active_rect_.empty()) {
 			if(geometry::pointInRect(p, active_rect_)) {
 				if(mouse_entered_ == false && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_ENTER)) {
 					std::map<variant, variant> m;
-					m[variant("clientX")] = variant(p.x);
-					m[variant("clientY")] = variant(p.y);
+					m[variant("clientX")] = variant(mp.x);
+					m[variant("clientY")] = variant(mp.y);
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_ENTER, variant(&m));
 				}
 				mouse_entered_ = true;
 			} else {
 				if(mouse_entered_ == true && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_LEAVE)) {
 					std::map<variant, variant> m;
-					m[variant("clientX")] = variant(p.x);
-					m[variant("clientY")] = variant(p.y);
+					m[variant("clientX")] = variant(mp.x);
+					m[variant("clientY")] = variant(mp.y);
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_LEAVE, variant(&m));
 				}
 				mouse_entered_ = false;
@@ -427,8 +435,8 @@ namespace xhtml
 
 			if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_MOVE)) {
 				std::map<variant, variant> m;
-				m[variant("clientX")] = variant(p.x);
-				m[variant("clientY")] = variant(p.y);
+				m[variant("clientX")] = variant(mp.x);
+				m[variant("clientY")] = variant(mp.y);
 				getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_MOVE, variant(&m));
 			}
 		}
@@ -485,7 +493,7 @@ namespace xhtml
 
 	bool Document::handleMouseMotion(bool claimed, int x, int y)
 	{
-		bool trigger = false;
+		bool trigger = false;		
 		point p(x, y);
 		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
 			node->handleMouseMotion(&trigger, p);

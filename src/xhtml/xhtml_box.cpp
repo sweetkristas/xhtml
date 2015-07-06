@@ -304,10 +304,13 @@ namespace xhtml
 				const float th = (getHeight() + getMBPHeight()) / LayoutEngine::getFixedPointScaleFloat();
 				glm::mat4 m1 = glm::translate(glm::mat4(1.0f), glm::vec3(-tw/2.0f, -th/2.0f, 0.0f));
 				glm::mat4 m2 = glm::translate(glm::mat4(1.0f), glm::vec3(tw/2.0f, th/2.0f, 0.0f));
-				scene_tree->setOnPreRenderFunction([m1, m2, transform](KRE::SceneTree* st) {
+				auto node = getNode();
+				scene_tree->setOnPreRenderFunction([m1, m2, transform, node](KRE::SceneTree* st) {
 					glm::mat4 combined_matrix = m2 * transform->getComputedMatrix() * m1;
 					st->setModelMatrix(combined_matrix);
-					//node->setModelMatrix(combined_matrix);
+					if(node != nullptr) {
+						node->setModelMatrix(glm::inverse(combined_matrix));
+					}
 				});
 				
 			}
@@ -346,6 +349,7 @@ namespace xhtml
 		auto node = getNode();
 		if(node != nullptr) {
 			auto& dims = getDimensions();
+			offs += offset;
 			const int x = (offs.x - dims.padding_.left - dims.border_.left) / LayoutEngine::getFixedPointScale();
 			const int y = (offs.y - dims.padding_.top - dims.border_.top) / LayoutEngine::getFixedPointScale();
 			const int w = (dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right) / LayoutEngine::getFixedPointScale();

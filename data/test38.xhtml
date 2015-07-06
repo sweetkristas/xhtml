@@ -8,18 +8,18 @@ body {
     background-color: black;
 }
 img {
-	transform: rotate(0deg) scale(0.75, 0.75);
-    filter: saturate(0%);
-    transition: filter, transform 500ms;
+    border: solid 1px red;
 }
-img:hover {
-	transform: rotate(360deg) scale(1.0, 1.0);
-    filter: saturate(100%);
-	transition: filter, transform 1s;
+img#id1 {
+    transform: translate(200px, 200px) scale(2.0, 2.0);
+}
+#id1:hover {
+    color: blue;
 }
     </style>
 </head>
 <body>
-    <img src="../images/test_npc.png" width="200" height="200"/>
+    <img src="../images/test_npc.png" id="id1" width="200" height="200"/>
+    <img src="../images/test_npc.png" id="id2" width="200" height="200"/>
 </body>
 </html>
