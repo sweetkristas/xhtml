@@ -47,6 +47,7 @@ namespace KRE
 		struct RenderScope {
 			RenderScope(RenderTargetPtr rt, const rect& r=rect()) : rt_(rt) {
 				if(rt_) {
+					rt_->clear();
 					rt_->apply(r);
 				}
 			}

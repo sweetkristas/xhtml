@@ -104,7 +104,8 @@ namespace xhtml
 		  border_image_repeat_horiz_(CssBorderImageRepeat::REPEAT),
 		  border_image_repeat_vert_(CssBorderImageRepeat::REPEAT),
 		  background_clip_(BackgroundClip::BORDER_BOX),
-		  filters_(nullptr)
+		  filters_(nullptr),
+		  transform_(nullptr)
 	{
 	}
 
@@ -247,7 +248,6 @@ namespace xhtml
 				ttp->setEnd(new_transform);
 				addTransitionEffect(ttp);
 				transform_ = ttp->getTransform();
-				LOG_DEBUG("transform: " << transform_);
 			}
 		} else {
 			transform_ = new_transform;

@@ -44,7 +44,7 @@ namespace xhtml
 		void handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
 		void handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
 		void handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
-		void handleRenderShadow(const KRE::SceneTreePtr& scene_tree, const point& offset, KRE::FontRenderablePtr fontr, float w, float h) const;
+		void handleRenderShadow(const KRE::SceneTreePtr& scene_tree, KRE::FontRenderablePtr fontr, float w, float h) const;
 		FixedPoint calculateWidth() const;
 		LinePtr line_;
 		TextPtr txt_;

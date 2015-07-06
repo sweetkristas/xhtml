@@ -1695,13 +1695,23 @@ namespace css
 			case TransformId::MATRIX_2D:	
 			default: break;
 		}
+		modified_ = true;
 	}
 
 	const glm::mat4& TransformStyle::getComputedMatrix() const
 	{
-		// XXX should cache
+		// should cache
+		bool modified = false;
+		for(auto& trf : transforms_) {
+			modified |= trf.isModified();
+		}
+		if(!modified) {
+			return matrix_;
+		}
+
 		matrix_ = glm::mat4(1.0f);
 		for(auto& trf : transforms_) {
+			trf.clearModified();
 			switch(trf.id()) {
 				case TransformId::NONE:			
 					break;
@@ -1724,7 +1734,9 @@ namespace css
 				case TransformId::SCALE_2D: {
 					//const float sx = trf.getScale()[0].compute() / 65536.0f;
 					//const float sy = trf.getScale()[1].compute() / 65536.0f;
-					matrix_ = glm::scale(matrix_, glm::vec3(trf.getComputedLength()[0], trf.getComputedLength()[1], 0.0f));
+					const float a = trf.getComputedLength()[0];
+					const float b = trf.getComputedLength()[1];
+					matrix_ = glm::scale(matrix_, glm::vec3(a, b, 0.0f));
 					break;
 				}
 				case TransformId::ROTATE_2D: {

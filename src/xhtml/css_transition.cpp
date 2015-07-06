@@ -281,12 +281,11 @@ namespace css
 
 	void TransformTransition::handleProcess(float dt, float outp)
 	{
-		auto st = start_->getTransforms();
-		auto et = end_->getTransforms();
-		auto mt = mix_->getTransforms();
+		auto& st = start_->getTransforms();
+		auto& et = end_->getTransforms();
 
 		// XXX here we should apply the rules for matching transitions up
-		auto mit = mt.begin();
+		auto mit = mix_->getTransforms().begin();
 		for(auto sit = st.cbegin(), eit = et.cbegin();
 			sit != st.cend() && eit != et.cend(); 
 			++sit, ++eit, ++mit)  {
@@ -308,7 +307,6 @@ namespace css
 					}
 					case TransformId::ROTATE_2D: {
 						const float a = mix(outp, sit->getComputedAngle()[0], eit->getComputedAngle()[0]);
-						//LOG_DEBUG("setComputedAngle: " << a);
 						mit->setComputedAngle(a, 0.0f);
 						break;
 					}

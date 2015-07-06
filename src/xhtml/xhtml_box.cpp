@@ -24,6 +24,7 @@
 #include "CameraObject.hpp"
 #include "RenderTarget.hpp"
 #include "Shaders.hpp"
+#include "WindowManager.hpp"
 
 #include "solid_renderable.hpp"
 
@@ -251,15 +252,10 @@ namespace xhtml
 
 	void Box::render(const point& offset) const
 	{
-		auto node = getNode();
-		std::unique_ptr<RenderContext::Manager> ctx_manager;
-		if(node != nullptr && node->id() == NodeId::ELEMENT) {
-			// only instantiate on element nodes.
-			ctx_manager.reset(new RenderContext::Manager(node->getProperties()));
+		point offs/* = offset*/;
+		if(id() != BoxId::TEXT) {
+			offs += point(dimensions_.content_.x, dimensions_.content_.y);
 		}
-
-		point offs = offset;
-		offs += point(dimensions_.content_.x, dimensions_.content_.y);
 
 		if(node_ != nullptr && node_->getPosition() == Position::RELATIVE_POS) {
 			if(getStyleNode()->getLeft()->isAuto()) {
@@ -308,7 +304,6 @@ namespace xhtml
 				const float th = (getHeight() + getMBPHeight()) / LayoutEngine::getFixedPointScaleFloat();
 				glm::mat4 m1 = glm::translate(glm::mat4(1.0f), glm::vec3(-tw/2.0f, -th/2.0f, 0.0f));
 				glm::mat4 m2 = glm::translate(glm::mat4(1.0f), glm::vec3(tw/2.0f, th/2.0f, 0.0f));
-				LOG_DEBUG("transform: " << transform);
 				scene_tree->setOnPreRenderFunction([m1, m2, transform](KRE::SceneTree* st) {
 					glm::mat4 combined_matrix = m2 * transform->getComputedMatrix() * m1;
 					st->setModelMatrix(combined_matrix);
@@ -320,7 +315,9 @@ namespace xhtml
 
 		if(scene_tree != nullptr) {
 			// XXX find a way to ameliorate this
-			scene_tree->clearObjects();
+			if(id() == BoxId::BLOCK) {
+				scene_tree->clearObjects();
+			}
 			scene_tree->clearRenderTargets();
 
 			handleRenderBackground(scene_tree, offs);
@@ -346,6 +343,7 @@ namespace xhtml
 		}
 
 		// set the active rect on any parent node.
+		auto node = getNode();
 		if(node != nullptr) {
 			auto& dims = getDimensions();
 			const int x = (offs.x - dims.padding_.left - dims.border_.left) / LayoutEngine::getFixedPointScale();
@@ -363,12 +361,12 @@ namespace xhtml
 		if(node != nullptr && node->hasTag(ElementId::BODY)) {
 			//dims = getRootDimensions();
 		}
-		background_info_.render(scene_tree, offset, dims);
+		background_info_.render(scene_tree, dims);
 	}
 
 	void Box::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
-		border_info_.render(scene_tree, offset, getDimensions());
+		border_info_.render(scene_tree, getDimensions());
 	}
 
 	void Box::handleRenderFilters(const KRE::SceneTreePtr& scene_tree, const point& offset) const
@@ -382,8 +380,11 @@ namespace xhtml
 
 		// if we have a drop-shadow filter, w/h need to be bigger.
 		// with all the changes that implies.
-		const int w = (getMBPWidth() + getWidth()) / LayoutEngine::getFixedPointScale();
-		const int h = (getMBPHeight() + getHeight()) / LayoutEngine::getFixedPointScale();
+		//const int w = (getMBPWidth() + getWidth()) / LayoutEngine::getFixedPointScale();
+		//const int h = (getMBPHeight() + getHeight()) / LayoutEngine::getFixedPointScale();
+		// XXX this is wrong. It needs to be the layout size.
+		const int w = WindowManager::getMainWindow()->width();
+		const int h = WindowManager::getMainWindow()->height();
 
 		const int x = offset.x / LayoutEngine::getFixedPointScale();
 		const int y = offset.y / LayoutEngine::getFixedPointScale();
@@ -392,9 +393,9 @@ namespace xhtml
 
 		if(!filters.empty()) {
 			// Need to render the scene at full-size into the render buffer.
-			auto camera = Camera::createInstance("SceneTree:Camera", 0, w, 0, h);
-			camera->setOrthoWindow(0, w, 0, h);
-			scene_tree->setCamera(camera);
+			//auto camera = Camera::createInstance("SceneTree:Camera", 0, w, 0, h);
+			//camera->setOrthoWindow(0, w, 0, h);
+			//scene_tree->setCamera(camera);
 		}
 
 		for(auto& filter : filters) {

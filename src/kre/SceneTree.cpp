@@ -86,6 +86,19 @@ namespace KRE
 		{
 			SceneTreeImpl(const SceneTreePtr& parent) : SceneTree(parent) {}
 		};
+
+		struct GlobalModelScope
+		{
+			GlobalModelScope(const glm::mat4& new_matrix)
+			{
+				last_matrix = set_global_model_matrix(new_matrix);
+			}
+			~GlobalModelScope()
+			{
+				set_global_model_matrix(last_matrix);
+			}
+			glm::mat4 last_matrix;			
+		};
 	}
 
 	SceneTree::SceneTree(const SceneTreePtr& parent)
@@ -186,16 +199,15 @@ namespace KRE
 		//if(scopeable_.isBlendEnabled()) {
 		//}
 
-		//XXX set global model matrix here. getModelMatrix()
-		//XXX temporary workaround.
 		if(model_changed_) {
 			model_changed_ = false;
 			glm::mat4 m = glm::scale(model_matrix_, scale_);
 			m = glm::toMat4(rotation_) * m;
 			cached_model_matrix_ = glm::translate(m, position_);
 		}
-		// XXX use cached_model_matrix_ as current global matrix.
-		glm::mat4 current_model = set_global_model_matrix(cached_model_matrix_);
+		// use cached_model_matrix_ as current global matrix.
+		// XXX add a scope for the global model matrix.
+		GlobalModelScope gms(get_global_model_matrix() * cached_model_matrix_);
 
 		{
 			CameraScope cs(camera_);
@@ -231,10 +243,7 @@ namespace KRE
 
 		// Output the last render target
 		if(!render_targets_.empty()) {
-			ModelManager2D mm(position_.x, position_.y);
 			wnd->render(render_targets_.back().get());
 		}
-
-		set_global_model_matrix(current_model);
 	}
 }

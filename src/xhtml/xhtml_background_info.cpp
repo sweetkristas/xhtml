@@ -350,7 +350,7 @@ namespace xhtml
 		}
 	}
 
-	void BackgroundInfo::renderBoxShadow(const KRE::SceneTreePtr& scene_tree, const point& offset, const Dimensions& dims, KRE::RenderablePtr clip_shape) const
+	void BackgroundInfo::renderBoxShadow(const KRE::SceneTreePtr& scene_tree, const Dimensions& dims, KRE::RenderablePtr clip_shape) const
 	{
 		using namespace KRE;
 
@@ -388,8 +388,8 @@ namespace xhtml
 						new_clip_shape->setScale(scalew, scaleh);
 						box->setClipSettings(get_stencil_mask_settings(), new_clip_shape);
 					}
-					box->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScaleFloat() - ssr, 
-						(shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScaleFloat() - ssr);
+					box->setPosition((shadow.x_offset) / LayoutEngine::getFixedPointScaleFloat() - ssr, 
+						(shadow.y_offset) / LayoutEngine::getFixedPointScaleFloat() - ssr);
 					scene_tree->addObject(box);
 				} else {
 					const int gaussian_radius = 7;
@@ -453,15 +453,15 @@ namespace xhtml
 						shader->setUniformValue(blur_tho, 1.0f / (height - 1.0f));
 					});
 
-					rt_blur_v->setPosition((shadow.x_offset + offset.x) / LayoutEngine::getFixedPointScaleFloat() - ssr - gaussian_radius * 2, 
-						(shadow.y_offset + offset.y) / LayoutEngine::getFixedPointScaleFloat() - ssr - gaussian_radius * 2);
+					rt_blur_v->setPosition((shadow.x_offset) / LayoutEngine::getFixedPointScaleFloat() - ssr - gaussian_radius * 2, 
+						(shadow.y_offset) / LayoutEngine::getFixedPointScaleFloat() - ssr - gaussian_radius * 2);
 					scene_tree->addObject(rt_blur_v);
 				}
 			}
 		}
 	}
 
-	void BackgroundInfo::render(const KRE::SceneTreePtr& scene_tree, const point& offset, const Dimensions& dims) const
+	void BackgroundInfo::render(const KRE::SceneTreePtr& scene_tree, const Dimensions& dims) const
 	{
 		if(styles_ == nullptr) {
 			return;
@@ -470,10 +470,10 @@ namespace xhtml
 		// XXX if we're rendering the body element then it takes the entire canvas :-/
 		// technically the rule is that if no background styles are applied to the html element then
 		// we apply the body styles.
-		const int rx = (offset.x - dims.padding_.left - dims.border_.left) / LayoutEngine::getFixedPointScale();
-		const int ry = (offset.y - dims.padding_.top - dims.border_.top) / LayoutEngine::getFixedPointScale();
-		const int rw = (dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right) / LayoutEngine::getFixedPointScale();
-		const int rh = (dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom) / LayoutEngine::getFixedPointScale();
+		const int rx = (-dims.padding_.left - dims.border_.left) / LayoutEngine::getFixedPointScale();
+		const int ry = (-dims.padding_.top - dims.border_.top) / LayoutEngine::getFixedPointScale();
+		const int rw = ( dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right) / LayoutEngine::getFixedPointScale();
+		const int rh = ( dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom) / LayoutEngine::getFixedPointScale();
 
 
 		KRE::RenderablePtr clip_shape = nullptr;
@@ -503,7 +503,7 @@ namespace xhtml
 				break;
 		}
 
-		renderBoxShadow(scene_tree, offset, dims, clip_shape);
+		renderBoxShadow(scene_tree, dims, clip_shape);
 
 		if(styles_->getBackgroundColor()->ai() != 0) {
 			auto solid = std::make_shared<SolidRenderable>(rect(0, 0, rw, rh), styles_->getBackgroundColor());
@@ -519,10 +519,10 @@ namespace xhtml
 			const int sw = texture_->surfaceWidth();
 			const int sh = texture_->surfaceHeight();
 
-			const FixedPoint rx = (offset.x - dims.padding_.left - dims.border_.left);
-			const FixedPoint ry = (offset.y - dims.padding_.top - dims.border_.top);
-			const FixedPoint rw = (dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right);
-			const FixedPoint rh = (dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom);
+			const FixedPoint rx = (-dims.padding_.left - dims.border_.left);
+			const FixedPoint ry = (-dims.padding_.top - dims.border_.top);
+			const FixedPoint rw = ( dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right);
+			const FixedPoint rh = ( dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom);
 
 			int sw_offs = 0;
 			int sh_offs = 0;

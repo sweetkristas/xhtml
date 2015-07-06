@@ -394,7 +394,7 @@ namespace xhtml
 		}
 	}
 
-	void BorderInfo::renderNormal(const KRE::SceneTreePtr& scene_tree, const point& offset, const Dimensions& dims) const
+	void BorderInfo::renderNormal(const KRE::SceneTreePtr& scene_tree, const Dimensions& dims) const
 	{
 		std::array<std::shared_ptr<SolidRenderable>, 4> border;
 
@@ -405,10 +405,10 @@ namespace xhtml
 		bw[3] = dims.border_.bottom; 
 
 		// this is the left/top edges of the appropriate side
-		const float side_left    = static_cast<float>(offset.x - dims.padding_.left   - dims.border_.left) / LayoutEngine::getFixedPointScaleFloat();
-		const float side_top     = static_cast<float>(offset.y - dims.padding_.top    - dims.border_.top) / LayoutEngine::getFixedPointScaleFloat();
-		const float side_right   = static_cast<float>(offset.x + dims.content_.width  + dims.padding_.right) / LayoutEngine::getFixedPointScaleFloat();
-		const float side_bottom  = static_cast<float>(offset.y + dims.content_.height + dims.padding_.bottom) / LayoutEngine::getFixedPointScaleFloat();
+		const float side_left    = static_cast<float>(-dims.padding_.left   - dims.border_.left) / LayoutEngine::getFixedPointScaleFloat();
+		const float side_top     = static_cast<float>(-dims.padding_.top    - dims.border_.top) / LayoutEngine::getFixedPointScaleFloat();
+		const float side_right   = static_cast<float>( dims.content_.width  + dims.padding_.right) / LayoutEngine::getFixedPointScaleFloat();
+		const float side_bottom  = static_cast<float>( dims.content_.height + dims.padding_.bottom) / LayoutEngine::getFixedPointScaleFloat();
 		const float left_width   = static_cast<float>(dims.border_.left) / LayoutEngine::getFixedPointScaleFloat();
 		const float top_width    = static_cast<float>(dims.border_.top) / LayoutEngine::getFixedPointScaleFloat();
 		const float right_width  = static_cast<float>(dims.border_.right) / LayoutEngine::getFixedPointScaleFloat();
@@ -568,7 +568,7 @@ namespace xhtml
 		}
 	}
 
-	bool BorderInfo::render(const KRE::SceneTreePtr& scene_tree, const point& offset, const Dimensions& dims) const
+	bool BorderInfo::render(const KRE::SceneTreePtr& scene_tree, const Dimensions& dims) const
 	{
 		if(styles_ == nullptr) {
 			return false;
@@ -576,7 +576,7 @@ namespace xhtml
 
 		if(image_ == nullptr) {
 			// no image, indicate we should try fallback.
-			renderNormal(scene_tree, offset, dims);
+			renderNormal(scene_tree, dims);
 			return false;
 		}
 		bool no_fill = false;
@@ -586,10 +586,10 @@ namespace xhtml
 		std::vector<KRE::vertex_texcoord> coords;
 
 		// These are the outside edges.
-		const float y1 = static_cast<float>(offset.y - dims.padding_.top - dims.border_.top) / LayoutEngine::getFixedPointScaleFloat() - outset_[0];
-		const float x1 = static_cast<float>(offset.x - dims.padding_.left - dims.border_.left) / LayoutEngine::getFixedPointScaleFloat() - outset_[1];
-		const float y2 = static_cast<float>(offset.y + dims.content_.height + dims.padding_.bottom + dims.border_.bottom) / LayoutEngine::getFixedPointScaleFloat() + outset_[2];
-		const float x2 = static_cast<float>(offset.x + dims.content_.width + dims.padding_.right + dims.border_.right) / LayoutEngine::getFixedPointScaleFloat() + outset_[3];
+		const float y1 = static_cast<float>(-dims.padding_.top - dims.border_.top) / LayoutEngine::getFixedPointScaleFloat() - outset_[0];
+		const float x1 = static_cast<float>(-dims.padding_.left - dims.border_.left) / LayoutEngine::getFixedPointScaleFloat() - outset_[1];
+		const float y2 = static_cast<float>( dims.content_.height + dims.padding_.bottom + dims.border_.bottom) / LayoutEngine::getFixedPointScaleFloat() + outset_[2];
+		const float x2 = static_cast<float>( dims.content_.width + dims.padding_.right + dims.border_.right) / LayoutEngine::getFixedPointScaleFloat() + outset_[3];
 
 		auto uw1 = image_->getTextureCoordW(0, slice_[1]);
 		auto vw1 = image_->getTextureCoordH(0, slice_[0]);

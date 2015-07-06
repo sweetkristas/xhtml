@@ -1239,27 +1239,36 @@ namespace css
 		Transform() : id_(TransformId::NONE) {}
 		explicit Transform(TransformId id, const Length& x, const Length& y)
 			: id_(id),
+			  computed_lengths_{},
+			  computed_angles_{},
 			  lengths_{},
 			  angles_{},
-			  matrix_{}
+			  matrix_{},
+			  modified_(false)
 		{
 			lengths_[0] = x;
 			lengths_[1] = y;
 		}
 		explicit Transform(TransformId id, const std::array<Angle, 2>& a)
 			: id_(id),
+			  computed_lengths_{},
+			  computed_angles_{},
 			  lengths_{},
 			  angles_{},
-			  matrix_{}
+			  matrix_{},
+			  modified_(false)
 		{
 			angles_[0] = a[0];
 			angles_[1] = a[1];
 		}
 		explicit Transform(const std::array<float, 6>& vals)
 			: id_(TransformId::MATRIX_2D),
+			  computed_lengths_{},
+			  computed_angles_{},
 			  lengths_{},
 			  angles_{},
-			  matrix_{}
+			  matrix_{},
+			  modified_(false)
 		{
 			for(int n = 0; n != 6; ++n) {
 				matrix_[n] = vals[n]; 
@@ -1272,10 +1281,12 @@ namespace css
 		const std::array<Length, 2>& getScale() const { return lengths_; }
 		const std::array<float, 6>& getMatrix() const { return matrix_; }
 		const std::array<Angle, 2> getSkew() const { return angles_; }
-		void setComputedAngle(float a, float b) { computed_angles_[0] = a; computed_angles_[1] = b; }
-		void setComputedLength(float a, float b) { computed_lengths_[0] = a; computed_lengths_[0] = b; }
+		void setComputedAngle(float a, float b) { computed_angles_[0] = a; computed_angles_[1] = b; modified_ = true; }
+		void setComputedLength(float a, float b) { computed_lengths_[0] = a; computed_lengths_[1] = b; modified_ = true; }
 		const std::array<float, 2>& getComputedAngle() const { return computed_angles_; }
 		const std::array<float, 2>& getComputedLength() const { return computed_lengths_; }
+		bool isModified() const { return modified_; }
+		void clearModified() const { modified_ = false; }
 		void calculateComputedValues();
 	private:
 		TransformId id_;
@@ -1284,6 +1295,7 @@ namespace css
 		std::array<Length, 2> lengths_;
 		std::array<Angle, 2> angles_;
 		std::array<float, 6> matrix_;
+		mutable bool modified_;
 	};
 
 	class TransformStyle : public Style
@@ -1293,7 +1305,7 @@ namespace css
 		TransformStyle() : Style(StyleId::TRANSFORM), transforms_(), matrix_(1.0f) {}
 		explicit TransformStyle(const std::vector<Transform>& transforms) : Style(StyleId::TRANSFORM), transforms_(transforms), matrix_(1.0f) {}
 		std::string toString(Property p) const override;
-		std::vector<Transform> getTransforms() const { return transforms_; }
+		std::vector<Transform>& getTransforms() { return transforms_; }
 		const glm::mat4& getComputedMatrix() const;
 		bool requiresLayout(Property p) const override { return false; }
 		bool requiresRender(Property p) const override { return false; }

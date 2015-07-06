@@ -151,7 +151,7 @@ namespace xhtml
 		Box::handleRenderBorder(scene_tree, offs);
 	}
 
-	void TextBox::handleRenderShadow(const KRE::SceneTreePtr& scene_tree, const point& offset, KRE::FontRenderablePtr fontr, float w, float h) const
+	void TextBox::handleRenderShadow(const KRE::SceneTreePtr& scene_tree, KRE::FontRenderablePtr fontr, float w, float h) const
 	{
 		// make a copy of the font object.
 		//KRE::FontRenderablePtr shadow_font(new KRE::FontRenderable(*fontr));
@@ -164,8 +164,7 @@ namespace xhtml
 				!KRE::DisplayDevice::checkForFeature(KRE::DisplayDeviceCapabilties::RENDER_TO_TEXTURE)) {
 				// no blur
 				KRE::FontRenderablePtr shadow_font(new KRE::FontRenderable(*fontr));
-				shadow_font->setPosition(shadow.x_offset + offset.x / LayoutEngine::getFixedPointScaleFloat(), 
-					shadow.y_offset + offset.y / LayoutEngine::getFixedPointScaleFloat());
+				shadow_font->setPosition(shadow.x_offset, shadow.y_offset);
 				shadow_font->setColor(shadow.color != nullptr ? *shadow.color : *getStyleNode()->getColor());
 				scene_tree->addObject(shadow_font);
 			} else {
@@ -233,8 +232,7 @@ namespace xhtml
 					shader->setUniformValue(blur_tho, 1.0f / (iheight - 1.0f));
 				});
 
-				rt_blur_v->setPosition(shadow.x_offset + offset.x / LayoutEngine::getFixedPointScaleFloat() - extra_border, 
-					shadow.y_offset + (offset.y) / LayoutEngine::getFixedPointScaleFloat() - xheight - extra_border);
+				rt_blur_v->setPosition(shadow.x_offset - extra_border, shadow.y_offset - xheight - extra_border);
 				scene_tree->addObject(rt_blur_v);
 				// XXX isnstead of adding all the textures here, we should add them to an array, then
 				// render them all to an FBO so we only have one final texture.
@@ -270,8 +268,8 @@ namespace xhtml
 		ASSERT_LOG(line_ != nullptr, "TextBox has not had layout done. line_ is nullptr");
 		std::vector<point> path;
 		std::string text;
-		int dim_x = 0;
-		int dim_y = getStyleNode()->getFont()->getDescender();
+		int dim_x = getLeft();
+		int dim_y = getStyleNode()->getFont()->getDescender() + getTop();
 		for(auto& word : line_->line) {
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);
@@ -280,18 +278,16 @@ namespace xhtml
 			text += word.word;
 		}
 
-		auto& ctx = RenderContext::get();
 		auto fontr = getStyleNode()->getFont()->createRenderableFromPath(nullptr, text, path);
 
 		if(!shadows_.empty()) {
 			float w = fontr->getWidth() + (line_->space_advance + justification_) * line_->line.size() / LayoutEngine::getFixedPointScaleFloat();
 			float h = static_cast<float>(fontr->getHeight());
-			handleRenderShadow(scene_tree, offset, fontr, w, h);
+			handleRenderShadow(scene_tree, fontr, w, h);
 		}
 		//handleRenderTextDecoration -- underlines, then overlines
 
 		fontr->setColorPointer(getStyleNode()->getColor());
-		fontr->setPosition(offset.x / LayoutEngine::getFixedPointScaleFloat(), offset.y / LayoutEngine::getFixedPointScaleFloat());
 		scene_tree->addObject(fontr);
 
 		//handleRenderEmphasis -- text-emphasis

@@ -231,7 +231,7 @@ namespace xhtml
 			FixedPoint path_width = path.back().x - path.front().x + fnt->calculateCharAdvance(' ');
 
 			for(auto& p : path) {
-				new_path.emplace_back(p.x + offset.x - 5 - path_width, p.y + offset.y + y);
+				new_path.emplace_back(p.x + 5 - path_width, p.y + y);
 			}
 			auto fontr = fnt->createRenderableFromPath(nullptr, marker_, new_path);
 			fontr->setColorPointer(getStyleNode()->getColor());

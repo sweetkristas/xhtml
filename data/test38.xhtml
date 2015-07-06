@@ -8,11 +8,14 @@ body {
     background-color: black;
 }
 img {
-	transform: rotate(0deg);
+	transform: rotate(0deg) scale(0.75, 0.75);
+    filter: saturate(0%);
+    transition: filter, transform 500ms;
 }
 img:hover {
-	transform: rotate(360deg);
-	transition: transform 1s;
+	transform: rotate(360deg) scale(1.0, 1.0);
+    filter: saturate(100%);
+	transition: filter, transform 1s;
 }
     </style>
 </head>
