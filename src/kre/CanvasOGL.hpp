@@ -63,6 +63,27 @@ namespace KRE
 		void drawPoints(const std::vector<glm::vec2>& points, float radius, const Color& color=Color::colorWhite()) const override;
 
 		static CanvasPtr getInstance();
+#ifdef _MSC_VER
+		void* operator new(size_t i)
+		{
+			return _mm_malloc(i, 16);
+		}
+
+		void operator delete(void* p)
+		{
+			_mm_free(p);
+		}
+#else
+		void* operator new(size_t i)
+		{
+			return std::aligned_alloc(16, i);
+		}
+
+		void operator delete(void* p)
+		{
+			free(p);
+		}
+#endif
 	private:
 		DISALLOW_COPY_AND_ASSIGN(CanvasOGL);
 		void handleDimensionsChanged() override;

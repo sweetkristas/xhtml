@@ -1683,7 +1683,7 @@ namespace css
 				computed_lengths_[1] = lengths_[1].compute() / 65536.0f;
 				break;
 			case TransformId::ROTATE_2D:
-				computed_angles_[0] = angles_[0].getAngle();
+				computed_angles_[0] = angles_[0].getAngle(AngleUnits::RADIANS);
 				break;
 			case TransformId::SKEW_2D:
 			case TransformId::SKEWX_2D:
@@ -1737,11 +1737,11 @@ namespace css
 					//const float sy = trf.getScale()[1].compute() / 65536.0f;
 					const float a = trf.getComputedLength()[0];
 					const float b = trf.getComputedLength()[1];
-					matrix_ = glm::scale(matrix_, glm::vec3(a, b, 0.0f));
+					matrix_ = glm::scale(matrix_, glm::vec3(a, b, 1.0f));
 					break;
 				}
 				case TransformId::ROTATE_2D: {
-					// glm needs angle in degrees.
+					// glm needs angle in radians.
 					//const float angle = trf.getRotation().getAngle(AngleUnits::DEGREES);
 					const float angle = trf.getComputedAngle()[0];
 					matrix_ = glm::rotate(matrix_, angle, glm::vec3(0.0f, 0.0f, 1.0f));

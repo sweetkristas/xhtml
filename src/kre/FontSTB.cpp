@@ -293,6 +293,27 @@ namespace KRE
 		{
 			return &font_handle_;
 		}
+#ifdef _MSC_VER
+		void* operator new(size_t i)
+		{
+			return _mm_malloc(i, 16);
+		}
+
+		void operator delete(void* p)
+		{
+			_mm_free(p);
+		}
+#else
+		void* operator new(size_t i)
+		{
+			return std::aligned_alloc(16, i);
+		}
+
+		void operator delete(void* p)
+		{
+			free(p);
+		}
+#endif
 	private:
 		stbtt_fontinfo font_handle_;
 		std::string font_data_;

@@ -413,7 +413,7 @@ namespace xhtml
 	{
 		auto pos = model_matrix_ * glm::vec4(static_cast<float>(mp.x), static_cast<float>(mp.y), 0.0f, 1.0f);
 		point p(static_cast<int>(pos.x), static_cast<int>(pos.y));
-		LOG_DEBUG("mp: " << mp << ", p: " << p << ", ar: " <<  active_rect_);
+		//LOG_DEBUG("mp: " << mp << ", p: " << p << ", ar: " <<  active_rect_);
 		if(!active_rect_.empty()) {
 			if(geometry::pointInRect(p, active_rect_)) {
 				if(mouse_entered_ == false && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_ENTER)) {

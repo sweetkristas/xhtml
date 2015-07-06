@@ -52,6 +52,28 @@ namespace KRE
 
 		TexturePtr clone() override;
 		static void handleClearTextures();
+#ifdef _MSC_VER
+		void* operator new(size_t i)
+		{
+			return _mm_malloc(i, 16);
+		}
+
+		void operator delete(void* p)
+		{
+			_mm_free(p);
+		}
+#else
+		void* operator new(size_t i)
+		{
+			return std::aligned_alloc(16, i);
+		}
+
+		void operator delete(void* p)
+		{
+			free(p);
+		}
+#endif
+
 	private:
 		void createTexture(int n);
 		void updatePaletteRow(int index, SurfacePtr new_palette_surface, int palette_width, const std::vector<glm::u8vec4>& pixels);

@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include "geometry.hpp"
@@ -86,6 +87,28 @@ namespace KRE
 		CameraPtr clone();
 
 		variant write();
+
+#ifdef _MSC_VER
+		void* operator new(size_t i)
+		{
+			return _mm_malloc(i, 16);
+		}
+
+		void operator delete(void* p)
+		{
+			_mm_free(p);
+		}
+#else
+		void* operator new(size_t i)
+		{
+			return std::aligned_alloc(16, i);
+		}
+
+		void operator delete(void* p)
+		{
+			free(p);
+		}
+#endif
 
 #if _MSC_VER < 1800
 		// Handling for MSVC versions that don't support variadic templates.

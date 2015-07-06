@@ -150,6 +150,28 @@ namespace KRE
 
 		static ColorPtr factory(const std::string& name);
 
+#ifdef _MSC_VER
+		void* operator new(size_t i)
+		{
+			return _mm_malloc(i, 16);
+		}
+
+		void operator delete(void* p)
+		{
+			_mm_free(p);
+		}
+#else
+		void* operator new(size_t i)
+		{
+			return std::aligned_alloc(16, i);
+		}
+
+		void operator delete(void* p)
+		{
+			free(p);
+		}
+#endif
+
 		static const Color& colorAliceblue() { static Color res(240, 248, 255); return res; }
 		static const Color& colorAntiquewhite() { static Color res(250, 235, 215); return res; }
 		static const Color& colorAqua() { static Color res(0, 255, 255); return res; }
