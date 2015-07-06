@@ -87,6 +87,7 @@ void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml:
 		}
 		{
 		profile::manager pman_render("render");
+		scene_tree->clear();
 		layout->render(point());
 		}
 

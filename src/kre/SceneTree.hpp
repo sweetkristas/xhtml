@@ -77,6 +77,9 @@ namespace KRE
 		const glm::mat4& getModelMatrix() const { return model_matrix_; }
 		void setModelMatrix(const glm::mat4& m) { model_matrix_ = m; model_changed_ = true; }
 
+		// recursively clear objects and render targets.
+		void clear();
+
 		static SceneTreePtr create(SceneTreePtr parent);
 
 		// callback used during pre-render.
@@ -92,7 +95,6 @@ namespace KRE
 		ScopeableValue scopeable_;
 		CameraPtr camera_;
 		std::vector<RenderTargetPtr> render_targets_;
-		rect render_target_window_;
 		
 		RenderablePtr clip_shape_;
 

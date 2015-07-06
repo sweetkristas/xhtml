@@ -108,7 +108,6 @@ namespace KRE
 		  scopeable_(),
 		  camera_(nullptr),
 		  render_targets_(),
-		  render_target_window_(),
 		  clip_shape_(nullptr),
 		  position_(0.0f),
 		  rotation_(1.0f, 0.0f, 0.0f, 0.0f),
@@ -191,6 +190,25 @@ namespace KRE
 
 		for(auto& child : children_) {
 			child->preRender(wnd);
+		}
+	}
+
+	void SceneTree::clear()
+	{
+		clearObjects();
+		clearRenderTargets();
+		pre_render_fn_ = nullptr;
+		cached_model_matrix_ = model_matrix_ = glm::mat4(1.0f);
+		camera_.reset();
+		clip_shape_.reset();
+		color_.reset();
+		model_changed_ = true;
+		position_ = glm::vec3(0.0f);
+		rotation_ = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+		scale_ = glm::vec3(1.0f);
+
+		for(auto& child : children_) {
+			child->clear();
 		}
 	}
 

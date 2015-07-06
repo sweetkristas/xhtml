@@ -317,12 +317,6 @@ namespace xhtml
 		}
 
 		if(scene_tree != nullptr) {
-			// XXX find a way to ameliorate this
-			if(id() == BoxId::BLOCK) {
-				scene_tree->clearObjects();
-			}
-			scene_tree->clearRenderTargets();
-
 			handleRenderBackground(scene_tree, offs);
 			handleRenderBorder(scene_tree, offs);
 			handleRender(scene_tree, offs);
