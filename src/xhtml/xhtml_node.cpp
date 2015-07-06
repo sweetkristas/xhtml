@@ -371,8 +371,8 @@ namespace xhtml
 			if(geometry::pointInRect(p, active_rect_)) {
 				if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_UP)) {
 					std::map<variant, variant> m;
-					m[variant("clientX")] = variant(mp.x);
-					m[variant("clientY")] = variant(mp.y);
+					m[variant("clientX")] = variant(p.x);
+					m[variant("clientY")] = variant(p.y);
 					m[variant("button")] = variant(static_cast<int>(button - 1));
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_UP, variant(&m));
 				}
@@ -394,8 +394,8 @@ namespace xhtml
 			if(geometry::pointInRect(p, active_rect_)) {
 				if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_DOWN)) {
 					std::map<variant, variant> m;
-					m[variant("clientX")] = variant(mp.x);
-					m[variant("clientY")] = variant(mp.y);
+					m[variant("clientX")] = variant(p.x);
+					m[variant("clientY")] = variant(p.y);
 					m[variant("button")] = variant(static_cast<int>(button - 1));
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_DOWN, variant(&m));
 				}
@@ -418,16 +418,16 @@ namespace xhtml
 			if(geometry::pointInRect(p, active_rect_)) {
 				if(mouse_entered_ == false && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_ENTER)) {
 					std::map<variant, variant> m;
-					m[variant("clientX")] = variant(mp.x);
-					m[variant("clientY")] = variant(mp.y);
+					m[variant("clientX")] = variant(p.x);
+					m[variant("clientY")] = variant(p.y);
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_ENTER, variant(&m));
 				}
 				mouse_entered_ = true;
 			} else {
 				if(mouse_entered_ == true && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_LEAVE)) {
 					std::map<variant, variant> m;
-					m[variant("clientX")] = variant(mp.x);
-					m[variant("clientY")] = variant(mp.y);
+					m[variant("clientX")] = variant(p.x);
+					m[variant("clientY")] = variant(p.y);
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_LEAVE, variant(&m));
 				}
 				mouse_entered_ = false;
@@ -435,8 +435,8 @@ namespace xhtml
 
 			if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_MOVE)) {
 				std::map<variant, variant> m;
-				m[variant("clientX")] = variant(mp.x);
-				m[variant("clientY")] = variant(mp.y);
+				m[variant("clientX")] = variant(p.x);
+				m[variant("clientY")] = variant(p.y);
 				getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_MOVE, variant(&m));
 			}
 		}
