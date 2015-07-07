@@ -49,6 +49,7 @@ namespace KRE
 		virtual long calculateCharAdvance(char32_t cp) = 0;
 		virtual void addGlyphsToTexture(const std::vector<char32_t>& glyphs) = 0;
 		virtual void* getRawFontHandle() = 0;
+		virtual float getLineGap() const = 0;
 	protected:
 		std::string fnt_;
 		std::string fnt_path_;

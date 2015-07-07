@@ -323,4 +323,9 @@ namespace KRE
 	{
 		return impl_->getRawFontHandle();
 	}
+
+	float FontHandle::getLineGap() const
+	{
+		return impl_->getLineGap();
+	}
 }

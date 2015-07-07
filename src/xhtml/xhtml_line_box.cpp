@@ -28,8 +28,8 @@
 
 namespace xhtml
 {
-	LineBox::LineBox(BoxPtr parent, const point& cursor)
-		: Box(BoxId::LINE, parent, nullptr),
+	LineBox::LineBox(const BoxPtr& parent, const RootBoxPtr& root, const point& cursor)
+		: Box(BoxId::LINE, parent, nullptr, root),
 		  cursor_(cursor)
 	{
 	}

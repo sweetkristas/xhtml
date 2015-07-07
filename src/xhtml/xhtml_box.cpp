@@ -33,7 +33,6 @@
 #include "xhtml_box.hpp"
 #include "xhtml_inline_element_box.hpp"
 #include "xhtml_layout_engine.hpp"
-#include "xhtml_line_box.hpp"
 #include "xhtml_root_box.hpp"
 
 namespace xhtml
@@ -56,10 +55,11 @@ namespace xhtml
 		return os;
 	}
 
-	Box::Box(BoxId id, BoxPtr parent, StyleNodePtr node)
+	Box::Box(BoxId id, const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root)
 		: id_(id),
 		  node_(node),
 		  parent_(parent),
+		  root_(root),
 		  dimensions_(),
 		  boxes_(),
 		  absolute_boxes_(),
@@ -79,11 +79,6 @@ namespace xhtml
 
 	void Box::init()
 	{
-		// skip for line/text
-		if(id_ == BoxId::LINE) {
-			return;
-		}
-
 		auto& lh = node_->getLineHeight();
 		if(lh != nullptr) {
 			if(lh->isPercent() || lh->isNumber()) {
@@ -150,6 +145,13 @@ namespace xhtml
 		return false;
 	}
 
+	const Dimensions& Box::getRootDimensions() const
+	{
+		auto root = getRoot();
+		ASSERT_LOG(root != nullptr, "Couldn't lock root, was null.");
+		return root->getDimensions();
+	}
+
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
 	{
 		std::unique_ptr<LayoutEngine::FloatContextManager> fcm;
@@ -171,15 +173,10 @@ namespace xhtml
 
 		handlePreChildLayout(eng, containing);
 
-		LineBoxPtr open = std::make_shared<LineBox>(shared_from_this(), cursor);
-
 		if(node_ != nullptr) {
 			const std::vector<StyleNodePtr>& node_children = node_->getChildren();
 			if(!node_children.empty()) {
-				boxes_ = eng.layoutChildren(node_children, shared_from_this(), open);
-			}
-			if(open != nullptr && !open->boxes_.empty()) {
-				boxes_.emplace_back(open);
+				boxes_ = eng.layoutChildren(node_children, shared_from_this());
 			}
 		}
 
@@ -297,9 +294,6 @@ namespace xhtml
 			// XXX needs a modifer for transform origin.
 			auto transform = node_->getTransform();
 			if(!transform->getTransforms().empty()) {
-				// XX active rect needs to be modifed by these 
-				// or alternatively rotate the mouse position based on this transform. which is only one 
-				// vertex to transform.
 				const float tw = (getWidth() + getMBPWidth()) / LayoutEngine::getFixedPointScaleFloat();
 				const float th = (getHeight() + getMBPHeight()) / LayoutEngine::getFixedPointScaleFloat();
 				glm::mat4 m1 = glm::translate(glm::mat4(1.0f), glm::vec3(-tw/2.0f, -th/2.0f, 0.0f));
@@ -354,17 +348,23 @@ namespace xhtml
 
 	void Box::handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
-		auto& dims = getDimensions();
+		auto dims = getDimensions();
+		point offs;
 		NodePtr node = getNode();
 		if(node != nullptr && node->hasTag(ElementId::BODY)) {
-			//dims = getRootDimensions();
+			dims = getRootDimensions();
+			offs = point(-dimensions_.content_.x, -dimensions_.content_.y);
 		}
-		background_info_.render(scene_tree, dims);
+		background_info_.render(scene_tree, dims, offs);
 	}
 
 	void Box::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
-		border_info_.render(scene_tree, getDimensions());
+		point offs;
+		if(id_ == BoxId::TEXT) {
+			offs = point(dimensions_.content_.x, 0);
+		}
+		border_info_.render(scene_tree, getDimensions(), offs);
 	}
 
 	void Box::handleRenderFilters(const KRE::SceneTreePtr& scene_tree, const point& offset) const
@@ -372,7 +372,7 @@ namespace xhtml
 		using namespace KRE;
 
 		auto node = getStyleNode();
-		if(node == nullptr || node->getFilters() == nullptr) {
+		if(node == nullptr || node->getFilters() == nullptr || node->getFilters()->getFilters().empty()) {
 			return;
 		}
 
@@ -380,9 +380,8 @@ namespace xhtml
 		// with all the changes that implies.
 		//const int w = (getMBPWidth() + getWidth()) / LayoutEngine::getFixedPointScale();
 		//const int h = (getMBPHeight() + getHeight()) / LayoutEngine::getFixedPointScale();
-		// XXX this is wrong. It needs to be the layout size.
-		const int w = WindowManager::getMainWindow()->width();
-		const int h = WindowManager::getMainWindow()->height();
+		const int w = getRootDimensions().content_.width / LayoutEngine::getFixedPointScale();
+		const int h = getRootDimensions().content_.height / LayoutEngine::getFixedPointScale();
 
 		const int x = offset.x / LayoutEngine::getFixedPointScale();
 		const int y = offset.y / LayoutEngine::getFixedPointScale();

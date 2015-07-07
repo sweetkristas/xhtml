@@ -53,12 +53,12 @@ namespace xhtml
 		const char32_t marker_georgian_end = 0x10f6;
 	}
 
-	ListItemBox::ListItemBox(BoxPtr parent, StyleNodePtr node, int count)
-		: Box(BoxId::LIST_ITEM, parent, node),
+	ListItemBox::ListItemBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root, int count)
+		: Box(BoxId::LIST_ITEM, parent, node, root),
 		  count_(count),
 		  marker_(utils::codepoint_to_utf8(marker_disc))
 	{
-		addChild(std::make_shared<BlockBox>(parent, node));
+		addChild(std::make_shared<BlockBox>(parent, node, root));
 	}
 
 	std::string ListItemBox::toString() const 

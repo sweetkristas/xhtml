@@ -28,8 +28,8 @@ namespace xhtml
 {
 	using namespace css;
 
-	RootBox::RootBox(BoxPtr parent, StyleNodePtr node)
-		: BlockBox(parent, node),
+	RootBox::RootBox(const BoxPtr& parent, const StyleNodePtr& node)
+		: BlockBox(parent, node, nullptr),
 		  fixed_boxes_()
 	{
 	}

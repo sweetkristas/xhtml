@@ -303,9 +303,6 @@
     <ClCompile Include="..\src\xhtml\xhtml_layout_engine.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\xhtml\xhtml_line_box.cpp">
-      <Filter>Source Files\xhtml</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\xhtml\xhtml_root_box.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
@@ -717,9 +714,6 @@
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
     <ClInclude Include="..\src\xhtml\xhtml_layout_engine.hpp">
-      <Filter>Header Files\xhtml</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\xhtml\xhtml_line_box.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
     <ClInclude Include="..\src\xhtml\xhtml_root_box.hpp">

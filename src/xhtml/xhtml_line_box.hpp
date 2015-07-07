@@ -30,7 +30,7 @@ namespace xhtml
 	class LineBox : public Box
 	{
 	public:
-		LineBox(BoxPtr parent, const point& cursor=point());
+		LineBox(const BoxPtr& parent, const RootBoxPtr& root, const point& cursor=point());
 		std::string toString() const override;
 		void reflowChildren(LayoutEngine& eng, const Dimensions& containing);
 		const point& getCursor() const { return cursor_; }

@@ -92,7 +92,8 @@ namespace KRE
 			  next_font_y_(0),
 			  last_line_height_(0),
 			  all_glyphs_added_(false),
-			  glyph_info_()
+			  glyph_info_(),
+			  line_gap_(0)
 		{
 			// XXX starting off with a basic way of rendering glyphs.
 			// It'd be better to render all the glyphs to a texture,
@@ -115,6 +116,8 @@ namespace KRE
 				<< "\n\thas_kerning: " 
 				<< (has_kerning_ ? "true" : "false");
 			LOG_DEBUG(debug_ss.str());
+
+			line_gap_ = face_->height / 16.0f;
 
 			FT_UInt glyph_index = FT_Get_Char_Index(face_, 'x');
 			FT_Load_Glyph(face_, glyph_index, font_load_flags_);
@@ -413,6 +416,10 @@ namespace KRE
 		{
 			return face_;
 		}
+		float getLineGap() const override
+		{
+			return line_gap_;
+		}
 	private:
 		FT_Face face_;
 		int font_load_flags_;
@@ -424,6 +431,7 @@ namespace KRE
 		// XXX see what is practically faster using a sorted list and binary search
 		// or this map. Also a vector would have better locality.
 		std::map<char32_t, GlyphInfo> glyph_info_;
+		float line_gap_;
 	};
 
 

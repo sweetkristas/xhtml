@@ -30,7 +30,7 @@ namespace xhtml
 	class RootBox : public BlockBox
 	{
 	public:
-		explicit RootBox(BoxPtr parent, StyleNodePtr node);
+		explicit RootBox(const BoxPtr& parent, const StyleNodePtr& node);
 		std::string toString() const override;
 
 		void addFixed(BoxPtr fixed);

@@ -28,9 +28,8 @@ namespace xhtml
 {
 	using namespace css;
 
-	InlineBlockBox::InlineBlockBox(BoxPtr parent, StyleNodePtr node)
-		: Box(BoxId::INLINE_BLOCK, parent, node),
-		  multiline_(false)
+	InlineBlockBox::InlineBlockBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root)
+		: Box(BoxId::INLINE_BLOCK, parent, node, root)
 	{
 	}
 
@@ -38,9 +37,6 @@ namespace xhtml
 	{
 		std::ostringstream ss;
 		ss << "InlineBlockBox: " << getDimensions().content_;
-		if(isEOL()) {
-			ss << " ; end-of-line";
-		}
 		return ss.str();
 	}
 
@@ -48,14 +44,6 @@ namespace xhtml
 	{
 		layoutChildren(eng);
 		layoutHeight(containing);
-
-		if(!isReplaceable()) {
-			if(getChildren().size() > 1) {
-				multiline_ = true;
-			} else if(!getChildren().empty() && getChildren().front()->id() == BoxId::LINE && getChildren().front()->getChildren().size() > 1) {
-				multiline_ = true;
-			}
-		}
 
 		if(isReplaceable()) {
 			NodePtr node = getNode();

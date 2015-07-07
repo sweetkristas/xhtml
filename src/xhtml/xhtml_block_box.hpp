@@ -30,7 +30,7 @@ namespace xhtml
 	class BlockBox : public Box
 	{
 	public:
-		explicit BlockBox(BoxPtr parent, StyleNodePtr node);
+		explicit BlockBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root);
 		virtual std::string toString() const override;
 	protected:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;

@@ -28,8 +28,8 @@ namespace xhtml
 {
 	using namespace css;
 
-	AbsoluteBox::AbsoluteBox(BoxPtr parent, StyleNodePtr node)
-		: Box(BoxId::ABSOLUTE, parent, node),
+	AbsoluteBox::AbsoluteBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root)
+		: Box(BoxId::ABSOLUTE, parent, node, root),
 		  container_()
 	{
 	}

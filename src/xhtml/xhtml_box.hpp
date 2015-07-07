@@ -55,7 +55,6 @@ namespace xhtml
 
 	enum class BoxId {
 		BLOCK,
-		LINE,
 		TEXT,
 		INLINE_BLOCK,
 		INLINE_ELEMENT,
@@ -75,7 +74,7 @@ namespace xhtml
 	class Box : public std::enable_shared_from_this<Box>
 	{
 	public:
-		Box(BoxId id, BoxPtr parent, StyleNodePtr node);
+		Box(BoxId id, const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root);
 		virtual ~Box() {}
 		BoxId id() const { return id_; }
 		const Dimensions& getDimensions() const { return dimensions_; }
@@ -190,16 +189,13 @@ namespace xhtml
 		virtual FixedPoint getBottomOffset() const { return dimensions_.content_.height; }
 
 		FixedPoint getLineHeight() const { return line_height_; }
-		bool isEOL() const { return end_of_line_; }
-		void setEOL(bool eol=true) { end_of_line_ = eol; }
-		virtual bool isMultiline() const { return false; }
 
 		bool isReplaceable() const { return is_replaceable_; }
 
 		bool isFloat() const { return node_ != nullptr && node_->getFloat() != css::Float::NONE; }
 
-		// for text boxes
-		virtual void justify(FixedPoint containing_width) {};
+		RootBoxPtr getRoot() const { return root_.lock(); }
+		const Dimensions& getRootDimensions() const;
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const;
@@ -220,6 +216,7 @@ namespace xhtml
 		BoxId id_;
 		StyleNodePtr node_;
 		std::weak_ptr<Box> parent_;
+		std::weak_ptr<RootBox> root_;
 		Dimensions dimensions_;
 		std::vector<BoxPtr> boxes_;
 		std::vector<BoxPtr> absolute_boxes_;

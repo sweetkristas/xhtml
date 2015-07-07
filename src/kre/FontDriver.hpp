@@ -93,6 +93,7 @@ namespace KRE
 		int getScaleFactor() const { return 65536; }
 		std::vector<unsigned> getGlyphs(const std::string& text);
 		void* getRawFontHandle();
+		float getLineGap() const;
 	private:
 		std::unique_ptr<Impl> impl_;
 	};

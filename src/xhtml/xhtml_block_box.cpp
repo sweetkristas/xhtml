@@ -28,8 +28,8 @@ namespace xhtml
 {
 	using namespace css;
 
-	BlockBox::BlockBox(BoxPtr parent, StyleNodePtr node)
-		: Box(BoxId::BLOCK, parent, node),
+	BlockBox::BlockBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root)
+		: Box(BoxId::BLOCK, parent, node, root),
 		  child_height_(0)
 	{
 	}

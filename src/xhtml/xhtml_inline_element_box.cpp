@@ -29,8 +29,8 @@ namespace xhtml
 	// This encapsulates a replaced inline element, non-replaced inline elements are
 	// dealt with elsewhere
 
-	InlineElementBox::InlineElementBox(BoxPtr parent, StyleNodePtr node)
-		: Box(BoxId::INLINE_ELEMENT, parent, node)
+	InlineElementBox::InlineElementBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root)
+		: Box(BoxId::INLINE_ELEMENT, parent, node, root)
 	{
 	}
 

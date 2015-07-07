@@ -82,14 +82,16 @@ namespace KRE
 			stbtt_InitFont(&font_handle_, ttf_buffer, 0);
 
 			scale_ = stbtt_ScaleForPixelHeight(&font_handle_, size);
-			stbtt_GetFontVMetrics(&font_handle_, &ascent_, &descent_, &line_gap_);
+			int line_gap = 0;
+			stbtt_GetFontVMetrics(&font_handle_, &ascent_, &descent_, &line_gap);
 			baseline_ = static_cast<int>(ascent_ * scale_);
+			line_gap_ = line_gap * scale_;
 
 			float em_scale = stbtt_ScaleForMappingEmToPixels(&font_handle_, size);
 
 			has_kerning_ = font_handle_.kern ? true : false;
 
-			x_height_ = static_cast<int>(ascent_ * scale_ * 65536.0f);
+			x_height_ = ascent_ * scale_;
 
 			std::ostringstream debug_ss;
 			debug_ss << "Loaded font '" << fnt_ << "'\n\tfamily name: '" << "unknown"
@@ -182,8 +184,9 @@ namespace KRE
 				font_renderable->setTexture(font_texture_);
 			}
 
-			int width = 0;
-			int height = 0;
+			int width = font_renderable->getWidth();
+			int height = font_renderable->getHeight();
+			int max_height = 0;
 
 			std::vector<font_coord> coords;
 			coords.reserve(glyphs_in_text * 6);
@@ -203,7 +206,7 @@ namespace KRE
 
 				//width += pt.x >> 16;
 				//width += static_cast<int>(b->xoff2 - b->xoff);
-				height = std::max(height, static_cast<int>(b->yoff2 - b->yoff));
+				max_height = std::max(max_height, static_cast<int>(b->yoff2 - b->yoff));
 
 				const float u1 = font_texture_->getTextureCoordW(0, b->x0);
 				const float v1 = font_texture_->getTextureCoordH(0, b->y0);
@@ -223,7 +226,8 @@ namespace KRE
 				coords.emplace_back(glm::vec2(x2, y2), glm::vec2(u2, v2));
 				++n;
 			}
-			width = path.back().x >> 16;
+			height += max_height;
+			width = std::max(width, path.back().x >> 16);
 
 			font_renderable->setWidth(width);
 			font_renderable->setHeight(height);
@@ -293,15 +297,20 @@ namespace KRE
 		{
 			return &font_handle_;
 		}
+
+		float getLineGap() const override
+		{
+			return line_gap_;
+		}
 	private:
 		stbtt_fontinfo font_handle_;
 		std::string font_data_;
 		int ascent_;
 		int descent_;
-		int line_gap_;
 		int baseline_;
 		float scale_;
 		float font_size_;
+		float line_gap_;
 		stbtt_pack_context pc_;
 		std::map<UnicodeRange, std::vector<stbtt_packedchar>, UnicodeRange> packed_char_;
 		std::vector<unsigned char> pixels_;
