@@ -21,6 +21,7 @@
 	   distribution.
 */
 
+#include <future>
 #include <thread>
 #include <tuple>
 
@@ -509,25 +510,26 @@ namespace KRE
 		return alpha_strip_threshold;
 	}
 
+
 	SurfacePtr Surface::packImages(const std::vector<std::string>& filenames, std::vector<rect>* outr, std::vector<std::array<int, 4>>* borders)
 	{
 		const int max_threads = 8;
 
-		std::vector<std::thread> threads;
+		std::vector<std::future<void>> futures;
 
 		std::vector<SurfacePtr> images;
 		images.resize(filenames.size());
 		const int n_incr = images.size() / max_threads;
 		for(int n = 0; n < static_cast<int>(images.size()); n += n_incr) {
 			int n2 = n + n_incr > static_cast<int>(images.size()) ? images.size() : n + n_incr;
-			threads.emplace_back([&images, n, n2, &filenames]() {
+			futures.push_back(std::async([&images, n, n2, &filenames]() {
 				for(int ndx = n; ndx != n2; ++ndx) {
 					images[ndx] = Surface::create(filenames[ndx], SurfaceFlags::STRIP_ALPHA_BORDERS | SurfaceFlags::NO_CACHE);
 				}
-			});
+			}));
 		}
-		for(auto& t : threads) {
-			t.join();
+		for(auto& f : futures) {
+			f.get();
 		}
 
 		std::vector<stbrp_node> nodes;
