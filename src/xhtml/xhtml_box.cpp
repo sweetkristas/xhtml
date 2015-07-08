@@ -67,8 +67,9 @@ namespace xhtml
 		  border_info_(node),
 		  offset_(),
 		  line_height_(0),
-		  end_of_line_(false),
-		  is_replaceable_(false)
+		  is_replaceable_(false),
+		  is_first_inline_child_(false),
+		  is_last_inline_child_(false)
 	{
 		if(getNode() != nullptr && getNode()->id() == NodeId::ELEMENT) {
 			is_replaceable_ = getNode()->isReplaced();
@@ -158,6 +159,11 @@ namespace xhtml
 		if(getParent() && getParent()->isFloat()) {
 			fcm.reset(new LayoutEngine::FloatContextManager(eng, FloatList()));
 		}
+
+		if(isBlockBox()) {
+			eng.resetCursor();
+		}
+
 		point cursor;
 		// If we have a clear flag set, then move the cursor in the layout engine to clear appropriate floats.
 		if(node_ != nullptr) {
@@ -209,6 +215,13 @@ namespace xhtml
 		// need to call this after doing layout, since we need to now what the computed padding/border values are.
 		border_info_.init(dimensions_);
 		background_info_.init(dimensions_);
+
+		if(isBlockBox()) {
+			point p;
+			p.y = getTop() + getHeight() + getMBPBottom();
+			p.x = eng.getXAtPosition(p.y, p.y + getLineHeight());
+			eng.setCursor(p);
+		}
 	}
 
 	void Box::calculateVertMPB(FixedPoint containing_height)
@@ -252,7 +265,7 @@ namespace xhtml
 		point offs = point(dimensions_.content_.x, dimensions_.content_.y);
 		if(id() == BoxId::TEXT) {
 			offs.x = offs.y = 0;
-		}
+		} 
 
 		if(node_ != nullptr && node_->getPosition() == Position::RELATIVE_POS) {
 			if(getStyleNode()->getLeft()->isAuto()) {

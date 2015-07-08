@@ -509,12 +509,8 @@ namespace KRE
 		return alpha_strip_threshold;
 	}
 
-#include "profile_timer.hpp"
-
 	SurfacePtr Surface::packImages(const std::vector<std::string>& filenames, std::vector<rect>* outr, std::vector<std::array<int, 4>>* borders)
 	{
-		profile::manager pman("fit rects");
-
 		const int max_threads = 8;
 
 		std::vector<std::thread> threads;

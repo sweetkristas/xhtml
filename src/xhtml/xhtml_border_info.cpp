@@ -399,10 +399,10 @@ namespace xhtml
 		std::array<std::shared_ptr<SolidRenderable>, 4> border;
 
 		FixedPoint bw[4];
-		bw[0] = dims.border_.left; 
-		bw[1] = dims.border_.top; 
-		bw[2] = dims.border_.right; 
-		bw[3] = dims.border_.bottom; 
+		bw[0] = dims.border_.top; 
+		bw[1] = dims.border_.left; 
+		bw[2] = dims.border_.bottom;
+		bw[3] = dims.border_.right; 
 
 		int draw_border = 0;
 

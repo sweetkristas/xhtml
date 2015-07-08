@@ -36,6 +36,7 @@ namespace xhtml
 		point offset_;
 		FixedPoint justification_;
 		FixedPoint width_;
+		FixedPoint height_;
 	};
 
 	class TextBox : public Box

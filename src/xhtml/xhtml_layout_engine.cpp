@@ -171,20 +171,44 @@ namespace xhtml
 								// XXX should these go into open_box?
 								res.emplace_back(std::make_shared<InlineElementBox>(parent, child, root_));
 							} else {
+								// find first and last text children
+								std::vector<StyleNodePtr>::const_iterator first_text_child = child->getChildren().end();
+								std::vector<StyleNodePtr>::const_iterator last_text_child = child->getChildren().end();
+								for(auto it = child->getChildren().begin(); it != child->getChildren().end(); ++it) {
+									if(*it != nullptr && (*it)->getNode()->id() == NodeId::TEXT) {
+										if(first_text_child == child->getChildren().end()) {
+											first_text_child = it;
+										}
+										last_text_child = it;
+									}
+								}
+
 								// non-replaced elements we just generate children and add them.
-								for(auto& inline_child : child->getChildren()) {
+								for(auto it = child->getChildren().begin(); it != child->getChildren().end(); ++it) {
+									auto& inline_child = *it;
 									NodePtr inline_node = inline_child->getNode();
 									if(inline_node != nullptr && inline_node->id() == NodeId::TEXT) {
 										inline_child->inheritProperties(child);
 									}
 								}
+
 								std::vector<BoxPtr> new_children = layoutChildren(child->getChildren(), parent);
+
+								// alter border and padding to suit
+								for(auto& box_child : new_children) {
+									if(*first_text_child == box_child->getStyleNode()) {
+										box_child->setFirstInlineChild();
+									}
+									if(*last_text_child == box_child->getStyleNode()) {
+										box_child->setLastInlineChild();
+									}
+								}
+
 								res.insert(res.end(), new_children.begin(), new_children.end());
 							}
 							break;
 						}
 						case Display::BLOCK: {
-							resetCursor();
 							res.emplace_back(std::make_shared<BlockBox>(parent, child, root_));
 							break;
 						}
@@ -193,7 +217,6 @@ namespace xhtml
 							break;
 						}
 						case Display::LIST_ITEM: {
-							resetCursor();
 							res.emplace_back(std::make_shared<ListItemBox>(parent, child, root_, list_item_counter_.top()));
 							break;
 						}

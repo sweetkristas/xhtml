@@ -196,11 +196,17 @@ namespace xhtml
 
 		RootBoxPtr getRoot() const { return root_.lock(); }
 		const Dimensions& getRootDimensions() const;
+
+		void setFirstInlineChild() { is_first_inline_child_ = true; }
+		void setLastInlineChild() { is_last_inline_child_ = true; }
+		bool isFirstInlineChild() const { return is_first_inline_child_; }
+		bool isLastInlineChild() const { return is_last_inline_child_; }
 	protected:
 		void clearChildren() { boxes_.clear(); } 
 		virtual void handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const;
 		virtual void handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const;
 		virtual void handleRenderFilters(const KRE::SceneTreePtr& scene_tree, const point& offset) const;
+		const BackgroundInfo& getBackgroundInfo() const { return background_info_; }
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
 		virtual void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) {}
@@ -227,9 +233,10 @@ namespace xhtml
 		point offset_;
 		FixedPoint line_height_;
 
-		// Helper marker when doing LineBox layout
-		bool end_of_line_;
 		bool is_replaceable_;
+
+		bool is_first_inline_child_;
+		bool is_last_inline_child_;
 	};
 
 	std::ostream& operator<<(std::ostream& os, const Rect& r);

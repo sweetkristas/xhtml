@@ -83,6 +83,8 @@ namespace xhtml
 		point cursor = current_cursor;
 
 		FixedPoint y1 = cursor.y + getParent()->getOffset().y;
+		// XXX if padding left/border left applies should reduce width and move cursor position if isFirstInlineChild() is set.
+		// Simlarly the last line width should be reduced by padding right/border right.
 		FixedPoint width = eng.getWidthAtPosition(y1, y1 + getLineHeight(), containing.content_.width) - cursor.x + eng.getXAtPosition(y1, y1 + getLineHeight());
 
 		Text::iterator last_it = txt_->begin();
@@ -105,6 +107,8 @@ namespace xhtml
 
 				lines_.emplace_back(line, cursor);
 				lines_.back().width_ = calculateWidth(lines_.back());
+				// XXX This height needs to be modified later if we have inline elements with a different lineheight
+				lines_.back().height_ = getLineHeight();
 				cursor.x += lines_.back().width_;
 
 				if(line->is_end_line) {
@@ -259,14 +263,39 @@ namespace xhtml
 
 	void TextBox::handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
-		point offs = offset - point(0, getDimensions().content_.height);
-		Box::handleRenderBackground(scene_tree, offs);
+		for(auto it = lines_.begin(); it != lines_.end(); ++it) {
+			auto& line = *it;
+			Dimensions dims = getDimensions();
+			dims.content_.width = line.width_;
+			dims.content_.height = line.height_;
+			point offs = line.offset_;
+			offs.y -= line.height_;
+			getBackgroundInfo().render(scene_tree, dims, offs);
+		}
 	}
 
 	void TextBox::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
-		point offs = offset - point(0, getDimensions().content_.height);
-		Box::handleRenderBorder(scene_tree, offs);
+		for(auto it = lines_.begin(); it != lines_.end(); ++it) {
+			auto& line = *it;
+			Dimensions dims = getDimensions();
+			dims.content_.width = line.width_;
+			dims.content_.height = line.height_;
+			point offs = line.offset_;
+			offs.y -= line.height_;
+			if(isFirstInlineChild() && it == lines_.begin()) {
+				if(!(isLastInlineChild() && it == lines_.end()-1)) {
+					dims.border_.right = 0;
+				}
+			} else {
+				if(isLastInlineChild() && it == lines_.end()-1) {
+					dims.border_.left = 0;
+				} else {
+					dims.border_.left = dims.border_.right = 0;
+				}
+			}
+			getBorderInfo().render(scene_tree, dims, offs);
+		}
 	}
 
 	void TextBox::handleRenderShadow(const KRE::SceneTreePtr& scene_tree, KRE::FontRenderablePtr fontr, float w, float h) const
