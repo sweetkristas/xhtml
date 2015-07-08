@@ -43,5 +43,6 @@ namespace xhtml
 		void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) override;
 		void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) override;
 		void handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
+		point cursor_;
 	};
 }
