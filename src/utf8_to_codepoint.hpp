@@ -52,7 +52,7 @@ namespace utils
 			{
 				char32_t codepoint = 0;
 				std::string::const_iterator it(it_);
-				auto c = *it++;
+				uint8_t c = *it++;
 				if(c & utf8_bitmask_1) {
 					if(c & utf8_bitmask_3) {
 						if(c & utf8_bitmask_4) {
@@ -130,7 +130,7 @@ namespace utils
 		if(cp <= 0x7f) {
 			utf8_str[0] = static_cast<char>(cp);
 		} else if(cp <= 0x7ff) {
-			utf8_str[0] = static_cast<char>((cp & 0x1f)>>6)|0xc0;
+			utf8_str[0] = static_cast<char>((cp & 0x7c0)>>6)|0xc0;
 			utf8_str[1] = static_cast<char>(cp & 0x3f)|0x80;
 			++n;
 		} else if(cp <= 0xffff) {
