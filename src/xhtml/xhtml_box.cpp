@@ -160,10 +160,6 @@ namespace xhtml
 			fcm.reset(new LayoutEngine::FloatContextManager(eng, FloatList()));
 		}
 
-		if(isBlockBox()) {
-			eng.resetCursor();
-		}
-
 		point cursor;
 		// If we have a clear flag set, then move the cursor in the layout engine to clear appropriate floats.
 		if(node_ != nullptr) {
@@ -186,15 +182,20 @@ namespace xhtml
 			}
 		}
 
-		// xxx offs
-		offset_ = (getParent() != nullptr ? getParent()->getOffset() : point()) + point(dimensions_.content_.x, dimensions_.content_.y);
-
 		for(auto& child : boxes_) {
 			if(child->isFloat()) {
 				child->layout(eng, dimensions_);
 				eng.addFloat(child);
 			}
 		}
+
+		offset_ = (getParent() != nullptr ? getParent()->getOffset() : point()) + point(dimensions_.content_.x, dimensions_.content_.y);
+		if(isBlockBox()) {
+			const FixedPoint y1 = offset_.y;
+			point p(eng.getXAtPosition(y1, y1 + getLineHeight()), 0);
+			eng.setCursor(p);
+		}
+
 
 		handlePreChildLayout2(eng, containing);
 
@@ -216,7 +217,7 @@ namespace xhtml
 		border_info_.init(dimensions_);
 		background_info_.init(dimensions_);
 
-		if(isBlockBox()) {
+		if(isBlockBox() && !isFloat()) {
 			point p;
 			p.y = getTop() + getHeight() + getMBPBottom();
 			p.x = eng.getXAtPosition(p.y, p.y + getLineHeight());

@@ -82,7 +82,7 @@ namespace xhtml
 
 		point cursor = current_cursor;
 
-		FixedPoint y1 = cursor.y + getParent()->getOffset().y;
+		FixedPoint y1 = cursor.y + getOffset().y;
 		// XXX if padding left/border left applies should reduce width and move cursor position if isFirstInlineChild() is set.
 		// Simlarly the last line width should be reduced by padding right/border right.
 		FixedPoint width = eng.getWidthAtPosition(y1, y1 + getLineHeight(), containing.content_.width) - cursor.x + eng.getXAtPosition(y1, y1 + getLineHeight());
@@ -98,7 +98,7 @@ namespace xhtml
 				FixedPoint last_x = line->line.back().advance.back().x;
 				if(last_x > width && eng.hasFloatsAtPosition(y1, y1 + getLineHeight())) {
 					cursor.y += getLineHeight();
-					y1 = cursor.y + getParent()->getOffset().y;
+					y1 = cursor.y + getOffset().y;
 					cursor.x = eng.getXAtPosition(y1, y1 + getLineHeight());
 					it = last_it;
 					width = eng.getWidthAtPosition(y1, y1 + getLineHeight(), containing.content_.width);
@@ -114,7 +114,7 @@ namespace xhtml
 				if(line->is_end_line) {
 					// update the cursor for the next line
 					cursor.y += getLineHeight();
-					y1 = cursor.y + getParent()->getOffset().y;
+					y1 = cursor.y + getOffset().y;
 					cursor.x = eng.getXAtPosition(y1, y1 + getLineHeight());
 				}
 			}					
