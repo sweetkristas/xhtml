@@ -142,8 +142,21 @@ namespace KRE
 			}
 			std::vector<point>& path = glyph_path_cache_[text];
 
+			auto cp_str = utils::utf8_to_codepoint(text);
+
+			std::vector<char32_t> glyphs_to_add;
+			for(char32_t cp : cp_str) {
+				auto it = packed_char_.find(UnicodeRange(cp));
+				if(it == packed_char_.end()) {
+					glyphs_to_add.emplace_back(cp);
+				}
+			}
+			if(!glyphs_to_add.empty()) {
+				addGlyphsToTexture(glyphs_to_add);
+			}
+
 			point pen;
-			for(char32_t cp : utils::utf8_to_codepoint(text)) {
+			for(char32_t cp : cp_str) {
 				path.emplace_back(pen);
 				auto it = packed_char_.find(UnicodeRange(cp));
 				if(it == packed_char_.end()) {
