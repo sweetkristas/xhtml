@@ -21,7 +21,8 @@
 	   distribution.
 */
 
-//#include <boost/locale.hpp>
+#include <boost/locale.hpp>
+#include <boost/thread.hpp>
 
 #include "asserts.hpp"
 #include "profile_timer.hpp"
@@ -31,6 +32,10 @@
 #include "unit_test.hpp"
 
 #include "WindowManager.hpp"
+
+#pragma comment(lib, "icudt.lib")
+#pragma comment(lib, "icuin.lib")
+#pragma comment(lib, "icuuc.lib")
 
 namespace xhtml
 {
@@ -105,6 +110,9 @@ namespace xhtml
 			return;
 		}
 
+		boost::locale::generator gen;
+		std::locale::global(gen(""));
+
 		// Apply transform text_ based on "text-transform" property		
 		
 		css::TextTransform text_transform = style_node->getTextTransform();
@@ -120,7 +128,7 @@ namespace xhtml
 					} else {
 						if(first_letter) {
 							first_letter = false;
-							transformed_text += /*boost::locale::to_upper*/(utils::codepoint_to_utf8(cp));
+							transformed_text += boost::locale::to_upper(utils::codepoint_to_utf8(cp));
 						} else {
 							transformed_text += utils::codepoint_to_utf8(cp);
 						}
@@ -129,10 +137,10 @@ namespace xhtml
 				break;
 			}
 			case css::TextTransform::UPPERCASE:
-				transformed_text = /*boost::locale::to_upper*/(text_);
+				transformed_text = boost::locale::to_upper(text_);
 				break;
 			case css::TextTransform::LOWERCASE:
-				transformed_text = /*boost::locale::to_lower*/(text_);
+				transformed_text = boost::locale::to_lower(text_);
 				break;
 			case css::TextTransform::NONE:
 			default: break;

@@ -76,7 +76,7 @@ namespace KRE
 			if(res.empty()) {
 				// replace character.
 				res.emplace_back(0xfffd);
-				for(char32_t n = 0x21; n < 0x7f; ++n) {
+				for(char32_t n = 0x21; n < 0x200; ++n) {
 					res.emplace_back(n);
 				}
 			}
