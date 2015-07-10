@@ -31,9 +31,6 @@
 #include "css_styles.hpp"
 #include "xhtml_render_ctx.hpp"
 
-// XXX ugh --- come up with a better way of loading a surface than this.
-#include "SDL_image.h"
-
 namespace css
 {
 	namespace 
