@@ -133,7 +133,7 @@ namespace KRE
 
 		static TexturePtr createTextureArray(int count, int width, int height, PixelFormat::PF fmt, TextureType type);
 		static TexturePtr createTextureArray(const std::vector<SurfacePtr>& surfaces, const variant& node);
-
+		
 		virtual CanvasPtr getCanvas() = 0;
 
 		virtual ClipScopePtr createClipScope(const rect& r) = 0;

@@ -363,6 +363,9 @@
     <ClCompile Include="..\src\kre\SceneTree.cpp">
       <Filter>Source Files\kre</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\xhtml\url_handler.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -775,6 +778,9 @@
     </ClInclude>
     <ClInclude Include="..\src\kre\AlignedAllocator.hpp">
       <Filter>Header Files\kre</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\url_handler.hpp">
+      <Filter>Header Files\xhtml</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

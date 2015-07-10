@@ -28,6 +28,7 @@
 #include "asserts.hpp"
 #include "Color.hpp"
 #include "Texture.hpp"
+#include "url_handler.hpp"
 #include "xhtml_fwd.hpp"
 
 #define MAKE_FACTORY(classname)																\
@@ -475,16 +476,17 @@ namespace css
 		MAKE_FACTORY(UriStyle);
 		UriStyle() : is_none_(true), uri_() {}
 		explicit UriStyle(bool none) : is_none_(none), uri_() {}
-		explicit UriStyle(const std::string uri) : is_none_(false), uri_(uri) {}
+		explicit UriStyle(const std::string uri);
 		bool isNone() const { return is_none_; }
 		const std::string& getUri() const { return uri_; }
-		void setURI(const std::string& uri) { uri_ = uri; is_none_ = false; }
+		void setURI(const std::string& uri);
 		bool isEqual(const StylePtr& style) const override;
 		KRE::TexturePtr getTexture(xhtml::FixedPoint width, xhtml::FixedPoint height) override;
 		std::string toString(Property p) const override;
 	private:
 		bool is_none_;
 		std::string uri_;
+		xhtml::url_handler_ptr handler_;
 	};
 
 	class LinearGradient : public ImageSource

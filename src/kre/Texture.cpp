@@ -562,6 +562,18 @@ namespace KRE
 		return DisplayDevice::createTextureArray(surfaces, node);
 	}
 
+	TexturePtr Texture::createFromImage(const std::string& image_data, const variant& node)
+	{
+		auto surface = Surface::create(image_data, SurfaceFlags::FROM_DATA | SurfaceFlags::NO_CACHE);
+		return DisplayDevice::createTexture(surface, node);
+	}
+
+	TexturePtr Texture::createFromImage(const std::string& image_data, TextureType type, int mipmap_levels)
+	{
+		auto surface = Surface::create(image_data, SurfaceFlags::FROM_DATA | SurfaceFlags::NO_CACHE);
+		return DisplayDevice::createTexture(surface, type, mipmap_levels);
+	}
+
 	void Texture::clearTextures()
 	{
 		DisplayDevice::getCurrent()->clearTextures();

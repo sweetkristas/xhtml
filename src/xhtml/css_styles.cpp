@@ -31,6 +31,9 @@
 #include "css_styles.hpp"
 #include "xhtml_render_ctx.hpp"
 
+// XXX ugh --- come up with a better way of loading a surface than this.
+#include "SDL_image.h"
+
 namespace css
 {
 	namespace 
@@ -820,13 +823,31 @@ namespace css
 		return time_value;
 	}
 
+	UriStyle::UriStyle(const std::string uri) 
+		: is_none_(false), 
+		  uri_(uri),
+		  handler_(nullptr)
+	{
+		auto filter = KRE::Surface::getFileFilter(KRE::FileFilterType::LOAD);
+		handler_ = xhtml::url_handler::create(filter(uri_));
+	}
+
+	void UriStyle::setURI(const std::string& uri) 
+	{ 
+		uri_ = uri; 
+		is_none_ = false; 
+		auto filter = KRE::Surface::getFileFilter(KRE::FileFilterType::LOAD);
+		handler_ = xhtml::url_handler::create(filter(uri_));
+	}
+
 	KRE::TexturePtr UriStyle::getTexture(xhtml::FixedPoint width, xhtml::FixedPoint height)
 	{
 		// width/height are only suggestions, since we should have intrinsic width
 		if(is_none_ || uri_.empty()) {
 			return nullptr;
 		}
-		return KRE::Texture::createTexture(uri_);
+		ASSERT_LOG(handler_ != nullptr, "Error! handler was nullptr");
+		return KRE::Texture::createFromImage(handler_->getResource());
 	}
 
 	// Convert a length value, either dimension or percentage into a value, 
