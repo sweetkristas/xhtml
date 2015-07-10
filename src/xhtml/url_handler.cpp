@@ -36,7 +36,7 @@ namespace xhtml
 		public:
 			explicit file_handler(const std::string& filename)
 			{
-				createTask([filename]() -> std::string {
+				createTask(std::launch::deferred, [filename]() -> std::string {
 					try {
 						return sys::read_file(filename);
 					} catch(boost::filesystem::filesystem_error& e) {
@@ -91,9 +91,9 @@ namespace xhtml
 		return future_.get();
 	}
 
-	void url_handler::createTask(std::function<std::string()> fn)
+	void url_handler::createTask(std::launch policy, std::function<std::string()> fn)
 	{
-		future_ = std::async(std::launch::async, fn);
+		future_ = std::async(policy, fn);
 	}
 
 	void url_handler::registerHandler(const std::string& protocol, url_handler::protocol_creator_fn creator_fn)

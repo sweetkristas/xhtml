@@ -45,7 +45,7 @@ namespace xhtml
 		typedef std::function<url_handler_ptr(const uri::uri&)> protocol_creator_fn;
 		static void registerHandler(const std::string& protocol, protocol_creator_fn creator_fn);
 	protected:
-		void createTask(std::function<std::string()> fn);
+		void createTask(std::launch policy, std::function<std::string()> fn);
 	private:
 		std::future<std::string> future_;
 	};
