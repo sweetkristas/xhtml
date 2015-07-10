@@ -31,9 +31,8 @@ namespace xhtml
 {
 	namespace
 	{
-		class file_handler : public url_handler
+		struct file_handler : public url_handler
 		{
-		public:
 			explicit file_handler(const std::string& filename)
 			{
 				createTask(std::launch::deferred, [filename]() -> std::string {
@@ -45,7 +44,6 @@ namespace xhtml
 					}
 				});
 			}
-		private:
 		};
 
 		typedef std::map<std::string, url_handler::protocol_creator_fn> protocol_map;
