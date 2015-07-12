@@ -1,13 +1,7 @@
 Current bugs:
 
-There are end-caps on all text lines (which is incorrect), when border is used on inline elements.
-repro: test2.xhtml
-
 Verify left&right padding are applied correctly to inline element.
 repro: test8.xhtml
-
-There is an extra line before placement of inline-block element.
-repro: test15.xhtml
 
 Vertical alignment has no effect.
 repro: test18.xhtml
