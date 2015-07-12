@@ -433,9 +433,11 @@ namespace xhtml
 				text += word.word;
 			}
 
-			fontr = getStyleNode()->getFont()->createRenderableFromPath(nullptr, text, path);
+			if(!text.empty()) {
+				fontr = getStyleNode()->getFont()->createRenderableFromPath(nullptr, text, path);
 fontr->setColorPointer(getStyleNode()->getColor());
 scene_tree->addObject(fontr);
+			}
 		}
 
 		if(!shadows_.empty()) {

@@ -21,6 +21,9 @@
 	   distribution.
 */
 
+#include <clocale>
+#include <locale>
+
 #include "asserts.hpp"
 #include "filesystem.hpp"
 #include "Blittable.hpp"
@@ -47,6 +50,11 @@
 #include "xhtml_style_tree.hpp"
 #include "xhtml_node.hpp"
 #include "xhtml_render_ctx.hpp"
+
+#if defined(_MSC_VER)
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
 
 namespace
 {
@@ -201,6 +209,71 @@ KRE::SceneObjectPtr test_filter_shader(const std::string& filename)
 	return rt;
 }
 
+std::string wide_string_to_utf8(const std::wstring& ws)
+{
+	std::string res;
+
+	int ret = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), ws.size(), nullptr, 0, nullptr, nullptr);
+	if(ret > 0) {
+		std::vector<char> str;
+		str.resize(ret);
+		ret = WideCharToMultiByte(CP_UTF8, 0, ws.c_str(), ws.size(), str.data(), str.size(), nullptr, nullptr);
+		res = std::string(str.begin(), str.end());
+	}
+
+	return res;
+}
+
+void read_system_fonts(sys::file_path_map* res)
+{
+#if defined(_MSC_VER)
+	// HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders\Fonts
+
+	// should enum the key for the data type here, then run a query with a null buffer for the size
+
+	HKEY font_key;
+	LONG err = RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders", 0, KEY_READ, &font_key);
+	if(err == ERROR_SUCCESS) {
+		std::vector<wchar_t> data;
+		DWORD data_size = 0;
+
+		err = RegQueryValueExW(font_key, L"Fonts", 0, 0, nullptr, &data_size);
+		if(err != ERROR_SUCCESS) {
+			return;
+		}
+		data.resize(data_size);
+
+		err = RegQueryValueExW(font_key, L"Fonts", 0, 0, reinterpret_cast<LPBYTE>(data.data()), &data_size);
+		if(err == ERROR_SUCCESS) {
+			if(data[data_size-2] == 0 && data[data_size-1] == 0) {
+				// was stored with null terminator
+				data_size -= 2;
+			}
+			data_size >>= 1;
+			std::wstring base_font_dir(data.begin(), data.begin()+data_size);
+			std::wstring wstr = base_font_dir + L"\\*.?tf";
+			WIN32_FIND_DATA find_data;
+			HANDLE hFind = FindFirstFileW(wstr.data(), &find_data);
+			(*res)[wide_string_to_utf8(std::wstring(find_data.cFileName))] = wide_string_to_utf8(base_font_dir + L"\\" + std::wstring(find_data.cFileName));
+			if(hFind != INVALID_HANDLE_VALUE) {			
+				while(FindNextFileW(hFind, &find_data)) {
+					(*res)[wide_string_to_utf8(std::wstring(find_data.cFileName))] = wide_string_to_utf8(base_font_dir + L"\\" + std::wstring(find_data.cFileName));
+				}
+			}
+			FindClose(hFind);
+		} else {
+			LOG_WARN("Unable to read \"Fonts\" sub-key");
+		}
+		RegCloseKey(font_key);
+	} else {
+		LOG_WARN("Unable to read the shell folders registry key");
+		// could try %windir%\fonts as a backup
+	}
+#elif defined(linux) || defined(__linux__)
+#else
+#endif
+}
+
 int main(int argc, char* argv[])
 {
 	std::vector<std::string> args;
@@ -241,6 +314,7 @@ int main(int argc, char* argv[])
 
 	sys::file_path_map font_files;
 	sys::get_unique_files(data_path + "fonts/", font_files);
+	read_system_fonts(&font_files);
 	KRE::FontDriver::setAvailableFonts(font_files);
 	KRE::FontDriver::setFontProvider("stb");
 
