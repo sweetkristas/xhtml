@@ -1,4 +1,6 @@
+#include <codecvt>
 #include <iostream>
+#include <locale>
 #include <sstream>
 #include <fstream>
 #include <algorithm>
@@ -19,8 +21,9 @@ namespace sys
 
 	std::string read_file(const std::string& name)
 	{
-		ASSERT_LOG(file_exists(name), "Couldn't read file: " << name);
-		std::ifstream file(name, std::ios_base::binary);
+		path p(name);
+		ASSERT_LOG(exists(p), "Couldn't read file: " << name);
+		std::ifstream file(p.generic_wstring(), std::ios_base::binary);
 		std::stringstream ss;
 		ss << file.rdbuf();
 		return ss.str();
@@ -40,16 +43,23 @@ namespace sys
 		file << data;
 	}
 
+	std::string wstring_to_string(const std::wstring& ws)
+	{
+		typedef std::codecvt_utf8<wchar_t> convert_type;
+		std::wstring_convert<convert_type, wchar_t> converter;
+		return converter.to_bytes(ws);
+	}
+
 	void get_unique_files(const std::string& name, file_path_map& fpm)
 	{
 		path p(name);
 		if(exists(p)) {
 			ASSERT_LOG(is_directory(p) || is_other(p), "get_unique_files() not directory: " << name);
-			for(auto it = directory_iterator(p); it != directory_iterator(); ++it) {
+			for(auto it = recursive_directory_iterator(p); it != recursive_directory_iterator(); ++it) {
 				if(is_regular_file(it->path())) {
-					fpm[it->path().filename().generic_string()] = it->path().generic_string();
-				} else {
-					get_unique_files(it->path().generic_string(), fpm);
+					std::string fn = wstring_to_string(it->path().filename().generic_wstring());
+					std::string fp = wstring_to_string(it->path().generic_wstring());
+					fpm[fn] = fp;
 				}
 			}
 		} else {
