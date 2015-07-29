@@ -60,9 +60,7 @@ namespace KRE
 		HardwareAttributeImpl(AttributeBase* parent) : HardwareAttribute(parent), value_(0) {}
 		virtual ~HardwareAttributeImpl() {}
 		void update(const void* value, ptrdiff_t offset, size_t size) {
-			if(offset == 0) {
-				value_ = reinterpret_cast<intptr_t>(value);
-			}
+			value_ = reinterpret_cast<intptr_t>(value);
 		}
 		void bind() {}
 		void unbind() {}
@@ -201,6 +199,7 @@ namespace KRE
 		void clear() {
 			elements_.clear();
 			getParent()->setCount(0);
+			getParent()->clearMultiDrawData();
 		}
 		void update(const Container<T>& values) {
 			elements_ = values;
@@ -233,6 +232,16 @@ namespace KRE
 				getDeviceBufferData()->update(&elements_[0], 0, elements_.size() * sizeof(T));
 				getParent()->setCount(elements_.size());
 			}
+		}
+		void addMultiDraw(Container<T>* src) {
+			ASSERT_LOG(getParent() != nullptr && getParent()->isMultiDrawEnabled(), "Parent attribute set not enabled for multi-draw. Call enableMultiDraw() on parent.");
+			std::ptrdiff_t dst1 = elements_.size();
+			std::ptrdiff_t dst2 = std::distance(src->begin(), src->end());
+			std::move(src->begin(), src->end(), std::inserter(elements_, elements_.end()));
+			if(getDeviceBufferData() && dst2 > 0) {
+				getDeviceBufferData()->update(&elements_[0], dst1, dst2 * sizeof(T));
+			}
+			getParent()->addMultiDrawData(dst1, dst2);
 		}
 		size_t size() const { 
 			return elements_.size();
@@ -347,6 +356,22 @@ namespace KRE
 
 		std::vector<AttributeBasePtr>& getAttributes() { return attributes_; }
 
+		void enableMultiDraw(bool en=true) { multi_draw_enabled_ = en; }
+		bool isMultiDrawEnabled() const { return multi_draw_enabled_; }
+		int getMultiDrawCount() const { return multi_draw_instances_; }
+		void clearMultiDrawData() { 
+			multi_draw_count_.clear();
+			multi_draw_offset_.clear();
+			multi_draw_instances_ = 0;
+		}
+		void addMultiDrawData(std::ptrdiff_t offset, std::size_t size) { 
+			multi_draw_count_.emplace_back(static_cast<int>(size)); 
+			multi_draw_offset_.emplace_back(static_cast<int>(offset));
+			++multi_draw_instances_;
+		}
+		const std::vector<int>& getMultiCountArray() const { return multi_draw_count_; }
+		const std::vector<int>& getMultiOffsetArray() const { return multi_draw_offset_; }
+
 		virtual AttributeSetPtr clone();
 	protected:
 		const void* getIndexData() const { 
@@ -371,6 +396,10 @@ namespace KRE
 		std::vector<AttributeBasePtr> attributes_;
 		size_t count_;
 		ptrdiff_t offset_;
-		AttributeSet();
+		bool multi_draw_enabled_;
+		int multi_draw_instances_;
+		std::vector<int> multi_draw_count_;
+		std::vector<int> multi_draw_offset_;
+		AttributeSet() =delete;
 	};
 }

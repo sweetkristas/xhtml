@@ -28,12 +28,17 @@ namespace KRE
 {
 	AttributeSet::AttributeSet(bool indexed, bool instanced)
 		: draw_mode_(DrawMode::TRIANGLES),
-		indexed_draw_(indexed),
-		instanced_draw_(instanced),
-		index_type_(IndexType::INDEX_NONE),
-		instance_count_(0),
-		offset_(0),
-		count_(0)
+		  indexed_draw_(indexed),
+		  instanced_draw_(instanced),
+		  index_type_(IndexType::INDEX_NONE),
+		  instance_count_(0),
+		  count_(0),
+		  offset_(0),
+		  multi_draw_enabled_(false),
+		  multi_draw_instances_(0),
+		  multi_draw_count_(),
+		  multi_draw_offset_()
+
 	{
 	}
 
@@ -48,7 +53,11 @@ namespace KRE
 		  index32_(as.index32_),
 		  attributes_(as.attributes_),
 		  count_(as.count_),
-		  offset_(as.offset_)
+		  offset_(as.offset_),
+		  multi_draw_enabled_(false),
+		  multi_draw_instances_(0),
+		  multi_draw_count_(),
+		  multi_draw_offset_()
 	{
 		//for(auto& attr : as.attributes_) {
 		//	attributes_.emplace_back(attr->clone());

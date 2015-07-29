@@ -21,6 +21,12 @@
 	   distribution.
 */
 
+#if defined(_DEBUG)
+#pragma comment(lib, "freetype2412_D")
+#else
+#pragma comment(lib, "freetype2412")
+#endif
+
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #include FT_STROKER_H
@@ -295,6 +301,11 @@ namespace KRE
 			font_renderable->setHeight(height);
 			font_renderable->update(&coords);
 			return font_renderable;
+		}
+
+		ColoredFontRenderablePtr createColoredRenderableFromPath(ColoredFontRenderablePtr r, const std::string& text, const std::vector<point>& path, const std::vector<KRE::Color>& colors) override
+		{
+			return nullptr;
 		}
 
 		const GlyphInfo& getGlyphInfo(char32_t cp)
