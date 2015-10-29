@@ -353,13 +353,14 @@ namespace KRE
 			// installed. Perhaps a more general solution is to use glBindAttribLocation to explicitly map the
 			// location?
 			const char* const font_shader_vs_layout = 
-				"#version 120\n"
+				"#version 150\n"
+				"#extension GL_ARB_explicit_attrib_location : enable\n"
 				"uniform mat4 u_mvp_matrix;\n"
-				"attribute vec2 a_position;\n"
-				"attribute vec2 a_texcoord;\n"
-				"layout (location = 1) in vec4 a_color;\n"
-				"varying vec2 v_texcoord;\n"
-				"varying vec4 v_color;\n"
+				"layout(location = 1) in vec4 a_color;\n"
+				"in vec2 a_position;\n"
+				"in vec2 a_texcoord;\n"
+				"out vec2 v_texcoord;\n"
+				"out vec4 v_color;\n"
 				"void main()\n"
 				"{\n"
 				"    v_texcoord = a_texcoord;\n"
