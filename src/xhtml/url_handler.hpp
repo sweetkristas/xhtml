@@ -47,7 +47,7 @@ namespace xhtml
 	protected:
 		void createTask(std::launch policy, std::function<std::string()> fn);
 	private:
-		std::future<std::string> future_;
+		std::shared_future<std::string> future_;
 	};
 
 	struct url_handler_registrar

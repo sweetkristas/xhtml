@@ -84,14 +84,15 @@ namespace xhtml
 
 	std::string url_handler::getResource()
 	{
-		ASSERT_LOG(future_.valid(), "Tried to access a resource which hasn't been scehduled to be created.");
+		//ASSERT_LOG(future_.valid(), "Tried to access a resource which hasn't been scehduled to be created.");	
 		// XXX we should probably wait for a timeout here or such if the result isn't immediately available.
+		future_.wait();
 		return future_.get();
 	}
 
 	void url_handler::createTask(std::launch policy, std::function<std::string()> fn)
 	{
-		future_ = std::async(policy, fn);
+		future_ = std::async(policy, fn).share();
 	}
 
 	void url_handler::registerHandler(const std::string& protocol, url_handler::protocol_creator_fn creator_fn)
