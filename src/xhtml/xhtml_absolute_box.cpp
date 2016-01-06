@@ -43,6 +43,8 @@ namespace xhtml
 
 	void AbsoluteBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		eng.setCursor(point());
+
 		Rect container = containing.content_;
 
 		// Find the first ancestor with non-static position

@@ -80,6 +80,7 @@ namespace xhtml
 		const Dimensions& getDimensions() const { return dimensions_; }
 		const std::vector<BoxPtr>& getChildren() const { return boxes_; }
 		bool isBlockBox() const { return id_ == BoxId::BLOCK || id_ == BoxId::LIST_ITEM || id_ == BoxId::TABLE; }
+		bool isAbsoluteBox() const { return id_ == BoxId::ABSOLUTE; }
 
 		bool hasChildBlockBox() const;
 
