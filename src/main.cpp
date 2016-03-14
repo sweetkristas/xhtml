@@ -270,6 +270,7 @@ void read_system_fonts(sys::file_path_map* res)
 		// could try %windir%\fonts as a backup
 	}
 #elif defined(linux) || defined(__linux__)
+	// use maybe XListFonts or fontconfig
 #else
 #endif
 }
