@@ -94,9 +94,13 @@ namespace KRE
 		} else {
 			mvp = getPVMatrix() * get_global_model_matrix();
 		}
-		auto shader = OpenGL::ShaderProgram::defaultSystemShader();
+		auto shader = getCurrentShader();
 		shader->makeActive();
 		shader->setUniformsForTexture(texture);
+		auto uniform_draw_fn = shader->getUniformDrawFunction();
+		if(uniform_draw_fn) {
+			uniform_draw_fn(shader);
+		}
 		shader->setUniformValue(shader->getMvpUniform(), glm::value_ptr(mvp));
 		if(color != KRE::Color::colorWhite()) {
 			shader->setUniformValue(shader->getColorUniform(), (color*getColor()).asFloatVector());
@@ -120,9 +124,13 @@ namespace KRE
 	{
 		glm::mat4 model = glm::rotate(glm::mat4(1.0f), rotation, glm::vec3(0, 0, 1.0f));
 		glm::mat4 mvp = getPVMatrix() * model * get_global_model_matrix();
-		auto shader = OpenGL::ShaderProgram::defaultSystemShader();
+		auto shader = getCurrentShader();
 		shader->makeActive();
 		shader->setUniformsForTexture(tex);
+		auto uniform_draw_fn = shader->getUniformDrawFunction();
+		if(uniform_draw_fn) {
+			uniform_draw_fn(shader);
+		}
 		shader->setUniformValue(shader->getMvpUniform(), glm::value_ptr(mvp));
 		if(color != KRE::Color::colorWhite()) {
 			shader->setUniformValue(shader->getColorUniform(), (color*getColor()).asFloatVector());
@@ -250,12 +258,6 @@ namespace KRE
 		glVertexAttribPointer(shader->getVertexAttribute(), 2, GL_FLOAT, GL_FALSE, 0, vtx_coords_line);
 		glDrawArrays(GL_LINES, 0, 2);
 		glDisableVertexAttribArray(shader->getVertexAttribute());
-	}
-
-	std::ostream& operator<<(std::ostream& os, const glm::vec2& v)
-	{
-		os << "(" << v.x << "," << v.y << ")";
-		return os;
 	}
 
 	void CanvasOGL::drawLines(const std::vector<glm::vec2>& varray, float line_width, const Color& color) const 

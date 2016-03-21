@@ -37,7 +37,8 @@ namespace KRE
 		  multi_draw_enabled_(false),
 		  multi_draw_instances_(0),
 		  multi_draw_count_(),
-		  multi_draw_offset_()
+		  multi_draw_offset_(),
+		  enabled_(true)
 
 	{
 	}
@@ -57,7 +58,8 @@ namespace KRE
 		  multi_draw_enabled_(false),
 		  multi_draw_instances_(0),
 		  multi_draw_count_(),
-		  multi_draw_offset_()
+		  multi_draw_offset_(),
+		  enabled_(as.enabled_)
 	{
 		//for(auto& attr : as.attributes_) {
 		//	attributes_.emplace_back(attr->clone());

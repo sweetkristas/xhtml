@@ -94,7 +94,7 @@ namespace KRE
 				case PixelFormat::PF::PIXELFORMAT_YVYU:	        return SDL_PIXELFORMAT_YVYU;
 				case PixelFormat::PF::PIXELFORMAT_R8:			return SDL_PIXELFORMAT_R8;
 				default:
-					ASSERT_LOG(false, "Unknown pixel format given");
+					ASSERT_LOG(false, "Unknown pixel format given: " << static_cast<unsigned>(fmt));
 			}
 			return SDL_PIXELFORMAT_ABGR8888;
 		}
@@ -112,7 +112,7 @@ namespace KRE
 		  palette_()
 	{
 		surface_ = SDL_CreateRGBSurface(0, width, height, bpp, rmask, gmask, bmask, amask);
-		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << SDL_GetError());
+		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << width << "x" << height << "x" << bpp << ": " << SDL_GetError());
 		
 		auto pf = std::make_shared<SDLPixelFormat>(surface_->format->format);
 		setPixelFormat(PixelFormatPtr(pf));
@@ -133,8 +133,16 @@ namespace KRE
 		  palette_()
 	{
 		ASSERT_LOG(pixels != nullptr, "nullptr value for pixels while creating surface.");
-		surface_ = SDL_CreateRGBSurfaceFrom(const_cast<void*>(pixels), width, height, bpp, row_pitch, rmask, gmask, bmask, amask);
-		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << SDL_GetError());
+
+		//Note this temporary surface MUST be destroyed before the pixel
+		//data is. We destroy it just below. After converting to
+		//our final surface.
+		SDL_Surface* tmp = SDL_CreateRGBSurfaceFrom(const_cast<void*>(pixels), width, height, bpp, row_pitch, rmask, gmask, bmask, amask);
+		ASSERT_LOG(tmp != nullptr, "Error creating surface: " << width << "x" << height << "x" << bpp << ": " << SDL_GetError());
+
+		surface_ = SDL_ConvertSurface(tmp, tmp->format, 0);
+		SDL_FreeSurface(tmp);
+
 		auto pf = std::make_shared<SDLPixelFormat>(surface_->format->format);
 		setPixelFormat(PixelFormatPtr(pf));
 		createPalette();
@@ -146,13 +154,21 @@ namespace KRE
 		  palette_()
 	{
 		auto filter = Surface::getFileFilter(FileFilterType::LOAD);
-		auto surface_ = IMG_Load(filter(filename).c_str());
-		if(surface_ == nullptr) {
+		auto surf = IMG_Load(filter(filename).c_str());
+		if(surf == nullptr) {
 			LOG_ERROR("Failed to load image file: '" << filename << "' : " << IMG_GetError());
 			std::stringstream ss;
 			ss << "Failed to load image file: '" << filename << "' : " << IMG_GetError();
 			throw ImageLoadError(ss.str());
 		}
+		
+		surface_ = SDL_ConvertSurfaceFormat(surf, SDL_PIXELFORMAT_RGBA8888, 0);
+		if(surface_ == nullptr) {
+			std::stringstream ss;
+			ss << "Failed to convert image file format: '" << filename << "' : " << IMG_GetError();
+			throw ImageLoadError(ss.str());
+		}
+
 		auto pf = std::make_shared<SDLPixelFormat>(surface_->format->format);
 		setPixelFormat(PixelFormatPtr(pf));
 		createPalette();
@@ -163,7 +179,7 @@ namespace KRE
 		  has_data_(false),
 		  palette_()
 	{
-		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << SDL_GetError());
+		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << surface->w << "x" << surface->h << ": " << SDL_GetError());
 		auto pf = std::make_shared<SDLPixelFormat>(surface_->format->format);
 		setPixelFormat(PixelFormatPtr(pf));
 		createPalette();
@@ -178,13 +194,15 @@ namespace KRE
 		uint32_t rmask, gmask, bmask, amask;
 		if(format == PixelFormat::PF::PIXELFORMAT_R8) {
 			return;
+		} else if(format == PixelFormat::PF::PIXELFORMAT_YV12) {
+			return;
 		} else {
 			SDL_bool ret = SDL_PixelFormatEnumToMasks(get_sdl_pixel_format(format), &bpp, &rmask, &gmask, &bmask, &amask);
 			ASSERT_LOG(ret != SDL_FALSE, "Unable to convert pixel format to masks: " << SDL_GetError());
 		}
 
 		surface_ = SDL_CreateRGBSurface(0, width, height, bpp, rmask, gmask, bmask, amask);
-		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << SDL_GetError());
+		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << width << "x" << height << "x" << bpp << ": " << SDL_GetError());
 		auto pf = std::make_shared<SDLPixelFormat>(surface_->format->format);
 		setPixelFormat(PixelFormatPtr(pf));
 		createPalette();
@@ -347,8 +365,12 @@ namespace KRE
 	{
 		SDL_FreeSurface(surface_);
 		ASSERT_LOG(pixels != nullptr, "nullptr value for pixels while creating surface.");
-		surface_ = SDL_CreateRGBSurfaceFrom(const_cast<void*>(pixels), width(), height(), bpp, rowPitch(), rmask, gmask, bmask, amask);
-		ASSERT_LOG(surface_ != nullptr, "Error creating surface: " << SDL_GetError());
+		SDL_Surface* tmp = SDL_CreateRGBSurfaceFrom(const_cast<void*>(pixels), width(), height(), bpp, rowPitch(), rmask, gmask, bmask, amask);
+		ASSERT_LOG(tmp != nullptr, "Error creating surface: " << width() << "x" << height() << "x" << bpp << ": " << SDL_GetError());
+
+		surface_ = SDL_ConvertSurface(tmp, tmp->format, 0);
+		SDL_FreeSurface(tmp);
+
 		setPixelFormat(PixelFormatPtr(new SDLPixelFormat(surface_->format->format)));
 	}
 

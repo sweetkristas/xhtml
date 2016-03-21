@@ -154,6 +154,7 @@ namespace KRE
 				extensions_.emplace(ext);
 			}
 		} else {
+            glGetError();
 			std::string exts(reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS)));
 			if(glGetError() == GL_NONE) {
 				for(auto& ext : Util::split(exts, " ")) {
@@ -283,7 +284,7 @@ namespace KRE
 
 		StencilScopePtr stencil_scope;
 		if(r->hasClipSettings()) {
-			ModelManager2D mm(r->getPosition().x, r->getPosition().y);
+			ModelManager2D mm(static_cast<int>(r->getPosition().x), static_cast<int>(r->getPosition().y));
 			auto clip_shape = r->getStencilMask();
 			bool cam_set = false;
 			if(clip_shape->getCamera() == nullptr && r->getCamera() != nullptr) {
@@ -404,6 +405,9 @@ namespace KRE
 		// Need to figure the interaction with shaders.
 		/// XXX Need to create a mapping between attributes and the index value below.
 		for(auto as : r->getAttributeSet()) {
+			if(!as->isEnabled()) {
+				continue;
+			}
 			//ASSERT_LOG(as->getCount() > 0, "No (or negative) number of vertices in attribute set. " << as->getCount());
 			if((!as->isMultiDrawEnabled() && as->getCount() <= 0) || (as->isMultiDrawEnabled() && as->getMultiDrawCount() <= 0)) {
 				//LOG_WARN("No (or negative) number of vertices in attribute set. " << as->getCount());
@@ -486,7 +490,9 @@ namespace KRE
 
 	TexturePtr DisplayDeviceOpenGL::handleCreateTexture2D(int width, int height, PixelFormat::PF fmt)
 	{
-		return std::make_shared<OpenGLTexture>(1, width, height, 0, fmt, TextureType::TEXTURE_2D);
+		// XXX make a static function PixelFormat::isPlanar or such.
+		const int count = fmt == PixelFormat::PF::PIXELFORMAT_YV12 ? 3 : 1;
+		return std::make_shared<OpenGLTexture>(count, width, height, 0, fmt, TextureType::TEXTURE_2D);
 	}
 	
 	TexturePtr DisplayDeviceOpenGL::handleCreateTexture3D(int width, int height, int depth, PixelFormat::PF fmt)

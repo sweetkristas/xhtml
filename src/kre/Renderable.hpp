@@ -43,6 +43,8 @@ namespace KRE
 		explicit Renderable(const variant& node);
 		virtual ~Renderable();
 
+		void setFromVariant(const variant& node);
+
 		void setPosition(const glm::vec3& position);
 		void setPosition(float x, float y, float z=0.0f);
 		void setPosition(int x, int y, int z=0);

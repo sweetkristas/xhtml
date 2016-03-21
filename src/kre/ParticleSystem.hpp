@@ -76,6 +76,7 @@ namespace KRE
 		// This structure should be POD (i.e. plain old data)
 		struct Particle
 		{
+			Particle() : emitted_by(nullptr) {}
 			PhysicsParameters current;
 			PhysicsParameters initial;
 			// Still wavering over whether this should be std::weak_ptr<Emitter>
@@ -195,6 +196,8 @@ namespace KRE
 
 			static ParticleSystemPtr factory(std::weak_ptr<ParticleSystemContainer> parent, const variant& node);
 			ParticleSystemPtr clone() const;
+
+			void fastForward();
 		private:
 			void init(const variant& node);
 			void notifyNodeAttached(std::weak_ptr<SceneNode> parent) override;
@@ -224,6 +227,10 @@ namespace KRE
 
 			void getActivateParticleSystem(const std::string& name);
 			std::vector<ParticleSystemPtr>& getActiveParticleSystems() { return active_particle_systems_; }
+			const std::vector<ParticleSystemPtr>& getAllParticleSystems() const { return particle_systems_; }
+			const std::vector<TechniquePtr>& getTechniques() const { return techniques_; }
+			const std::vector<EmitterPtr>& getEmitters() const { return emitters_; }
+			const std::vector<AffectorPtr>& getAffectors() const { return affectors_; }
 
 			ParticleSystemPtr cloneParticleSystem(const std::string& name);
 			TechniquePtr cloneTechnique(const std::string& name);
@@ -240,7 +247,7 @@ namespace KRE
 			std::vector<EmitterPtr> cloneEmitters();
 			std::vector<AffectorPtr> cloneAffectors();
 
-			void process(float delta_time);
+			void process(float delta_time) override;
 
 			static ParticleSystemContainerPtr create(std::weak_ptr<SceneGraph> sg, const variant& node);
 		private:

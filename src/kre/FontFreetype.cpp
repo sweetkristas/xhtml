@@ -423,7 +423,7 @@ namespace KRE
 				next_font_x_ += gi.width;
 			}
 		}
-		void* getRawFontHandle()
+		void* getRawFontHandle() override
 		{
 			return face_;
 		}

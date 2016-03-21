@@ -147,10 +147,46 @@ namespace KRE
 					}
 				}
 				wnd_flags |= SDL_WINDOW_OPENGL;
+			} else if(getDisplayDevice()->ID() == DisplayDevice::DISPLAY_DEVICE_OPENGLES) {
+				// We need to do extra SDL set-up for an OpenGL context.
+				// Since these parameter's need to be set-up before context
+				// creation.
+				SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+				SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+				SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+				
+				SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+				SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
+				if(use16bpp()) {
+					SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+					SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
+					SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+					SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 1);
+				} else {
+					SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+					SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+					SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+					SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+				}
+				if(useMultiSampling()) {
+					if(SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1) != 0) {
+						LOG_WARN("MSAA(" << multiSamples() << ") requested but mutlisample buffer couldn't be allocated.");
+					} else {
+						int msaa = next_pow2(multiSamples());
+						if(SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, msaa) != 0) {
+							LOG_INFO("Requested MSAA of " << msaa << " but couldn't allocate");
+						}
+					}
+				}
+				wnd_flags |= SDL_WINDOW_OPENGL;
 			}
 
 			if(resizeable()) {
 				wnd_flags |= SDL_WINDOW_RESIZABLE;
+			}
+
+			if(borderless()) {
+				wnd_flags |= SDL_WINDOW_BORDERLESS;
 			}
 
 			int x = SDL_WINDOWPOS_CENTERED;
@@ -161,13 +197,13 @@ namespace KRE
 			case FullScreenMode::WINDOWED:		break;
 			case FullScreenMode::FULLSCREEN_WINDOWED:
 				x = y = SDL_WINDOWPOS_UNDEFINED;
-				w = h = 0;
+				//w = h = 0;
 				wnd_flags |= SDL_WINDOW_FULLSCREEN_DESKTOP;
 				break;
-			//case FullscreenMode::FULLSCREEN:
-			//	x = y = SDL_WINDOWPOS_UNDEFINED;
-			//	wnd_flags |= SDL_WINDOW_FULLSCREEN;
-			//	break;
+			case FullScreenMode::FULLSCREEN_EXCLUSIVE:
+				x = y = SDL_WINDOWPOS_UNDEFINED;
+				wnd_flags |= SDL_WINDOW_FULLSCREEN;
+				break;
 			}
 			window_.reset(SDL_CreateWindow(getTitle().c_str(), x, y, w, h, wnd_flags), [&](SDL_Window* wnd){
 				if(getDisplayDevice()->ID() != DisplayDevice::DISPLAY_DEVICE_SDL) {
@@ -191,7 +227,7 @@ namespace KRE
 			}
 
 			ASSERT_LOG(window_ != nullptr, "Failed to create window: " << SDL_GetError());
-			if(getDisplayDevice()->ID() == DisplayDevice::DISPLAY_DEVICE_OPENGL) {
+			if(getDisplayDevice()->ID() == DisplayDevice::DISPLAY_DEVICE_OPENGL ||getDisplayDevice()->ID() == DisplayDevice::DISPLAY_DEVICE_OPENGLES) {
 				context_ = SDL_GL_CreateContext(window_.get());	
 				ASSERT_LOG(context_ != nullptr, "Failed to GL Context: " << SDL_GetError());
 			}
@@ -219,7 +255,7 @@ namespace KRE
 			// This is a little bit hacky -- ideally the display device should swap buffers.
 			// But SDL provides a device independent way of doing it which is really nice.
 			// So we use that.
-			if(getDisplayDevice()->ID() == DisplayDevice::DISPLAY_DEVICE_OPENGL) {
+			if(getDisplayDevice()->ID() == DisplayDevice::DISPLAY_DEVICE_OPENGL || getDisplayDevice()->ID() == DisplayDevice::DISPLAY_DEVICE_OPENGLES) {
 				SDL_GL_SwapWindow(window_.get());
 			} else {
 				// default to delegating to the display device.
@@ -319,7 +355,14 @@ namespace KRE
 			}
 		}
 		void changeFullscreenMode() override {
-			if(fullscreenMode() == FullScreenMode::FULLSCREEN_WINDOWED) {
+			if(fullscreenMode() == FullScreenMode::FULLSCREEN_EXCLUSIVE) {
+				nonfs_width_ = width();
+				nonfs_height_ = height();
+				if(SDL_SetWindowFullscreen(window_.get(), SDL_WINDOW_FULLSCREEN) != 0) {
+					LOG_WARN("Unable to set fullscreen mode at " << width() << " x " << height());
+					return;
+				}
+			} else if(fullscreenMode() == FullScreenMode::FULLSCREEN_WINDOWED) {
 				nonfs_width_ = width();
 				nonfs_height_ = height();
 
@@ -385,6 +428,7 @@ namespace KRE
 		  use_multi_sampling_(hints["use_multisampling"].as_bool(false)),
 		  samples_(hints["samples"].as_int32(4)),
 		  is_resizeable_(hints["resizeable"].as_bool(false)),
+		  is_borderless_(hints["borderless"].as_bool(false)),
 		  fullscreen_mode_(hints["fullscreen"].as_bool(false) ? FullScreenMode::FULLSCREEN_WINDOWED : FullScreenMode::WINDOWED),
 		  title_(hints["title"].as_string_default("")),
 		  use_vsync_(hints["use_vsync"].as_bool(false)),
@@ -444,25 +488,25 @@ namespace KRE
 		}
 	}
 
-	bool Window::setWindowSize(int width, int height)
+	bool Window::setWindowSize(int width, int height, int flags)
 	{
 		width_ = width;
 		height_ = height;
 		bool result = handlePhysicalWindowSizeChange();
 		if(result) {
 			for(auto& observer : dimensions_changed_observers_) {
-				observer.second(width_, height_);
+				observer.second(width_, height_, flags);
 			}
 		}
 		return result;
 	}
 
-	void Window::updateDimensions(int w, int h)
+	void Window::updateDimensions(int w, int h, int flags)
 	{
 		width_ = w;
 		height_ = h;
 		for(auto& observer : dimensions_changed_observers_) {
-			observer.second(width_, height_);
+			observer.second(width_, height_, flags);
 		}
 	}
 
@@ -491,14 +535,14 @@ namespace KRE
 		handleSetClearColor();
 	}
 
-	void Window::notifyNewWindowSize(int new_width, int new_height)
+	void Window::notifyNewWindowSize(int new_width, int new_height, int flags)
 	{
 		width_ = new_width;
 		height_ = new_height;
 		handlePhysicalWindowSizeChange();
 
 		for(auto& observer : dimensions_changed_observers_) {
-			observer.second(new_width, new_height);
+			observer.second(new_width, new_height, flags);
 		}
 	}
 
@@ -524,14 +568,14 @@ namespace KRE
 		return std::string();
 	}
 
-	int Window::registerSizeChangeObserver(std::function<void(int,int)> fn)
+	int Window::registerSizeChangeObserver(std::function<void(int,int,int)> fn)
 	{
 		static int counter = 0;
 		dimensions_changed_observers_[counter] = fn;
 		return counter++;
 	}
 
-	bool Window::registerSizeChangeObserver(int key, std::function<void(int,int)> fn)
+	bool Window::registerSizeChangeObserver(int key, std::function<void(int,int,int)> fn)
 	{
 		auto it = dimensions_changed_observers_.find(key);
 		if(it == dimensions_changed_observers_.end()) {

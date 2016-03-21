@@ -59,11 +59,13 @@ namespace KRE
 	public:
 		HardwareAttributeImpl(AttributeBase* parent) : HardwareAttribute(parent), value_(0) {}
 		virtual ~HardwareAttributeImpl() {}
-		void update(const void* value, ptrdiff_t offset, size_t size) {
-			value_ = reinterpret_cast<intptr_t>(value);
+		void update(const void* value, ptrdiff_t offset, size_t size) override {
+			if(offset == 0) {
+				value_ = reinterpret_cast<intptr_t>(value);
+			}
 		}
-		void bind() {}
-		void unbind() {}
+		void bind() override {}
+		void unbind() override {}
 		intptr_t value() override { return value_; }
 		HardwareAttributePtr create(AttributeBase* parent) override {
 			return std::make_shared<HardwareAttributeImpl>(parent);
@@ -356,6 +358,10 @@ namespace KRE
 
 		std::vector<AttributeBasePtr>& getAttributes() { return attributes_; }
 
+		void enable(bool e=true) { enabled_ = e; }
+		void disable() { enabled_ = false; }
+		bool isEnabled() const { return enabled_; }
+
 		void enableMultiDraw(bool en=true) { multi_draw_enabled_ = en; }
 		bool isMultiDrawEnabled() const { return multi_draw_enabled_; }
 		int getMultiDrawCount() const { return multi_draw_instances_; }
@@ -396,6 +402,7 @@ namespace KRE
 		std::vector<AttributeBasePtr> attributes_;
 		size_t count_;
 		ptrdiff_t offset_;
+		bool enabled_;
 		bool multi_draw_enabled_;
 		int multi_draw_instances_;
 		std::vector<int> multi_draw_count_;

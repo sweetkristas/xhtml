@@ -90,6 +90,8 @@ namespace KRE
 		int surfaceWidth(int n = 0) const { return texture_params_[n].surface_width; }
 		int surfaceHeight(int n = 0) const { return texture_params_[n].surface_height; }
 
+		virtual void clearSurfaces();
+
 		virtual void init(int n) = 0;
 		virtual void bind(int binding_point=0) = 0;
 		virtual unsigned id(int n = 0) const = 0;
@@ -98,11 +100,13 @@ namespace KRE
 		// Less safe version for updating a multi-texture.
 		virtual void update(int n, int x, int y, int width, int height, const void* pixels) = 0;
 		virtual void update2D(int n, int x, int y, int width, int height, int stride, const void* pixels) = 0;
-		virtual void updateYUV(int x, int y, int width, int height, const std::vector<int>& stride, const void* pixels) = 0;
+		virtual void updateYUV(int x, int y, int width, int height, const std::vector<int>& stride, const std::vector<void*>& pixels) = 0;
 		virtual void update(int n, int x, int y, int z, int width, int height, int depth, void* pixels) = 0;
 
 		static void rebuildAll();
 		static void clearTextures();
+
+		virtual SurfacePtr extractTextureToSurface(int n = 0) const = 0;
 
 		static TexturePtr createTexture(const variant& node);
 		static TexturePtr createTexture(const std::string& filename, TextureType type=TextureType::TEXTURE_2D, int mipmap_levels=0);

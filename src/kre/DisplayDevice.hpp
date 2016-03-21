@@ -68,6 +68,7 @@ namespace KRE
 	}
 
 	enum class ReadFormat {
+		ALPHA,
 		DEPTH,
 		STENCIL,
 		DEPTH_STENCIL,
@@ -133,7 +134,7 @@ namespace KRE
 
 		static TexturePtr createTextureArray(int count, int width, int height, PixelFormat::PF fmt, TextureType type);
 		static TexturePtr createTextureArray(const std::vector<SurfacePtr>& surfaces, const variant& node);
-		
+
 		virtual CanvasPtr getCanvas() = 0;
 
 		virtual ClipScopePtr createClipScope(const rect& r) = 0;
@@ -178,7 +179,7 @@ namespace KRE
 		template<typename T>
 		bool readPixels(int x, int y, unsigned width, unsigned height, ReadFormat fmt, AttrFormat type, std::vector<T>& data, int stride) {
 			data.resize(stride * height / sizeof(T));
-			return handleReadPixels(x, y, width, height, fmt, type, static_cast<void*>(&data[0]), stride);
+			return handleReadPixels(x, y, width, height, fmt, type, static_cast<void*>(data.data()), stride);
 		}
 
 		WindowPtr getParentWindow() const;

@@ -46,14 +46,15 @@ namespace KRE
 		void update(int n, int x, int width, void* pixels) override;
 		void update(int n, int x, int y, int width, int height, const void* pixels) override;
 		void update2D(int n, int x, int y, int width, int height, int stride, const void* pixels) override;
-		void updateYUV(int x, int y, int width, int height, const std::vector<int>& stride, const void* pixels) override;
+		void updateYUV(int x, int y, int width, int height, const std::vector<int>& stride, const std::vector<void*>& pixels) override;
 		void update(int n, int x, int y, int z, int width, int height, int depth, void* pixels) override;
+
+		SurfacePtr extractTextureToSurface(int n) const override;
 
 		const unsigned char* colorAt(int x, int y) const override;
 
 		TexturePtr clone() override;
 		static void handleClearTextures();
-
 	private:
 		void createTexture(int n);
 		void updatePaletteRow(int index, SurfacePtr new_palette_surface, int palette_width, const std::vector<glm::u8vec4>& pixels);
