@@ -216,11 +216,11 @@ namespace xhtml
 				case css::CssVerticalAlign::MIDDLE:
 					// Align the vertical midpoint of the box with the baseline of the 
 					// parent box plus half the x-height of the parent.
-					//child_y += height / 2;
+					child_y += getParent()->getLineHeight()/2 + getParent()->getBaselineOffset();
 					break;
 				case css::CssVerticalAlign::BOTTOM:
 					// Align the bottom of the aligned subtree with the bottom of the line box.
-					//child_y += getBottomOffset();
+					child_y += getBottomOffset();
 					break;
 				case css::CssVerticalAlign::SUB:
 					// Lower the baseline of the box to the proper position for subscripts of the 

@@ -30,9 +30,11 @@ repro: test2.xhtml
 Background color is covering the foreground floated elements.
 repro: test6.xhtml
 
-When using an ordered list the list markers aren't being aligned with the first line of text.
-repro: test7.xhtml
+-When using an ordered list the list markers aren't being aligned with the first line of text.
+-repro: test7.xhtml
 
 When an inline block of text is interrupted by another element, such as a span, the length of the continued block is wrong.
 repro: test8.xhtml
 
+Text inside lists is mis-aligned when using floating list items.
+repro: test25.xhtml
