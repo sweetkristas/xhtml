@@ -366,6 +366,9 @@
     <ClCompile Include="..\src\xhtml\url_handler.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\xhtml\xhtml_line_box.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -780,6 +783,9 @@
       <Filter>Header Files\kre</Filter>
     </ClInclude>
     <ClInclude Include="..\src\xhtml\url_handler.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\xhtml_line_box.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
   </ItemGroup>

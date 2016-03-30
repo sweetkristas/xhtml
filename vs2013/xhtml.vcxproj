@@ -112,6 +112,7 @@
     <ClCompile Include="..\src\xhtml\xhtml_inline_block_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_inline_element_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_layout_engine.cpp" />
+    <ClCompile Include="..\src\xhtml\xhtml_line_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_listitem_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_node.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_parser.cpp" />
@@ -252,6 +253,7 @@
     <ClInclude Include="..\src\xhtml\xhtml_inline_block_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_inline_element_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_layout_engine.hpp" />
+    <ClInclude Include="..\src\xhtml\xhtml_line_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_listitem_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_node.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_parser.hpp" />

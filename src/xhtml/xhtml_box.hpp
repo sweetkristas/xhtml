@@ -56,6 +56,7 @@ namespace xhtml
 	enum class BoxId {
 		BLOCK,
 		TEXT,
+		LINE,
 		INLINE_BLOCK,
 		INLINE_ELEMENT,
 		ABSOLUTE,

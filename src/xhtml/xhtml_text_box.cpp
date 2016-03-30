@@ -74,11 +74,7 @@ namespace xhtml
 
 	point TextBox::reflowText(LayoutEngine& eng, const Dimensions& containing, const point& current_cursor)
 	{
-		// clear old data so we can re-calculate it.
-		// XXX Future note.
-		// unless the text has changed or the width of the containing box changes we shouldn't
-		// have to recalculate this.
-		lines_.clear();
+		std::vector<std::vector<TextBoxPtr>> lines;
 
 		point cursor = current_cursor;
 
@@ -435,8 +431,8 @@ namespace xhtml
 
 			if(!text.empty()) {
 				fontr = getStyleNode()->getFont()->createRenderableFromPath(nullptr, text, path);
-fontr->setColorPointer(getStyleNode()->getColor());
-scene_tree->addObject(fontr);
+				fontr->setColorPointer(getStyleNode()->getColor());
+				scene_tree->addObject(fontr);
 			}
 		}
 

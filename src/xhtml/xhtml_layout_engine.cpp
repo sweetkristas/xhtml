@@ -26,6 +26,7 @@
 #include "xhtml_block_box.hpp"
 #include "xhtml_inline_block_box.hpp"
 #include "xhtml_inline_element_box.hpp"
+#include "xhtml_line_box.hpp"
 #include "xhtml_listitem_box.hpp"
 #include "xhtml_root_box.hpp"
 #include "xhtml_text_box.hpp"
@@ -238,7 +239,7 @@ namespace xhtml
 					}
 				}
 			} else if(node->id() == NodeId::TEXT) {
-				res.emplace_back(std::make_shared<TextBox>(parent, child, root_));
+				res.emplace_back(std::make_shared<LineBox>(parent, child, root_));
 			} else {
 				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(node->id()));
 			}

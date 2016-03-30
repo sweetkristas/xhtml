@@ -30,8 +30,8 @@ namespace xhtml
 {
 	struct LineInfo 
 	{
-		LineInfo() : line_(nullptr), offset_(), justification_(0), width_(0) {}
-		explicit LineInfo(const LinePtr& line, const point& offset=point()) : line_(line), offset_(offset), justification_(0), width_(0) {}
+		LineInfo() : line_(nullptr), offset_(), justification_(0), width_(0), height_(0) {}
+		explicit LineInfo(const LinePtr& line, const point& offset=point()) : line_(line), offset_(offset), justification_(0), width_(0), height_(0) {}
 		LinePtr line_;
 		point offset_;
 		FixedPoint justification_;
@@ -46,8 +46,8 @@ namespace xhtml
 		std::string toString() const override;
 		const std::vector<LineInfo>& getLines() const { return lines_; }
 		TextPtr getText() const { return txt_; }
+		static point reflowText(LayoutEngine& eng, const Dimensions& containing, const point& cursor);
 	private:
-		point reflowText(LayoutEngine& eng, const Dimensions& containing, const point& cursor);
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void postParentLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
