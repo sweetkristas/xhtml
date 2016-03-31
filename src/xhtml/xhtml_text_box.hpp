@@ -28,6 +28,8 @@
 
 namespace xhtml
 {
+	struct LineBoxParseInfo;
+
 	struct LineInfo 
 	{
 		LineInfo() : line_(nullptr), offset_(), justification_(0), width_(0), height_(0) {}
@@ -44,9 +46,8 @@ namespace xhtml
 	public:
 		TextBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root);
 		std::string toString() const override;
-		const std::vector<LineInfo>& getLines() const { return lines_; }
-		TextPtr getText() const { return txt_; }
-		static point reflowText(LayoutEngine& eng, const Dimensions& containing, const point& cursor);
+		const LineInfo& getLine() const { return line_; }
+		static std::vector<TextBoxPtr> reflowText(LineBoxParseInfo* pi, LayoutEngine& eng, const LineBoxPtr& parent, const Dimensions& containing);
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void postParentLayout(LayoutEngine& eng, const Dimensions& containing) override;
@@ -60,8 +61,7 @@ namespace xhtml
 		void setRightAlign(FixedPoint containing_width);
 		void setCenterAlign(FixedPoint containing_width);
 
-		TextPtr txt_;
-		std::vector<LineInfo> lines_;
+		LineInfo line_;
 
 		// for text shadows
 		struct Shadow {

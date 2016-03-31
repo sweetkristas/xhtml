@@ -21,6 +21,7 @@
 	   distribution.
 */
 
+#include "xhtml_layout_engine.hpp"
 #include "xhtml_line_box.hpp"
 
 namespace xhtml
@@ -39,6 +40,8 @@ namespace xhtml
 
 	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
+		calculateHorzMPB(containing.content_.width);
+		calculateVertMPB(containing.content_.height);
 	}
 
 	void LineBox::postParentLayout(LayoutEngine& eng, const Dimensions& containing)
@@ -56,4 +59,73 @@ namespace xhtml
 	void LineBox::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const 
 	{
 	}
+
+	std::vector<LineBoxPtr> LineBox::reflowText(LineBoxParseInfo* pi, LayoutEngine& eng, const Dimensions& containing)
+	{
+		// TextBox's have no children to deal with, by definition.	
+		// XXX fix the point() to be the actual last point, say from LayoutEngine
+		//point cursor = TextBox::reflowText(eng, containing, eng.getCursor());
+		//eng.setCursor(cursor);
+
+		std::vector<LineBoxPtr> line_boxes;
+
+		TextBoxPtr tbox = nullptr;
+		while(tbox != nullptr) {
+			auto line_box = std::make_shared<LineBox>(pi->parent_, pi->node_, pi->root_);
+			auto tboxes = TextBox::reflowText(pi, eng, line_box, containing);
+			for(auto& tbox : tboxes) {
+				line_box->addChild(tbox);
+			}
+
+			line_boxes.emplace_back(line_box);
+		}
+		return line_boxes;
+	}
+
+
+
+	LineBoxContainer::LineBoxContainer(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root)
+		: Box(BoxId::LINE_CONTAINER, parent, node, root),
+		  txt_(std::dynamic_pointer_cast<Text>(node->getNode()))
+	{
+		txt_->transformText(node, true);
+	}
+
+	std::string LineBoxContainer::toString() const
+	{
+		return std::string();
+	}
+
+	void LineBoxContainer::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
+		LineBoxParseInfo pi(getParent(), getStyleNode(), getRoot(), txt_);
+		std::vector<LineBoxPtr> line_boxes = LineBox::reflowText(&pi, eng, containing);
+
+		for(const auto& line_box : line_boxes) {
+			addChild(line_box);
+		}
+	}
+
+	void LineBoxContainer::handleLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
+		calculateHorzMPB(containing.content_.width);
+		calculateVertMPB(containing.content_.height);
+	}
+
+	void LineBoxContainer::postParentLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
+	}
+
+	void LineBoxContainer::handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const
+	{
+	}
+
+	void LineBoxContainer::handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const
+	{
+	}
+
+	void LineBoxContainer::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const
+	{
+	}
+
 }

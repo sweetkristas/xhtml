@@ -28,11 +28,45 @@
 
 namespace xhtml
 {
+	struct LineBoxParseInfo
+	{
+		explicit LineBoxParseInfo(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root, const TextPtr& txt) 
+			: parent_(parent), 
+			  node_(node), 
+			  root_(root),
+			  txt_(txt)
+		{
+		}
+		const BoxPtr& parent_;
+		const StyleNodePtr& node_;
+		const RootBoxPtr& root_;
+		const TextPtr& txt_;
+	};
+
+	// This class acts as a container for LineBox's and TextBox's so that we can generate them during layout, but
+	// allocate during the LayoutEngine pass.
+	class LineBoxContainer : public Box
+	{
+	public:
+		LineBoxContainer(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root);
+		std::string toString() const override;
+	private:
+		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void postParentLayout(LayoutEngine& eng, const Dimensions& containing) override;
+		void handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
+		void handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
+		void handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
+		
+		TextPtr txt_;
+	};
+
 	class LineBox : public Box
 	{
 	public:
 		LineBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root);
 		std::string toString() const override;
+		static std::vector<LineBoxPtr> reflowText(LineBoxParseInfo* pi, LayoutEngine& eng, const Dimensions& containing);
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void postParentLayout(LayoutEngine& eng, const Dimensions& containing) override;

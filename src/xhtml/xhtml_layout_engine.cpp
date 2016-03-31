@@ -239,7 +239,7 @@ namespace xhtml
 					}
 				}
 			} else if(node->id() == NodeId::TEXT) {
-				res.emplace_back(std::make_shared<LineBox>(parent, child, root_));
+				res.emplace_back(std::make_shared<LineBoxContainer>(parent, child, root_));
 			} else {
 				ASSERT_LOG(false, "Unhandled node id, only elements and text can be used in layout: " << static_cast<int>(node->id()));
 			}

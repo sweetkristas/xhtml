@@ -57,6 +57,7 @@ namespace xhtml
 		BLOCK,
 		TEXT,
 		LINE,
+		LINE_CONTAINER,
 		INLINE_BLOCK,
 		INLINE_ELEMENT,
 		ABSOLUTE,
