@@ -72,7 +72,7 @@ namespace xhtml
 	std::vector<TextBoxPtr> TextBox::reflowText(LineBoxParseInfo* pi, LayoutEngine& eng, const LineBoxPtr& parent, const Dimensions& containing)
 	{
 		std::vector<TextBoxPtr> lines;
-
+/*
 		point cursor = eng.getCursor();
 
 		FixedPoint y1 = cursor.y + parent->getOffset().y;
@@ -83,12 +83,12 @@ namespace xhtml
 		// Simlarly the last line width should be reduced by padding right/border right.
 		FixedPoint width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) - cursor.x + eng.getXAtPosition(y1, y1 + line_height);
 
-		Text::iterator last_it = txt_->begin();
+		Text::iterator last_it = pi->txt_->begin();
 		Text::iterator it = last_it;
 
 		bool done = false;
-		while(it != txt_->end()) {
-			LinePtr line = txt_->reflowText(it, width, getStyleNode());
+		while(it != pi->txt_->end()) {
+			LinePtr line = pi->txt_->reflowText(it, width, pi->node_);
 			if(line != nullptr && !line->line.empty()) {
 				// is the line larger than available space and are there floats present?
 				FixedPoint last_x = line->line.back().advance.back().x;
@@ -125,8 +125,8 @@ namespace xhtml
 		if(!lines_.empty()) {
 			setContentHeight(lines_.back().offset_.y + line_height);
 		}
-
-		return cursor;
+*/
+		return lines;
 	}
 
 	FixedPoint TextBox::calculateWidth(const LineInfo& line) const

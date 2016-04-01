@@ -51,6 +51,8 @@
 #include "xhtml_node.hpp"
 #include "xhtml_render_ctx.hpp"
 
+#include "SurfaceScale.hpp"
+
 #if defined(_MSC_VER)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -318,6 +320,19 @@ int main(int argc, char* argv[])
 	read_system_fonts(&font_files);
 	KRE::FontDriver::setAvailableFonts(font_files);
 	KRE::FontDriver::setFontProvider("stb");
+
+#if 1
+	auto test_surf = KRE::Surface::create("../data/httt_story1.jpg");
+	auto outputs0 = KRE::scale::nearest_neighbour(test_surf, 60);
+	outputs0->savePng("test-nearest.png");
+
+	auto outputs1 = KRE::scale::bilinear(test_surf, 60);
+	outputs1->savePng("test-linear.png");
+
+	auto outputs2 = KRE::scale::bicubic(test_surf, 60);
+	outputs2->savePng("test-bilinear.png");
+	return 0;
+#endif
 
 #if 1
 	WindowManager wm("SDL");

@@ -369,6 +369,9 @@
     <ClCompile Include="..\src\xhtml\xhtml_line_box.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\kre\SurfaceScale.cpp">
+      <Filter>Source Files\kre</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -787,6 +790,9 @@
     </ClInclude>
     <ClInclude Include="..\src\xhtml\xhtml_line_box.hpp">
       <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\kre\SurfaceScale.hpp">
+      <Filter>Header Files\kre</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
