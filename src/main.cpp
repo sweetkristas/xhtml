@@ -321,7 +321,7 @@ int main(int argc, char* argv[])
 	KRE::FontDriver::setAvailableFonts(font_files);
 	KRE::FontDriver::setFontProvider("stb");
 
-#if 1
+#if 0
 	auto test_surf = KRE::Surface::create("../data/httt_story1.jpg");
 	auto outputs0 = KRE::scale::nearest_neighbour(test_surf, 60);
 	outputs0->savePng("test-nearest.png");

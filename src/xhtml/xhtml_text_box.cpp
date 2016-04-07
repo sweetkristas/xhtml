@@ -72,7 +72,7 @@ namespace xhtml
 	std::vector<TextBoxPtr> TextBox::reflowText(LineBoxParseInfo* pi, LayoutEngine& eng, const LineBoxPtr& parent, const Dimensions& containing)
 	{
 		std::vector<TextBoxPtr> lines;
-/*
+
 		point cursor = eng.getCursor();
 
 		FixedPoint y1 = cursor.y + parent->getOffset().y;
@@ -94,38 +94,38 @@ namespace xhtml
 				FixedPoint last_x = line->line.back().advance.back().x;
 				if(last_x > width && eng.hasFloatsAtPosition(y1, y1 + line_height)) {
 					cursor.y += line_height;
-					y1 = cursor.y + getOffset().y;
+					y1 = cursor.y + parent->getOffset().y;
 					cursor.x = eng.getXAtPosition(y1, y1 + line_height);
 					it = last_it;
 					width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width);
 					continue;
 				}
 
-				lines_.emplace_back(line, cursor);
-				lines_.back().width_ = calculateWidth(lines_.back());
+				lines.emplace_back(std::make_shared<TextBox>(pi->parent_, pi->node_, pi->root_));
+				lines.back()->line_.width_ = lines.back()->calculateWidth(lines.back()->line_);
 				// XXX This height needs to be modified later if we have inline elements with a different lineheight
-				lines_.back().height_ = line_height;
-				cursor.x += lines_.back().width_;
+				lines.back()->line_.height_ = line_height;
+				cursor.x += lines.back()->line_.width_;
 
 				if(line->is_end_line) {
 					// update the cursor for the next line
 					cursor.y += line_height;
-					y1 = cursor.y + getOffset().y;
+					y1 = cursor.y + parent->getOffset().y;
 					cursor.x = eng.getXAtPosition(y1, y1 + line_height);
 				}
 			}					
 		}
 
 		int max_w = 0;
-		for(auto& line : lines_) {
-			max_w = std::max(max_w, line.width_);
+		for(auto& line : lines) {
+			max_w = std::max(max_w, lines.back()->line_.width_);
 		}
-		setContentWidth(max_w);
+		lines.back()->setContentWidth(max_w);
 		
-		if(!lines_.empty()) {
-			setContentHeight(lines_.back().offset_.y + line_height);
+		if(!lines.empty()) {
+			lines.back()->setContentHeight(lines.back()->line_.offset_.y + line_height);
 		}
-*/
+
 		return lines;
 	}
 
