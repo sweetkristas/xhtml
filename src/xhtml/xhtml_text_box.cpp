@@ -102,6 +102,7 @@ namespace xhtml
 				}
 
 				lines.emplace_back(std::make_shared<TextBox>(pi->parent_, pi->node_, pi->root_));
+				lines.back()->line_.line_ = line;
 				lines.back()->line_.width_ = lines.back()->calculateWidth(lines.back()->line_);
 				// XXX This height needs to be modified later if we have inline elements with a different lineheight
 				lines.back()->line_.height_ = line_height;

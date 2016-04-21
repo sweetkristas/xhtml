@@ -69,16 +69,20 @@ namespace xhtml
 
 		std::vector<LineBoxPtr> line_boxes;
 
-		TextBoxPtr tbox = nullptr;
-		while(tbox != nullptr) {
+		//bool done = false;
+		//while(!done) {
 			auto line_box = std::make_shared<LineBox>(pi->parent_, pi->node_, pi->root_);
 			auto tboxes = TextBox::reflowText(pi, eng, line_box, containing);
 			for(auto& tbox : tboxes) {
 				line_box->addChild(tbox);
 			}
 
+			//if(tboxes.empty()) {
+			//	done = true;
+			//}
+
 			line_boxes.emplace_back(line_box);
-		}
+		//}
 		return line_boxes;
 	}
 

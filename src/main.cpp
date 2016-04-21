@@ -29,6 +29,7 @@
 #include "Blittable.hpp"
 #include "CameraObject.hpp"
 #include "Canvas.hpp"
+#include "ClipScope.hpp"
 #include "Font.hpp"
 #include "RenderManager.hpp"
 #include "RenderTarget.hpp"
@@ -99,6 +100,7 @@ void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml:
 		profile::manager pman_render("render");
 		scene_tree->clear();
 		layout->render(point());
+		
 		}
 
 		if(display_tree_parse) {
@@ -470,6 +472,8 @@ int main(int argc, char* argv[])
 		//rman->render(main_wnd);
 
 		if(scene_tree != nullptr) {
+			//ClipScope::Manager clipper(rect(width/4, height/4, width/2, height/2));
+			ClipScope::Manager clipper(rect(0, 0, width, height));
 			scene_tree->preRender(main_wnd);
 			scene_tree->render(main_wnd);
 		}
