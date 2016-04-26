@@ -106,6 +106,7 @@ namespace xhtml
 				lines.back()->line_.width_ = lines.back()->calculateWidth(lines.back()->line_);
 				// XXX This height needs to be modified later if we have inline elements with a different lineheight
 				lines.back()->line_.height_ = line_height;
+				lines.back()->line_.offset_.y = cursor.y;
 				cursor.x += lines.back()->line_.width_;
 
 				if(line->is_end_line) {
