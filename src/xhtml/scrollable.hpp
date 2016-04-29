@@ -25,6 +25,8 @@
 
 #include <functional>
 
+#include "geometry.hpp"
+
 namespace scrollable
 {
 	typedef std::function<void(int)> change_handler;
@@ -36,12 +38,25 @@ namespace scrollable
 		explicit Scrollbar(Direction d, change_handler onchange);
 		~Scrollbar();
 		int getScrollPosition() const { return scroll_pos_; }
+		void setRange(int minr, int maxr) { min_range_ = minr; max_range_ = maxr; }
+		int getMin() const { return min_range_; }
+		int getMax() const { return max_range_; }
+		// N.B. using this function doesn't trigger a change notification.
+		void setScrollPosition(int pos);
+
+		bool handleMouseMotion(bool claimed, int x, int y);
+		bool handleMouseButtonDown(bool claimed, int x, int y, unsigned button);
+		bool handleMouseButtonUp(bool claimed, int x, int y, unsigned button);
+
+		void setLocation(int x, int y);
+		void setDimensions(int w, int h);
 	private:
 		change_handler on_change_;
 		Direction dir_;
 		int min_range_;
 		int max_range_;
 		int scroll_pos_;
+		rect loc_;
 		Scrollbar() = delete;
 	};
 }
