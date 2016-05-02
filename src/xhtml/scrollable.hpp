@@ -26,12 +26,14 @@
 #include <functional>
 
 #include "geometry.hpp"
+#include "SceneObject.hpp"
+#include "WindowManagerFwd.hpp"
 
 namespace scrollable
 {
 	typedef std::function<void(int)> change_handler;
 
-	class Scrollbar 
+	class Scrollbar : public KRE::SceneObject
 	{
 	public:
 		enum Direction {VERTICAL, HORIZONTAL};
@@ -50,13 +52,27 @@ namespace scrollable
 
 		void setLocation(int x, int y);
 		void setDimensions(int w, int h);
+
+		bool isVisible() const { return visible_; }
+		bool setVisible(bool v = true) { visible_ = v; }
 	private:
+		void init();
+		void preRender(const KRE::WindowPtr& wm) override;
 		change_handler on_change_;
 		Direction dir_;
 		int min_range_;
 		int max_range_;
 		int scroll_pos_;
 		rect loc_;
+		bool visible_;
+		Color thumb_color_;
+		Color thumb_selected_color_;
+		Color thumb_mouseover_color_;
+		Color background_color_;
+		KRE::TexturePtr up_arrow_;
+		KRE::TexturePtr down_arrow_;
+		KRE::TexturePtr left_arrow_;
+		KRE::TexturePtr right_arrow_;
 		Scrollbar() = delete;
 	};
 }
