@@ -25,6 +25,7 @@
 
 #include <functional>
 
+#include "AttributeSet.hpp"
 #include "geometry.hpp"
 #include "SceneObject.hpp"
 #include "WindowManagerFwd.hpp"
@@ -40,7 +41,7 @@ namespace scrollable
 		explicit Scrollbar(Direction d, change_handler onchange);
 		~Scrollbar();
 		int getScrollPosition() const { return scroll_pos_; }
-		void setRange(int minr, int maxr) { min_range_ = minr; max_range_ = maxr; }
+		void setRange(int minr, int maxr);
 		int getMin() const { return min_range_; }
 		int getMax() const { return max_range_; }
 		// N.B. using this function doesn't trigger a change notification.
@@ -64,15 +65,21 @@ namespace scrollable
 		int max_range_;
 		int scroll_pos_;
 		rect loc_;
+		rect up_arrow_area_;
+		rect down_arrow_area_;
+		rect left_arrow_area_;
+		rect right_arrow_area_;
+		rect thumb_area_;
 		bool visible_;
-		Color thumb_color_;
-		Color thumb_selected_color_;
-		Color thumb_mouseover_color_;
-		Color background_color_;
-		KRE::TexturePtr up_arrow_;
-		KRE::TexturePtr down_arrow_;
-		KRE::TexturePtr left_arrow_;
-		KRE::TexturePtr right_arrow_;
+		KRE::Color thumb_color_;
+		KRE::Color thumb_selected_color_;
+		KRE::Color thumb_mouseover_color_;
+		KRE::Color background_color_;
+		KRE::TexturePtr tex_;
+		std::vector<rectf> tex_coords_;
+		std::shared_ptr<KRE::Attribute<KRE::vertex_texcoord>> vertices_;
+		// Set to true to re-calculate the attribute sets for drawing.
+		bool changed_;
 		Scrollbar() = delete;
 	};
 }
