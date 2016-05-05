@@ -42,3 +42,5 @@ vs2013/Debug
 vs2013/Release
 vs2013/*.dll
 vs2013/*.txt
+/vs2013/xhtml.VC.VC.opendb
+/vs2013/xhtml.VC.db

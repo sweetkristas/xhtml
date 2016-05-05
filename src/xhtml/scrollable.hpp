@@ -38,7 +38,7 @@ namespace scrollable
 	{
 	public:
 		enum Direction {VERTICAL, HORIZONTAL};
-		explicit Scrollbar(Direction d, change_handler onchange);
+		explicit Scrollbar(Direction d, change_handler onchange, const rect& loc);
 		~Scrollbar();
 		int getScrollPosition() const { return scroll_pos_; }
 		void setRange(int minr, int maxr);
@@ -77,9 +77,11 @@ namespace scrollable
 		KRE::Color background_color_;
 		KRE::TexturePtr tex_;
 		std::vector<rectf> tex_coords_;
-		std::shared_ptr<KRE::Attribute<KRE::vertex_texcoord>> vertices_;
+		std::shared_ptr<KRE::Attribute<KRE::vertex_texture_color>> vertices_;
 		// Set to true to re-calculate the attribute sets for drawing.
 		bool changed_;
+		bool thumb_dragging_;
+		bool thumb_mouseover_;
 		Scrollbar() = delete;
 	};
 }

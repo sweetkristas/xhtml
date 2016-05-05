@@ -10,14 +10,31 @@ namespace scrollable
 {
 	using namespace KRE;
 
-	Scrollbar::Scrollbar(Direction d, change_handler onchange)
+	namespace
+	{
+		void add_rect(std::vector<vertex_texture_color>* vert, const rect& r, const rectf& t, const Color& c)
+		{
+			// XXX
+			ASSERT_LOG(vert != nullptr, "vert was NULL.");
+			glm::u8vec4 color = c.as_u8vec4();
+			vert->emplace_back(glm::vec2(r.x1(), r.y1()), glm::vec2(t.x1(), t.y1()), color);
+			vert->emplace_back(glm::vec2(r.x1(), r.y2()), glm::vec2(t.x1(), t.y2()), color);
+			vert->emplace_back(glm::vec2(r.x2(), r.y2()), glm::vec2(t.x2(), t.y2()), color);
+
+			vert->emplace_back(glm::vec2(r.x2(), r.y2()), glm::vec2(t.x2(), t.y2()), color);
+			vert->emplace_back(glm::vec2(r.x1(), r.y1()), glm::vec2(t.x1(), t.y1()), color);
+			vert->emplace_back(glm::vec2(r.x2(), r.y1()), glm::vec2(t.x2(), t.y1()), color);
+		}
+	}
+
+	Scrollbar::Scrollbar(Direction d, change_handler onchange, const rect& loc)
 		: SceneObject("Scrollbar"),
 		  on_change_(onchange),
 		  dir_(d),
 		  min_range_(0),
 		  max_range_(100),
 		  scroll_pos_(0),
-		  loc_(),
+		  loc_(loc),
 		  up_arrow_area_(),
 		  down_arrow_area_(),
 		  left_arrow_area_(),
@@ -29,9 +46,14 @@ namespace scrollable
 		  thumb_mouseover_color_(166, 166, 166),
 		  background_color_(240, 240, 240),
 		  changed_(true),
-		  vertices_()
+		  thumb_dragging_(false),
+		  thumb_mouseover_(false),
+		  vertices_(nullptr)
 
 	{
+		setShader(ShaderProgram::getProgram("vtc_shader"));
+
+		init();
 	}
 
 	Scrollbar::~Scrollbar()
@@ -56,7 +78,14 @@ namespace scrollable
 		// number of different positions that we can scroll to.
 		const int range = max_range_ - min_range_ + 1;
 
-		const std::vector<std::string> arrow_files{ "scrollbar-up-arrow.svg", "scrollbar-down-arrow.svg", "scrollbar-left-arrow.svg", "scrollbar-right-arrow.svg", "scrollbar-background.svg" };
+		const std::vector<std::string> arrow_files{ 
+			"scrollbar-up-arrow.svg", 
+			"scrollbar-down-arrow.svg", 
+			"scrollbar-left-arrow.svg", 
+			"scrollbar-right-arrow.svg", 
+			"scrollbar-background.svg",
+			"scrollbar-thumb.svg" 
+		};
 		std::vector<point> arrow_sizes{ point(loc_.w(), loc_.w()), point(loc_.w(), loc_.w()), point(loc_.h(), loc_.h()), point(loc_.h(), loc_.h()) };
 		tex_ = svgs_to_single_texture(arrow_files, arrow_sizes, &tex_coords_);
 		tex_->setAddressModes(0, Texture::AddressMode::WRAP, Texture::AddressMode::WRAP);
@@ -75,6 +104,8 @@ namespace scrollable
 			const int min_length = std::min(loc_.h(), (max_range_ - min_range_) / loc_.w());
 			thumb_area_ = rect(scroll_pos_ / range * loc_.h() + loc_.x(), loc_.y(), min_length, loc_.h());
 		}
+
+		changed_ = true;
 	}
 
 	bool Scrollbar::handleMouseMotion(bool claimed, int x, int y)
@@ -106,6 +137,7 @@ namespace scrollable
 	void Scrollbar::setLocation(int x, int y)
 	{
 		loc_.set_xy(x, y);
+		init();
 	}
 
 	void Scrollbar::setDimensions(int w, int h)
@@ -119,6 +151,29 @@ namespace scrollable
 		if(changed_) {
 			changed_ = false;
 			// XXX recalculate attribute sets
+
+			if(vertices_ == nullptr) {
+				auto as = DisplayDevice::createAttributeSet(true, false, false);
+				as->setDrawMode(DrawMode::TRIANGLES);
+
+				vertices_ = std::make_shared<Attribute<vertex_texture_color>>(AccessFreqHint::DYNAMIC);
+				vertices_->addAttributeDesc(AttributeDesc(AttrType::POSITION, 3, AttrFormat::FLOAT, false, sizeof(vertex_texture_color), offsetof(vertex_texture_color, vertex)));
+				vertices_->addAttributeDesc(AttributeDesc(AttrType::TEXTURE, 2, AttrFormat::FLOAT, false, sizeof(vertex_texture_color), offsetof(vertex_texture_color, texcoord)));
+				vertices_->addAttributeDesc(AttributeDesc(AttrType::COLOR, 4, AttrFormat::UNSIGNED_BYTE, false, sizeof(vertex_texture_color), offsetof(vertex_texture_color, color)));
+
+				as->addAttribute(vertices_);
+				addAttributeSet(as);
+			}
+
+			std::vector<vertex_texture_color> vtc;
+			vtc.reserve(4 * 6);
+
+			add_rect(&vtc, loc_, tex_coords_[4], background_color_);
+			add_rect(&vtc, thumb_area_, tex_coords_[5], thumb_dragging_ ? thumb_selected_color_ : thumb_mouseover_ ? thumb_mouseover_color_  : thumb_color_);
+			add_rect(&vtc, dir_ == Direction::VERTICAL ? up_arrow_area_ : left_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[0] : tex_coords_[2], Color::colorWhite());
+			add_rect(&vtc, dir_ == Direction::VERTICAL ? down_arrow_area_ : right_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[1] : tex_coords_[3], Color::colorWhite());
+
+			vertices_->update(&vtc);
 		}
 	}
 
