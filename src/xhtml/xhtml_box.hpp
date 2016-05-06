@@ -27,6 +27,7 @@
 
 #include "geometry.hpp"
 
+#include "scrollable.hpp"
 #include "xhtml.hpp"
 #include "xhtml_background_info.hpp"
 #include "xhtml_border_info.hpp"
@@ -240,6 +241,8 @@ namespace xhtml
 
 		bool is_first_inline_child_;
 		bool is_last_inline_child_;
+
+		mutable scrollable::ScrollbarPtr scrollbar_;
 	};
 
 	std::ostream& operator<<(std::ostream& os, const Rect& r);

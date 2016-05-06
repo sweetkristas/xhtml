@@ -69,7 +69,8 @@ namespace xhtml
 		  line_height_(0),
 		  is_replaceable_(false),
 		  is_first_inline_child_(false),
-		  is_last_inline_child_(false)
+		  is_last_inline_child_(false),
+		  scrollbar_(nullptr)
 	{
 		if(getNode() != nullptr && getNode()->id() == NodeId::ELEMENT) {
 			is_replaceable_ = getNode()->isReplaced();
@@ -223,6 +224,12 @@ namespace xhtml
 			p.x = eng.getXAtPosition(p.y, p.y + getLineHeight());
 			eng.setCursor(p);
 		}
+
+		// Stuff dealing with scrollbars
+		//auto ovf = getStyleNode()->getOverflow();
+		//if(ovf == Overflow::SCROLL || ovf == Overflow::AUTO) {
+			scrollbar_ = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int x){}, rect(0, 0, 20, 20));
+		//}
 	}
 
 	void Box::calculateVertMPB(FixedPoint containing_height)
@@ -357,6 +364,12 @@ namespace xhtml
 			const int w = (dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right) / LayoutEngine::getFixedPointScale();
 			const int h = (dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom) / LayoutEngine::getFixedPointScale();
 			node->setActiveRect(rect(x, y, w, h));
+
+			scrollbar_->setLocation(x+w-20, y);
+			scrollbar_->setDimensions(20, h);
+			if(scene_tree != nullptr) {
+				scene_tree->addObject(scrollbar_);
+			}
 		}
 	}
 

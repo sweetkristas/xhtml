@@ -84,9 +84,16 @@ namespace scrollable
 			"scrollbar-left-arrow.svg", 
 			"scrollbar-right-arrow.svg", 
 			"scrollbar-background.svg",
-			"scrollbar-thumb.svg" 
+			"scrollbar-thumb.svg",
 		};
-		std::vector<point> arrow_sizes{ point(loc_.w(), loc_.w()), point(loc_.w(), loc_.w()), point(loc_.h(), loc_.h()), point(loc_.h(), loc_.h()) };
+		std::vector<point> arrow_sizes{ 
+			point(loc_.w(), loc_.w()), 
+			point(loc_.w(), loc_.w()), 
+			point(loc_.h(), loc_.h()), 
+			point(loc_.h(), loc_.h()),
+			point(loc_.w(), loc_.w()),
+			point(loc_.w(), loc_.w()),
+		};
 		tex_ = svgs_to_single_texture(arrow_files, arrow_sizes, &tex_coords_);
 		tex_->setAddressModes(0, Texture::AddressMode::WRAP, Texture::AddressMode::WRAP);
 

@@ -84,4 +84,6 @@ namespace scrollable
 		bool thumb_mouseover_;
 		Scrollbar() = delete;
 	};
+
+	typedef std::shared_ptr<Scrollbar> ScrollbarPtr;
 }

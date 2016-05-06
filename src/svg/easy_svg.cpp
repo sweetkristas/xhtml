@@ -21,6 +21,7 @@
 	   distribution.
 */
 
+#include <algorithm>
 #include <future>
 #include <thread>
 #include <cairo.h>
@@ -112,7 +113,7 @@ namespace KRE
 		std::vector<std::future<void>> futures;
 		std::vector<SurfacePtr> images;
 		images.resize(files.size());
-		const int n_incr = images.size() / max_threads;
+		const int n_incr = images.size() / max_threads < 1 ? 1 : images.size() / max_threads;
 		const auto ff = Surface::getFileFilter(FileFilterType::LOAD);
 		for(int n = 0; n < static_cast<int>(images.size()); n += n_incr) {
 			int n2 = n + n_incr > static_cast<int>(images.size()) ? files.size() : n + n_incr;
@@ -120,6 +121,7 @@ namespace KRE
 				for(int ndx = n; ndx != n2; ++ndx) {
 					CairoContext ctx(wh[ndx].x, wh[ndx].y);
 					images[ndx] = ctx.createSurface(ff(files[ndx]));
+					ASSERT_LOG(images[ndx] != nullptr, "Image file couldn't be read: " << files[ndx]);
 				}
 			}));
 		}
