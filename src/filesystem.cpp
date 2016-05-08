@@ -1,4 +1,9 @@
+#ifdef _MSC_VER
 #include <codecvt>
+#else
+#include <boost/locale/encoding_utf.hpp>
+#include <string>
+#endif
 #include <iostream>
 #include <locale>
 #include <sstream>
@@ -11,6 +16,21 @@
 
 namespace sys
 {
+	namespace
+	{
+		using boost::locale::conv::utf_to_utf;
+
+		std::wstring utf8_to_wstring(const std::string& str)
+		{
+			return utf_to_utf<wchar_t>(str.c_str(), str.c_str() + str.size());
+		}
+
+		std::string wstring_to_utf8(const std::wstring& str)
+		{
+		    return utf_to_utf<char>(str.c_str(), str.c_str() + str.size());
+		}  
+	}
+
 	using namespace boost::filesystem;
 
 	bool file_exists(const std::string& name)
@@ -23,7 +43,7 @@ namespace sys
 	{
 		path p(name);
 		ASSERT_LOG(exists(p), "Couldn't read file: " << name);
-		std::ifstream file(p.generic_wstring(), std::ios_base::binary);
+		std::ifstream file(p.native(), std::ios_base::binary);
 		std::stringstream ss;
 		ss << file.rdbuf();
 		return ss.str();
@@ -45,9 +65,13 @@ namespace sys
 
 	std::string wstring_to_string(const std::wstring& ws)
 	{
+#ifdef _MSC_VER
 		typedef std::codecvt_utf8<wchar_t> convert_type;
 		std::wstring_convert<convert_type, wchar_t> converter;
 		return converter.to_bytes(ws);
+#else
+		return wstring_to_utf8(ws);
+#endif
 	}
 
 	void get_unique_files(const std::string& name, file_path_map& fpm)

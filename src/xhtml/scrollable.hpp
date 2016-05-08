@@ -55,7 +55,7 @@ namespace scrollable
 		void setDimensions(int w, int h);
 
 		bool isVisible() const { return visible_; }
-		bool setVisible(bool v = true) { visible_ = v; }
+		void setVisible(bool v = true) { visible_ = v; }
 	private:
 		void init();
 		void preRender(const KRE::WindowPtr& wm) override;

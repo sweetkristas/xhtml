@@ -213,6 +213,7 @@ KRE::SceneObjectPtr test_filter_shader(const std::string& filename)
 	return rt;
 }
 
+#ifdef _MSC_VER
 std::string wide_string_to_utf8(const std::wstring& ws)
 {
 	std::string res;
@@ -227,6 +228,7 @@ std::string wide_string_to_utf8(const std::wstring& ws)
 
 	return res;
 }
+#endif
 
 void read_system_fonts(sys::file_path_map* res)
 {

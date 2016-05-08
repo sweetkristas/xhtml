@@ -22,6 +22,12 @@ p#p2 {
 	border: 10px inset red;
 	background-color: gray;
     margin-bottom: 0px;
+	color: red;
+	filter: grayscale(100%);
+}
+p#p2:hover {
+	transition: filter 500ms;
+	filter: grayscale(0%);
 }
 p#p3 {
 	border: 8px double blue;

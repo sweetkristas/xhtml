@@ -30,7 +30,7 @@ CCACHE=
 endif
 
 ifeq ($(OPTIMIZE),yes)
-BASE_CXXFLAGS += -O2
+BASE_CXXFLAGS += -O3
 endif
 
 ifeq ($(CXX), g++)
@@ -56,7 +56,7 @@ BASE_CXXFLAGS += -std=c++11 -g -rdynamic -fno-inline-functions \
 	-Wno-narrowing -Wno-literal-suffix
 
 # Compiler include options, used after CXXFLAGS and CPPFLAGS.
-INC := -Iexternal/include $(shell pkg-config --cflags x11 sdl2 glew SDL2_image SDL2_ttf libpng zlib freetype2 cairo)
+INC := -Iexternal/header-only-libs $(shell pkg-config --cflags x11 sdl2 glew SDL2_image SDL2_ttf libpng zlib freetype2 cairo)
 
 ifdef STEAM_RUNTIME_ROOT
 	INC += -I$(STEAM_RUNTIME_ROOT)/include
@@ -105,7 +105,7 @@ xhtml: $(OBJ)
 	@$(CCACHE) $(CXX) \
 		$(BASE_CXXFLAGS) $(LDFLAGS) $(CXXFLAGS) $(CPPFLAGS) \
 		$(OBJ) -o xhtml \
-		$(LIBS) -lboost_regex -lboost_system -lboost_filesystem -lboost_locale -lpthread -fthreadsafe-statics
+		$(LIBS) -lboost_regex -lboost_locale -lboost_system -lboost_filesystem -lpthread -fthreadsafe-statics
 
 checkdirs: $(BUILD_DIR)
 
