@@ -117,7 +117,6 @@ namespace KRE
 			// disabled this as cairo scales stuff correctly. Still need to alter at some
 			// point in the future.
 			if(view_box_.w() != 0 && view_box_.h() != 0) {
-				std::cerr << "wh = " << ctx.width() << "," << ctx.height() << ", vb: " << view_box_.w() << "," << view_box_.h() << "\n";
 				cairo_scale(ctx.cairo(), ctx.width()/view_box_.w(), ctx.height()/view_box_.h());
 
 				auto status = cairo_status(ctx.cairo());

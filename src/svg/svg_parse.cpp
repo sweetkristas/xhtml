@@ -79,7 +79,6 @@ namespace KRE
 
 		void parse::render(render_context& ctx) const
 		{
-			cairo_identity_matrix(ctx.cairo());
 			cairo_set_source_rgb(ctx.cairo(), 0.0, 0.0, 0.0);
 			cairo_set_line_cap(ctx.cairo(), CAIRO_LINE_CAP_BUTT);
 			cairo_set_line_join(ctx.cairo(), CAIRO_LINE_JOIN_MITER);
