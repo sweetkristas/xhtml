@@ -47,6 +47,7 @@ namespace KRE
 				  width_(width),
 				  height_(height)
 			{
+				ASSERT_LOG(width_ > 0 && height_ > 0, "Supplied width and/or height values are bad. " << width_ << " x " << height_);
 			}
 			~CairoContext()
 			{

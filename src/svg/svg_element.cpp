@@ -117,10 +117,16 @@ namespace KRE
 			// disabled this as cairo scales stuff correctly. Still need to alter at some
 			// point in the future.
 			if(view_box_.w() != 0 && view_box_.h() != 0) {
+				std::cerr << "wh = " << ctx.width() << "," << ctx.height() << ", vb: " << view_box_.w() << "," << view_box_.h() << "\n";
 				cairo_scale(ctx.cairo(), ctx.width()/view_box_.w(), ctx.height()/view_box_.h());
+
+				auto status = cairo_status(ctx.cairo());
+				ASSERT_LOG(status == CAIRO_STATUS_SUCCESS, "Cairo error: " << cairo_status_to_string(status));
 			}
 			for(auto trf : transforms_) {
 				trf->apply(ctx);
+				auto status = cairo_status(ctx.cairo());
+				ASSERT_LOG(status == CAIRO_STATUS_SUCCESS, "Cairo error: " << cairo_status_to_string(status));
 			}
 			attribute_manager pp1(pp(), ctx);
 			attribute_manager ca1(ca(), ctx);

@@ -24,6 +24,9 @@ xhtml
 # Dependency files
 *.d
 
+# vim swap files
+*.swp
+
 # msvc files we definitely do not want
 *.sdf
 *.tlog
