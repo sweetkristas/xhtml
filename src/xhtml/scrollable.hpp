@@ -56,9 +56,10 @@ namespace scrollable
 
 		bool isVisible() const { return visible_; }
 		void setVisible(bool v = true) { visible_ = v; }
+
+		void preRender(const KRE::WindowPtr& wm) override;
 	private:
 		void init();
-		void preRender(const KRE::WindowPtr& wm) override;
 		change_handler on_change_;
 		Direction dir_;
 		int min_range_;

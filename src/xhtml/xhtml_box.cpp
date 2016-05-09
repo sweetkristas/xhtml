@@ -228,7 +228,7 @@ namespace xhtml
 		// Stuff dealing with scrollbars
 		//auto ovf = getStyleNode()->getOverflow();
 		//if(ovf == Overflow::SCROLL || ovf == Overflow::AUTO) {
-			scrollbar_ = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int x){}, rect(0, 0, 20, 20));
+		//	scrollbar_ = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int x){}, rect(0, 0, 20, 20));
 		//}
 	}
 
@@ -365,11 +365,11 @@ namespace xhtml
 			const int h = (dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom) / LayoutEngine::getFixedPointScale();
 			node->setActiveRect(rect(x, y, w, h));
 
-			scrollbar_->setLocation(x+w-20, y);
-			scrollbar_->setDimensions(20, h);
-			if(scene_tree != nullptr) {
-				scene_tree->addObject(scrollbar_);
-			}
+			//scrollbar_->setLocation(x+w-20, y);
+			//scrollbar_->setDimensions(20, h);
+			//if(scene_tree != nullptr) {
+			//	scene_tree->addObject(scrollbar_);
+			//}
 		}
 	}
 

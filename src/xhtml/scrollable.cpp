@@ -95,7 +95,7 @@ namespace scrollable
 			point(loc_.w(), loc_.w()),
 		};
 		tex_ = svgs_to_single_texture(arrow_files, arrow_sizes, &tex_coords_);
-		tex_->setAddressModes(0, Texture::AddressMode::WRAP, Texture::AddressMode::WRAP);
+		tex_->setAddressModes(0, Texture::AddressMode::WRAP, Texture::AddressMode::WRAP);		
 
 		if(dir_ == Direction::VERTICAL) {
 			up_arrow_area_ = rect(loc_.x(), loc_.y(), loc_.w(), loc_.w());
@@ -176,9 +176,9 @@ namespace scrollable
 			vtc.reserve(4 * 6);
 
 			add_rect(&vtc, loc_, tex_coords_[4], background_color_);
-			add_rect(&vtc, thumb_area_, tex_coords_[5], thumb_dragging_ ? thumb_selected_color_ : thumb_mouseover_ ? thumb_mouseover_color_  : thumb_color_);
-			add_rect(&vtc, dir_ == Direction::VERTICAL ? up_arrow_area_ : left_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[0] : tex_coords_[2], Color::colorWhite());
-			add_rect(&vtc, dir_ == Direction::VERTICAL ? down_arrow_area_ : right_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[1] : tex_coords_[3], Color::colorWhite());
+			//add_rect(&vtc, thumb_area_, tex_coords_[5], thumb_dragging_ ? thumb_selected_color_ : thumb_mouseover_ ? thumb_mouseover_color_  : thumb_color_);
+			//add_rect(&vtc, dir_ == Direction::VERTICAL ? up_arrow_area_ : left_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[0] : tex_coords_[2], Color::colorWhite());
+			//add_rect(&vtc, dir_ == Direction::VERTICAL ? down_arrow_area_ : right_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[1] : tex_coords_[3], Color::colorWhite());
 
 			vertices_->update(&vtc);
 		}

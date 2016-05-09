@@ -45,6 +45,7 @@
 
 #include "css_parser.hpp"
 #include "FontDriver.hpp"
+#include "scrollable.hpp"
 #include "xhtml.hpp"
 #include "xhtml_layout_engine.hpp"
 #include "xhtml_root_box.hpp"
@@ -417,15 +418,13 @@ int main(int argc, char* argv[])
 	//bt->setColor(Color::colorBlue());
 	//bt->setCentre(Blittable::Centre::MIDDLE);
 	//bt->setPosition(width/2, 5 * height / 6);
-
-	/*SurfacePtr surf2 = Surface::create("summer2.png");
-	auto bt2 = std::make_shared<Blittable>(Texture::createTexture(surf2));
-	bt2->setColor(Color::colorBlue());
-	bt2->setCentre(Blittable::Centre::MIDDLE);
-	bt2->setPosition(width/2, 5 * height / 6);*/
+	//bt = test_filter_shader("test_npc.png");
 
 	SceneObjectPtr bt = nullptr;
-	//bt = test_filter_shader("test_npc.png");
+
+	auto scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int y_offs){
+		std::cerr << "scrollbar change to: " << y_offs << "\n";
+	}, rect(width-20, 0, 20, 20));
 
 	SDL_Event e;
 	bool done = false;
@@ -485,8 +484,11 @@ int main(int argc, char* argv[])
 			bt->preRender(main_wnd);
 			main_wnd->render(bt.get());
 		}
-		/*bt2->preRender(main_wnd);
-		main_wnd->render(bt2.get());*/
+
+		if(scrollbar) {
+			scrollbar->preRender(main_wnd);
+			main_wnd->render(scrollbar.get());
+		}
 
 		main_wnd->swap();
 	}

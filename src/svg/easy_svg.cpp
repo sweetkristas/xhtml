@@ -185,6 +185,7 @@ namespace KRE
 			rect alpha_borders(0, 0, r.w, r.h);
 			out->blitTo(images[r.id], alpha_borders, outr[r.id]);
 		}
+		out->savePng("scrollbar_elements.png");
 		auto out_tex = Texture::createTexture(out);
 		if(tex_coords != nullptr) {
 			tex_coords->clear();
