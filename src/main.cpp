@@ -424,7 +424,7 @@ int main(int argc, char* argv[])
 
 	auto scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int y_offs){
 		std::cerr << "scrollbar change to: " << y_offs << "\n";
-	}, rect(width-20, 0, 20, 20));
+	}, rect(width-10, 0, 10, height));
 
 	SDL_Event e;
 	bool done = false;

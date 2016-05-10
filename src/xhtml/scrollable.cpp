@@ -18,12 +18,12 @@ namespace scrollable
 			ASSERT_LOG(vert != nullptr, "vert was NULL.");
 			glm::u8vec4 color = c.as_u8vec4();
 			vert->emplace_back(glm::vec2(r.x1(), r.y1()), glm::vec2(t.x1(), t.y1()), color);
+			vert->emplace_back(glm::vec2(r.x2(), r.y1()), glm::vec2(t.x2(), t.y1()), color);
+			vert->emplace_back(glm::vec2(r.x1(), r.y2()), glm::vec2(t.x1(), t.y2()), color);
+
+			vert->emplace_back(glm::vec2(r.x2(), r.y1()), glm::vec2(t.x2(), t.y1()), color);
 			vert->emplace_back(glm::vec2(r.x1(), r.y2()), glm::vec2(t.x1(), t.y2()), color);
 			vert->emplace_back(glm::vec2(r.x2(), r.y2()), glm::vec2(t.x2(), t.y2()), color);
-
-			vert->emplace_back(glm::vec2(r.x2(), r.y2()), glm::vec2(t.x2(), t.y2()), color);
-			vert->emplace_back(glm::vec2(r.x1(), r.y1()), glm::vec2(t.x1(), t.y1()), color);
-			vert->emplace_back(glm::vec2(r.x2(), r.y1()), glm::vec2(t.x2(), t.y1()), color);
 		}
 	}
 
@@ -96,13 +96,14 @@ namespace scrollable
 		};
 		tex_ = svgs_to_single_texture(arrow_files, arrow_sizes, &tex_coords_);
 		tex_->setAddressModes(0, Texture::AddressMode::WRAP, Texture::AddressMode::WRAP);		
+		setTexture(tex_);
 
 		if(dir_ == Direction::VERTICAL) {
 			up_arrow_area_ = rect(loc_.x(), loc_.y(), loc_.w(), loc_.w());
 			down_arrow_area_ = rect(loc_.x(), loc_.y2() - loc_.w(), loc_.w(), loc_.w());
 
-			const int min_length = std::min(loc_.w(), (max_range_ - min_range_) / loc_.h());
-			thumb_area_ = rect(loc_.x(), scroll_pos_ / range * loc_.h() + loc_.y(), loc_.w(), min_length);
+			const int min_length = std::min(loc_.w(), loc_.h() / range);
+			thumb_area_ = rect(loc_.x(), static_cast<int>(static_cast<float>(scroll_pos_) / range * loc_.h()) + loc_.y(), loc_.w(), min_length);
 
 		} else {
 			left_arrow_area_ = rect(loc_.x(), loc_.y(), loc_.h(), loc_.h());
@@ -175,11 +176,12 @@ namespace scrollable
 			std::vector<vertex_texture_color> vtc;
 			vtc.reserve(4 * 6);
 
-			add_rect(&vtc, loc_, tex_coords_[4], background_color_);
-			//add_rect(&vtc, thumb_area_, tex_coords_[5], thumb_dragging_ ? thumb_selected_color_ : thumb_mouseover_ ? thumb_mouseover_color_  : thumb_color_);
-			//add_rect(&vtc, dir_ == Direction::VERTICAL ? up_arrow_area_ : left_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[0] : tex_coords_[2], Color::colorWhite());
-			//add_rect(&vtc, dir_ == Direction::VERTICAL ? down_arrow_area_ : right_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[1] : tex_coords_[3], Color::colorWhite());
+			//add_rect(&vtc, loc_, tex_coords_[4], background_color_);
+			add_rect(&vtc, thumb_area_, tex_coords_[5], thumb_dragging_ ? thumb_selected_color_ : thumb_mouseover_ ? thumb_mouseover_color_  : thumb_color_);
+			add_rect(&vtc, dir_ == Direction::VERTICAL ? up_arrow_area_ : left_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[0] : tex_coords_[2], Color::colorWhite());
+			add_rect(&vtc, dir_ == Direction::VERTICAL ? down_arrow_area_ : right_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[1] : tex_coords_[3], Color::colorWhite());
 
+			getAttributeSet().back()->setCount(vtc.size());
 			vertices_->update(&vtc);
 		}
 	}
