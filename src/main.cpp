@@ -108,7 +108,7 @@ void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml:
 			layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
 				std::stringstream ss;
 				ss << std::string(nesting * 2, ' ') << box->toString();
-				LOG_DEBUG(ss.str());
+				LOG_INFO(ss.str());
 			}, 0);
 		}
 	}

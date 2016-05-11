@@ -42,6 +42,18 @@ namespace xhtml
 	{
 		calculateHorzMPB(containing.content_.width);
 		calculateVertMPB(containing.content_.height);
+
+        int child_height = 0;
+        FixedPoint width = 0;
+        for(auto& child : getChildren()) {
+			if(!child->isFloat()) {
+				//child_height = std::max(child_height, child->getHeight() + child->getTop() + child->getMBPBottom());
+				child_height += child->getHeight() + child->getTop() + child->getMBPBottom();
+				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
+			}
+		}
+		setContentHeight(child_height);
+		setContentWidth(width);
 	}
 
 	void LineBox::postParentLayout(LayoutEngine& eng, const Dimensions& containing)
@@ -97,7 +109,9 @@ namespace xhtml
 
 	std::string LineBoxContainer::toString() const
 	{
-		return std::string();
+		std::ostringstream ss;
+		ss << "LineBoxContainer: " << getDimensions().content_;
+		return ss.str();
 	}
 
 	void LineBoxContainer::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
@@ -114,6 +128,17 @@ namespace xhtml
 	{
 		calculateHorzMPB(containing.content_.width);
 		calculateVertMPB(containing.content_.height);
+
+        int child_height = 0;
+        FixedPoint width = 0;
+        for(auto& child : getChildren()) {
+			if(!child->isFloat()) {
+				child_height = std::max(child_height, child->getHeight() + child->getTop() + child->getMBPBottom());
+				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
+			}
+		}
+		setContentHeight(child_height);
+		setContentWidth(width);
 	}
 
 	void LineBoxContainer::postParentLayout(LayoutEngine& eng, const Dimensions& containing)

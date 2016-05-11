@@ -118,16 +118,11 @@ namespace xhtml
 			}					
 		}
 
-		int max_w = 0;
 		for(auto& line : lines) {
-			max_w = std::max(max_w, lines.back()->line_.width_);
+			line->setContentWidth(line->line_.width_);
+			line->setContentHeight(line_height);
 		}
-		lines.back()->setContentWidth(max_w);
 		
-		if(!lines.empty()) {
-			lines.back()->setContentHeight(lines.back()->line_.offset_.y + line_height);
-		}
-
 		return lines;
 	}
 

@@ -176,7 +176,7 @@ namespace scrollable
 			std::vector<vertex_texture_color> vtc;
 			vtc.reserve(4 * 6);
 
-			//add_rect(&vtc, loc_, tex_coords_[4], background_color_);
+			add_rect(&vtc, loc_, tex_coords_[4], background_color_);
 			add_rect(&vtc, thumb_area_, tex_coords_[5], thumb_dragging_ ? thumb_selected_color_ : thumb_mouseover_ ? thumb_mouseover_color_  : thumb_color_);
 			add_rect(&vtc, dir_ == Direction::VERTICAL ? up_arrow_area_ : left_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[0] : tex_coords_[2], Color::colorWhite());
 			add_rect(&vtc, dir_ == Direction::VERTICAL ? down_arrow_area_ : right_arrow_area_, dir_ == Direction::VERTICAL ? tex_coords_[1] : tex_coords_[3], Color::colorWhite());
