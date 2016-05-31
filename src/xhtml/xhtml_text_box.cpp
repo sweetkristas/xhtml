@@ -119,8 +119,8 @@ namespace xhtml
 		}
 
 		for(auto& line : lines) {
-			line->setContentWidth(line->line_.width_);
-			line->setContentHeight(line_height);
+			//line->setContentWidth(line->line_.width_);
+			//line->setContentHeight(line_height);
 		}
 		
 		return lines;
@@ -141,6 +141,9 @@ namespace xhtml
 	{
 		calculateHorzMPB(containing.content_.width);
 		calculateVertMPB(containing.content_.height);
+
+		setContentWidth(line_.width_);
+		setContentHeight(line_.height_);
 	}
 
 	void TextBox::setRightAlign(FixedPoint containing_width)
