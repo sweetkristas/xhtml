@@ -112,7 +112,7 @@ namespace xhtml
 		calculateVertMPB(containing.content_.height);
 
 		FixedPoint left = getMBPLeft();
-		FixedPoint top = getMBPTop() + containing.content_.height;
+		FixedPoint top = getMBPTop();// + containing.content_.height;
 		std::cerr << "cch: " << containing.content_.height / LayoutEngine::getFixedPointScale() << "\n";
 		if(getStyleNode()->getPosition() == Position::FIXED) {
 			const FixedPoint containing_width = containing.content_.width;
