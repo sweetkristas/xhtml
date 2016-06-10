@@ -102,7 +102,8 @@ namespace KRE
 	}
 
 	SceneTree::SceneTree(const SceneTreePtr& parent)
-		: parent_(parent),
+		: root_(),
+		  parent_(parent),
 		  children_(),
 		  objects_(),
 		  scopeable_(),
@@ -122,7 +123,13 @@ namespace KRE
 
 	SceneTreePtr SceneTree::create(SceneTreePtr parent)
 	{
-		return std::make_shared<SceneTreeImpl>(parent);
+		auto st = std::make_shared<SceneTreeImpl>(parent);
+		if(parent == nullptr) {
+			st->root_ = st->shared_from_this();
+		} else {
+			st->root_ = parent->root_;
+		}
+		return st;
 	}
 
 	void SceneTree::removeObject(const SceneObjectPtr& obj)
