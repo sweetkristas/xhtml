@@ -79,6 +79,7 @@
     <ClCompile Include="..\src\kre\VGraphOGLFixed.cpp" />
     <ClCompile Include="..\src\kre\WindowManager.cpp" />
     <ClCompile Include="..\src\main.cpp" />
+    <ClCompile Include="..\src\rect_renderable.cpp" />
     <ClCompile Include="..\src\svg\easy_svg.cpp" />
     <ClCompile Include="..\src\svg\svg_attribs.cpp" />
     <ClCompile Include="..\src\svg\svg_container.cpp" />
@@ -215,6 +216,7 @@
     <ClInclude Include="..\src\kre\WindowManager.hpp" />
     <ClInclude Include="..\src\kre\WindowManagerFwd.hpp" />
     <ClInclude Include="..\src\profile_timer.hpp" />
+    <ClInclude Include="..\src\rect_renderable.hpp" />
     <ClInclude Include="..\src\svg\easy_svg.hpp" />
     <ClInclude Include="..\src\svg\svg_attribs.hpp" />
     <ClInclude Include="..\src\svg\svg_container.hpp" />

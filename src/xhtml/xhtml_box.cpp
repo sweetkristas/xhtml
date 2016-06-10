@@ -27,6 +27,7 @@
 #include "WindowManager.hpp"
 
 #include "solid_renderable.hpp"
+#include "rect_renderable.hpp"
 
 #include "xhtml_absolute_box.hpp"
 #include "xhtml_block_box.hpp"
@@ -197,7 +198,6 @@ namespace xhtml
 			eng.setCursor(p);
 		}
 
-
 		handlePreChildLayout2(eng, containing);
 
 		for(auto& child : boxes_) {
@@ -271,10 +271,7 @@ namespace xhtml
 	void Box::render(const point& offset) const
 	{
 		point offs = point(dimensions_.content_.x, dimensions_.content_.y);
-		if(id() == BoxId::TEXT) {
-			offs.x = offs.y = 0;
-		} 
-
+		
 		if(node_ != nullptr && node_->getPosition() == Position::RELATIVE_POS) {
 			if(getStyleNode()->getLeft()->isAuto()) {
 				if(!getStyleNode()->getRight()->isAuto()) {
@@ -358,6 +355,7 @@ namespace xhtml
 		auto node = getNode();
 		if(node != nullptr) {
 			auto& dims = getDimensions();
+
 			offs += offset;
 			const int x = (offs.x - dims.padding_.left - dims.border_.left) / LayoutEngine::getFixedPointScale();
 			const int y = (offs.y - dims.padding_.top - dims.border_.top) / LayoutEngine::getFixedPointScale();
