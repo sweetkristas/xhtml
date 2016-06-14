@@ -397,8 +397,8 @@ namespace xhtml
 		KRE::FontRenderablePtr fontr = nullptr;
 		std::vector<point> path;
 		std::string text;
-		int dim_x = line_.offset_.x;
-		int dim_y = getStyleNode()->getFont()->getDescender() + line_.offset_.y;
+		int dim_x = offset.x + line_.offset_.x;
+		int dim_y = offset.y + getStyleNode()->getFont()->getDescender() + line_.offset_.y;
 		for(auto& word : line_.line_->line) {
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);

@@ -405,20 +405,23 @@ namespace xhtml
 		// with all the changes that implies.
 		//const int w = (getMBPWidth() + getWidth()) / LayoutEngine::getFixedPointScale();
 		//const int h = (getMBPHeight() + getHeight()) / LayoutEngine::getFixedPointScale();
-		const int w = getRootDimensions().content_.width / LayoutEngine::getFixedPointScale();
-		const int h = getRootDimensions().content_.height / LayoutEngine::getFixedPointScale();
+		//const int w = getRootDimensions().content_.width / LayoutEngine::getFixedPointScale();
+		//const int h = getRootDimensions().content_.height / LayoutEngine::getFixedPointScale();
+		auto wnd = WindowManager::getMainWindow();
+		const int w = wnd->width();
+		const int h = wnd->height();
 
-		const int x = offset.x / LayoutEngine::getFixedPointScale();
-		const int y = offset.y / LayoutEngine::getFixedPointScale();
+		//const int x = offset.x / LayoutEngine::getFixedPointScale();
+		//const int y = offset.y / LayoutEngine::getFixedPointScale();
 		
 		auto filters = node->getFilters()->getFilters();
 
-		if(!filters.empty()) {
+		//if(!filters.empty()) {
 			// Need to render the scene at full-size into the render buffer.
 			//auto camera = Camera::createInstance("SceneTree:Camera", 0, w, 0, h);
 			//camera->setOrthoWindow(0, w, 0, h);
 			//scene_tree->setCamera(camera);
-		}
+		//}
 
 		for(auto& filter : filters) {
 			auto filter_shader = ShaderProgram::getProgram("filter_shader")->clone();
