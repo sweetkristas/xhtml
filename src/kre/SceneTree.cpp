@@ -230,9 +230,6 @@ namespace KRE
 			m = glm::toMat4(rotation_) * m;
 			cached_model_matrix_ = glm::translate(m, position_);
 		}
-		// use cached_model_matrix_ as current global matrix.
-		// XXX add a scope for the global model matrix.
-		GlobalModelScope gms(get_global_model_matrix() * cached_model_matrix_);
 
 		{
 			CameraScope cs(camera_);
@@ -246,6 +243,9 @@ namespace KRE
 			// render all the objects and children into a render target if one exists.
 			// which is why we introduce a new scope
 			{
+				// use cached_model_matrix_ as current global matrix.
+				GlobalModelScope gms(get_global_model_matrix() * cached_model_matrix_);
+
 				auto rt = !render_targets_.empty() ? render_targets_.front() : nullptr;
 				RenderTarget::RenderScope rs(rt, rect(0, 0, rt ? rt->width() : 0, rt ? rt->height() : 0));
 
