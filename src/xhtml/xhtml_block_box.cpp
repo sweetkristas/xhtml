@@ -113,7 +113,6 @@ namespace xhtml
 
 		FixedPoint left = getMBPLeft();
 		FixedPoint top = getMBPTop() + containing.content_.height;
-		std::cerr << "cch: " << (containing.content_.height / LayoutEngine::getFixedPointScaleFloat()) << "\n";
 		if(getStyleNode()->getPosition() == Position::FIXED) {
 			const FixedPoint containing_width = containing.content_.width;
 			const FixedPoint containing_height = containing.content_.height;
@@ -205,11 +204,9 @@ namespace xhtml
 		child_height_ = 0;
 		FixedPoint width = 0;
 
-		std::cerr << "new box\n";
 		for(auto& child : getChildren()) {
 			if(!child->isFloat()) {
 				child_height_ = std::max(child_height_, child->getHeight() + child->getTop() + child->getMBPBottom());
-				std::cerr << "  child_height: " << (child_height_/LayoutEngine::getFixedPointScaleFloat()) << "\n";
 				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
 			}
 		}

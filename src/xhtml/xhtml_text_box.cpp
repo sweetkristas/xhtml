@@ -231,6 +231,9 @@ namespace xhtml
 		}
 
 		line_.offset_.y = child_y;
+
+		//setContentX(line_.offset_.x);
+		//setContentY(line_.offset_.y);
 	}
 
 	void TextBox::setJustify(FixedPoint containing_width)

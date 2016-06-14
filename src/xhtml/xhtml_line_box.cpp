@@ -122,6 +122,11 @@ namespace xhtml
 		for(const auto& line_box : line_boxes) {
 			addChild(line_box);
 		}
+
+		FixedPoint left = getMBPLeft();
+		FixedPoint top = getMBPTop() + containing.content_.height;
+		setContentX(left);
+		setContentY(top);
 	}
 
 	void LineBoxContainer::handleLayout(LayoutEngine& eng, const Dimensions& containing)
