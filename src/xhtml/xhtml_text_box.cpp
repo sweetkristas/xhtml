@@ -142,6 +142,9 @@ namespace xhtml
 		calculateHorzMPB(containing.content_.width);
 		calculateVertMPB(containing.content_.height);
 
+		setContentX(line_.offset_.x);
+		setContentY(line_.offset_.y);
+	
 		setContentWidth(line_.width_);
 		setContentHeight(line_.height_);
 	}
@@ -261,11 +264,11 @@ namespace xhtml
 
 	void TextBox::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
-		Dimensions dims = getDimensions();
-		dims.content_.width = line_.width_;
-		dims.content_.height = line_.height_;
-		point offs = line_.offset_;
-		offs.y -= line_.height_;
+		const Dimensions dims = getDimensions();
+		//dims.content_.width = line_.width_;
+		//dims.content_.height = line_.height_;
+		//point offs = line_.offset_;
+		//offs.y -= line_.height_;
 		/*XXX if(isFirstInlineChild() && it == lines_.begin()) {
 			if(!(isLastInlineChild() && it == lines_.end()-1)) {
 				dims.border_.right = 0;
@@ -277,7 +280,7 @@ namespace xhtml
 				dims.border_.left = dims.border_.right = 0;
 			}
 		}*/
-		getBorderInfo().render(scene_tree, dims, offs);
+		getBorderInfo().render(scene_tree, dims, offset - point(dims.content_.x, dims.content_.y));
 	}
 
 	void TextBox::handleRenderShadow(const KRE::SceneTreePtr& scene_tree, KRE::FontRenderablePtr fontr, float w, float h) const
