@@ -1,0 +1,3 @@
+[submodule "Beast"]
+	path = Beast
+	url = git@github.com:vinniefalco/Beast.git
