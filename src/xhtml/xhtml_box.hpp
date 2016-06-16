@@ -46,6 +46,12 @@ namespace xhtml
 		FixedPoint bottom;
 	};
 
+	inline std::ostream& operator<<(std::ostream& os, const EdgeSize& p)
+	{
+		os << "(" << p.left << "," << p.top << "," << p.right << "," << p.bottom << ")";
+		return os;
+	}
+
 	struct Dimensions
 	{
 		Rect content_;

@@ -56,7 +56,7 @@ namespace xhtml
 	std::string TextBox::toString() const
 	{
 		std::ostringstream ss;
-		ss << "TextBox: " << getDimensions().content_;
+		ss << "TextBox: " << getDimensions().content_ << " : " << getDimensions().margin_;
 		ss  << "\n    "
 			<< (line_.offset_.x / LayoutEngine::getFixedPointScaleFloat()) 
 			<< "," 
@@ -106,7 +106,8 @@ namespace xhtml
 				lines.back()->line_.width_ = lines.back()->calculateWidth(lines.back()->line_);
 				// XXX This height needs to be modified later if we have inline elements with a different lineheight
 				lines.back()->line_.height_ = line_height;
-				lines.back()->line_.offset_.y = cursor.y;
+				//auto font_xheight = static_cast<FixedPoint>(lines.back()->getStyleNode()->getFont()->getFontXHeight() * LayoutEngine::getFixedPointScaleFloat());
+				lines.back()->line_.offset_.y = cursor.y; //- line_height;// - LayoutEngine::getFixedPointScale();
 				cursor.x += lines.back()->line_.width_;
 
 				if(line->is_end_line) {
@@ -403,8 +404,8 @@ namespace xhtml
 		KRE::FontRenderablePtr fontr = nullptr;
 		std::vector<point> path;
 		std::string text;
-		int dim_x = offset.x + line_.offset_.x;
-		int dim_y = offset.y + getStyleNode()->getFont()->getDescender() + line_.offset_.y;
+		int dim_x = offset.x/* + line_.offset_.x*/;
+		int dim_y = offset.y + getStyleNode()->getFont()->getDescender()/* + line_.offset_.y*/;
 		for(auto& word : line_.line_->line) {
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);
