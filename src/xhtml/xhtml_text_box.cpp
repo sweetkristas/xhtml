@@ -107,7 +107,7 @@ namespace xhtml
 				// XXX This height needs to be modified later if we have inline elements with a different lineheight
 				lines.back()->line_.height_ = line_height;
 				//auto font_xheight = static_cast<FixedPoint>(lines.back()->getStyleNode()->getFont()->getFontXHeight() * LayoutEngine::getFixedPointScaleFloat());
-				lines.back()->line_.offset_.y = cursor.y; //- line_height;// - LayoutEngine::getFixedPointScale();
+				lines.back()->line_.offset_.y = cursor.y;// - LayoutEngine::getFixedPointScale();
 				cursor.x += lines.back()->line_.width_;
 
 				if(line->is_end_line) {
@@ -144,8 +144,11 @@ namespace xhtml
 		calculateVertMPB(containing.content_.height);
 
 		setContentX(line_.offset_.x);
-		setContentY(line_.offset_.y);
-	
+		setContentY(line_.offset_.y + getParent()->getLineHeight());
+		line_.offset_.x = 0;
+		line_.offset_.y = 0;
+		//line_.offset_.y = getParent()->getLineHeight();
+
 		setContentWidth(line_.width_);
 		setContentHeight(line_.height_);
 	}
@@ -168,16 +171,16 @@ namespace xhtml
 		// perform text-align calculation.
 		const css::TextAlign ta = getStyleNode()->getTextAlign();
 		switch(ta) {
-			case css::TextAlign::RIGHT:
+		case css::TextAlign::RIGHT:
 				setRightAlign(containing_width);
 				break;
-			case css::TextAlign::CENTER:	
+			case css::TextAlign::CENTER:
 				setCenterAlign(containing_width);
 				break;
-			case css::TextAlign::JUSTIFY:	
+			case css::TextAlign::JUSTIFY:
 					setJustify(containing_width);
 				break;
-			case css::TextAlign::NORMAL:	
+			case css::TextAlign::NORMAL:
 				if(getStyleNode()->getDirection() == css::Direction::RTL) {
 					setRightAlign(containing_width);
 				}
@@ -234,10 +237,8 @@ namespace xhtml
 			default:  break;
 		}
 
-		line_.offset_.y = child_y;
-
-		//setContentX(line_.offset_.x);
-		//setContentY(line_.offset_.y);
+		//@@ disabled for testing.
+		//line_.offset_.y = child_y;
 	}
 
 	void TextBox::setJustify(FixedPoint containing_width)
@@ -281,7 +282,7 @@ namespace xhtml
 				dims.border_.left = dims.border_.right = 0;
 			}
 		}*/
-		getBorderInfo().render(scene_tree, dims, offset - point(dims.content_.x, dims.content_.y));
+		getBorderInfo().render(scene_tree, dims, offset - point{ 0, getParent()->getLineHeight()});
 	}
 
 	void TextBox::handleRenderShadow(const KRE::SceneTreePtr& scene_tree, KRE::FontRenderablePtr fontr, float w, float h) const
@@ -404,8 +405,8 @@ namespace xhtml
 		KRE::FontRenderablePtr fontr = nullptr;
 		std::vector<point> path;
 		std::string text;
-		int dim_x = offset.x/* + line_.offset_.x*/;
-		int dim_y = offset.y + getStyleNode()->getFont()->getDescender()/* + line_.offset_.y*/;
+		int dim_x = offset.x + line_.offset_.x;
+		int dim_y = offset.y + getStyleNode()->getFont()->getDescender() + line_.offset_.y;
 		for(auto& word : line_.line_->line) {
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);

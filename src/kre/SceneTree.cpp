@@ -153,7 +153,7 @@ namespace KRE
 
 	void SceneTree::setPosition(int x, int y, int z) 
 	{
-		position_ = glm::vec3(float(x), float(y), float(z));
+		position_ = glm::vec3(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
 		model_changed_ = true;
 	}
 
@@ -229,6 +229,7 @@ namespace KRE
 			glm::mat4 m = glm::scale(model_matrix_, scale_);
 			m = glm::toMat4(rotation_) * m;
 			cached_model_matrix_ = glm::translate(m, position_);
+			std::cout << "Position: " << position_.x << "," << position_.y << "\n";
 		}
 
 		{

@@ -307,9 +307,11 @@ namespace xhtml
 		KRE::SceneTreePtr scene_tree = nullptr;
 		if(node_ != nullptr) {
 			scene_tree = node_->getSceneTree();
-			scene_tree->setPosition(offs.x / LayoutEngine::getFixedPointScaleFloat(), offs.y / LayoutEngine::getFixedPointScaleFloat());
-			offs.x = 0;
-			offs.y = 0;
+			if(id_ != BoxId::TEXT) {
+				scene_tree->setPosition(offs.x / LayoutEngine::getFixedPointScaleFloat(), offs.y / LayoutEngine::getFixedPointScaleFloat());
+			}
+			//offs.x = 0;
+			//offs.y = 0;
 
 			// XXX needs a modifer for transform origin.
 			auto transform = node_->getTransform();

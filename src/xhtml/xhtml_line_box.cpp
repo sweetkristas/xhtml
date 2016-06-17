@@ -47,8 +47,7 @@ namespace xhtml
         FixedPoint width = 0;
         for(auto& child : getChildren()) {
 			if(!child->isFloat()) {
-				//child_height = std::max(child_height, child->getHeight() + child->getTop() + child->getMBPBottom());
-				child_height += child->getTop() + child->getHeight() + child->getMBPBottom();
+				child_height += child->getMBPHeight() + child->getHeight();
 				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
 			}
 		}
@@ -138,7 +137,7 @@ namespace xhtml
         FixedPoint width = 0;
         for(auto& child : getChildren()) {
 			if(!child->isFloat()) {
-				child_height += child->getHeight() + child->getTop() + child->getMBPBottom();
+				child_height += child->getMBPHeight() + child->getHeight();
 				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
 			}
 		}
