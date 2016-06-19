@@ -123,6 +123,8 @@ namespace xhtml
 			//line->setContentWidth(line->line_.width_);
 			//line->setContentHeight(line_height);
 		}
+
+		eng.setCursor(cursor);
 		
 		return lines;
 	}
