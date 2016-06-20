@@ -108,6 +108,7 @@ namespace xhtml
 				lines.back()->line_.height_ = line_height;
 				//auto font_xheight = static_cast<FixedPoint>(lines.back()->getStyleNode()->getFont()->getFontXHeight() * LayoutEngine::getFixedPointScaleFloat());
 				lines.back()->line_.offset_.y = cursor.y;// - LayoutEngine::getFixedPointScale();
+				lines.back()->line_.offset_.x = cursor.x;
 				cursor.x += lines.back()->line_.width_;
 
 				if(line->is_end_line) {
@@ -115,6 +116,8 @@ namespace xhtml
 					cursor.y += line_height;
 					y1 = cursor.y + parent->getOffset().y;
 					cursor.x = eng.getXAtPosition(y1, y1 + line_height);
+
+					width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) - cursor.x + eng.getXAtPosition(y1, y1 + line_height);
 				}
 			}					
 		}
@@ -258,12 +261,13 @@ namespace xhtml
 
 	void TextBox::handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const
 	{
-		Dimensions dims = getDimensions();
-		dims.content_.width = line_.width_;
-		dims.content_.height = line_.height_;
-		point offs = line_.offset_;
-		offs.y -= line_.height_;
-		getBackgroundInfo().render(scene_tree, dims, offs);
+		//Dimensions dims = getDimensions();
+		//dims.content_.width = line_.width_;
+		//dims.content_.height = line_.height_;
+		//point offs = line_.offset_;
+		//offs.y -= line_.height_;
+		//getBackgroundInfo().render(scene_tree, dims, offs);
+		getBackgroundInfo().render(scene_tree, getDimensions(), offset - point{ 0, getParent()->getLineHeight()});
 	}
 
 	void TextBox::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const

@@ -229,7 +229,6 @@ namespace KRE
 			glm::mat4 m = glm::scale(model_matrix_, scale_);
 			m = glm::toMat4(rotation_) * m;
 			cached_model_matrix_ = glm::translate(m, position_);
-			std::cout << "Position: " << position_.x << "," << position_.y << "\n";
 		}
 
 		{
