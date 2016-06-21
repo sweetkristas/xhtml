@@ -230,6 +230,8 @@ namespace xhtml
 		//if(ovf == Overflow::SCROLL || ovf == Overflow::AUTO) {
 		//	scrollbar_ = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int x){}, rect(0, 0, 20, 20));
 		//}
+
+		eng.closeLineBox();
 	}
 
 	void Box::calculateVertMPB(FixedPoint containing_height)

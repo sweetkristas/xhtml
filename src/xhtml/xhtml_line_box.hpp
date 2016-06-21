@@ -28,19 +28,12 @@
 
 namespace xhtml
 {
-	struct LineBoxParseInfo
+	struct TextHolder 
 	{
-		explicit LineBoxParseInfo(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root, const TextPtr& txt) 
-			: parent_(parent), 
-			  node_(node), 
-			  root_(root),
-			  txt_(txt)
-		{
-		}
-		const BoxPtr& parent_;
-		const StyleNodePtr& node_;
-		const RootBoxPtr& root_;
-		const TextPtr& txt_;
+		TextHolder() : txt(nullptr), styles(nullptr) {}
+		explicit TextHolder(const TextPtr& t, const StyleNodePtr& s) : txt(t), styles(s) {}
+		TextPtr txt;
+		StyleNodePtr styles;
 	};
 
 	// This class acts as a container for LineBox's and TextBox's so that we can generate them during layout, but
@@ -50,6 +43,7 @@ namespace xhtml
 	public:
 		LineBoxContainer(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root);
 		std::string toString() const override;
+		void transform(TextPtr txt, StyleNodePtr styles);
 	private:
 		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
@@ -58,15 +52,15 @@ namespace xhtml
 		void handleRenderBackground(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
 		void handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;
 		
-		TextPtr txt_;
+		std::vector<TextHolder> text_data_;
 	};
 
 	class LineBox : public Box
 	{
 	public:
 		LineBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root);
-		std::string toString() const override;
-		static std::vector<LineBoxPtr> reflowText(LineBoxParseInfo* pi, LayoutEngine& eng, const Dimensions& containing);
+		std::string toString() const override;		
+		static std::vector<LineBoxPtr> reflowText(const BoxPtr& parent, const RootBoxPtr& root, const std::vector<TextHolder>& tex_data, LayoutEngine& eng, const Dimensions& containing);
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void postParentLayout(LayoutEngine& eng, const Dimensions& containing) override;

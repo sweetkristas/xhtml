@@ -28,7 +28,7 @@
 
 namespace xhtml
 {
-	struct LineBoxParseInfo;
+	struct TextHolder;
 
 	struct LineInfo 
 	{
@@ -47,7 +47,7 @@ namespace xhtml
 		TextBox(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root);
 		std::string toString() const override;
 		const LineInfo& getLine() const { return line_; }
-		static std::vector<TextBoxPtr> reflowText(LineBoxParseInfo* pi, LayoutEngine& eng, const LineBoxPtr& parent, const Dimensions& containing);
+		static std::vector<TextBoxPtr> reflowText(const TextHolder& th, const LineBoxPtr& parent, const RootBoxPtr& root, LayoutEngine& eng, const Dimensions& containing);
 	private:
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void postParentLayout(LayoutEngine& eng, const Dimensions& containing) override;

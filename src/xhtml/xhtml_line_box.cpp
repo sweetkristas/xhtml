@@ -71,29 +71,18 @@ namespace xhtml
 	{
 	}
 
-	std::vector<LineBoxPtr> LineBox::reflowText(LineBoxParseInfo* pi, LayoutEngine& eng, const Dimensions& containing)
+	std::vector<LineBoxPtr> LineBox::reflowText(const BoxPtr& parent, const RootBoxPtr& root, const std::vector<TextHolder>& text_data, LayoutEngine& eng, const Dimensions& containing)
 	{
-		// TextBox's have no children to deal with, by definition.	
-		// XXX fix the point() to be the actual last point, say from LayoutEngine
-		//point cursor = TextBox::reflowText(eng, containing, eng.getCursor());
-		//eng.setCursor(cursor);
-
 		std::vector<LineBoxPtr> line_boxes;
 
-		//bool done = false;
-		//while(!done) {
-			auto line_box = std::make_shared<LineBox>(pi->parent_, pi->node_, pi->root_);
-			auto tboxes = TextBox::reflowText(pi, eng, line_box, containing);
+		for(auto& td : text_data) {
+			auto line_box = std::make_shared<LineBox>(parent, td.styles, root);
+			auto tboxes = TextBox::reflowText(td, line_box, root, eng, containing);
 			for(auto& tbox : tboxes) {
 				line_box->addChild(tbox);
 			}
-
-			//if(tboxes.empty()) {
-			//	done = true;
-			//}
-
 			line_boxes.emplace_back(line_box);
-		//}
+		}
 		return line_boxes;
 	}
 
@@ -101,9 +90,15 @@ namespace xhtml
 
 	LineBoxContainer::LineBoxContainer(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root)
 		: Box(BoxId::LINE_CONTAINER, parent, node, root),
-		  txt_(std::dynamic_pointer_cast<Text>(node->getNode()))
+		  text_data_()
 	{
-		txt_->transformText(node, true);
+	}
+
+	void LineBoxContainer::transform(TextPtr txt, StyleNodePtr styles)
+	{
+		text_data_.emplace_back(txt, styles);
+		ASSERT_LOG(txt != nullptr, "TextPtr was null.");
+		txt->transformText(styles, true);
 	}
 
 	std::string LineBoxContainer::toString() const
@@ -115,13 +110,13 @@ namespace xhtml
 
 	void LineBoxContainer::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
 	{
-		LineBoxParseInfo pi(getParent(), getStyleNode(), getRoot(), txt_);
-		std::vector<LineBoxPtr> line_boxes = LineBox::reflowText(&pi, eng, containing);
+		ASSERT_LOG(!text_data_.empty(), "Text array was null.");
+
+		std::vector<LineBoxPtr> line_boxes = LineBox::reflowText(getParent(), getRoot(), text_data_, eng, containing);
 
 		for(const auto& line_box : line_boxes) {
 			addChild(line_box);
 		}
-
 		FixedPoint left = getMBPLeft();
 		FixedPoint top = getMBPTop() + containing.content_.height;
 		setContentX(left);
@@ -137,7 +132,7 @@ namespace xhtml
         FixedPoint width = 0;
         for(auto& child : getChildren()) {
 			if(!child->isFloat()) {
-				child_height += child->getMBPHeight() + child->getHeight();
+				child_height = std::max(child_height, child->getTop() + child->getMBPBottom() + child->getHeight());
 				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
 			}
 		}
