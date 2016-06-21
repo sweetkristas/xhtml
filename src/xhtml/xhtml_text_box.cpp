@@ -69,60 +69,66 @@ namespace xhtml
 		return ss.str();
 	}
 
-	std::vector<TextBoxPtr> TextBox::reflowText(const TextHolder& th, const LineBoxPtr& parent, const RootBoxPtr& root, LayoutEngine& eng, const Dimensions& containing)
+	std::vector<LineBoxPtr> TextBox::reflowText(const std::vector<TextHolder>& th, const BoxPtr& parent, const RootBoxPtr& root, LayoutEngine& eng, const Dimensions& containing)
 	{
-		std::vector<TextBoxPtr> lines;
+		std::vector<LineBoxPtr> lines;
+		LineBoxPtr open_line(nullptr);
 
 		point cursor = eng.getCursor();
 
 		FixedPoint y1 = cursor.y + parent->getOffset().y;
 
-		const FixedPoint line_height = parent->getLineHeight();
+		FixedPoint line_height = parent->getLineHeight();
 
 		// XXX if padding left/border left applies should reduce width and move cursor position if isFirstInlineChild() is set.
 		// Simlarly the last line width should be reduced by padding right/border right.
 		FixedPoint width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) - cursor.x + eng.getXAtPosition(y1, y1 + line_height);
 
-		Text::iterator last_it = th.txt->begin();
-		Text::iterator it = last_it;
 
-		bool done = false;
-		while(it != th.txt->end()) {
-			LinePtr line = th.txt->reflowText(it, width, th.styles);
-			if(line != nullptr && !line->line.empty()) {
-				// is the line larger than available space and are there floats present?
-				FixedPoint last_x = line->line.back().advance.back().x;
-				if(last_x > width && eng.hasFloatsAtPosition(y1, y1 + line_height)) {
-					cursor.y += line_height;
-					y1 = cursor.y + parent->getOffset().y;
-					cursor.x = eng.getXAtPosition(y1, y1 + line_height);
-					it = last_it;
-					width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width);
-					continue;
-				}
+		for(auto& text_data : th) {
+			Text::iterator last_it = text_data.txt->begin();
+			Text::iterator it = last_it;
 
-				lines.emplace_back(std::make_shared<TextBox>(parent, th.styles, root));
-				lines.back()->line_.line_ = line;
-				lines.back()->line_.width_ = lines.back()->calculateWidth(lines.back()->line_);
-				lines.back()->line_.height_ = line_height;
-				lines.back()->line_.offset_.y = cursor.y;
-				lines.back()->line_.offset_.x = cursor.x;
-				cursor.x += lines.back()->line_.width_;
+			while(it != text_data.txt->end()) {
+				LinePtr line = text_data.txt->reflowText(it, width, text_data.styles);
+				if(line != nullptr && !line->line.empty()) {
+					// is the line larger than available space and are there floats present?
+					FixedPoint last_x = line->line.back().advance.back().x;
+					if(last_x > width && eng.hasFloatsAtPosition(y1, y1 + line_height)) {
+						cursor.y += line_height;
+						y1 = cursor.y + parent->getOffset().y;
+						cursor.x = eng.getXAtPosition(y1, y1 + line_height);
+						it = last_it;
+						width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width);
+						continue;
+					}
 
-				if(line->is_end_line) {
-					// update the cursor for the next line
-					cursor.y += line_height;
-					y1 = cursor.y + parent->getOffset().y;
-					cursor.x = eng.getXAtPosition(y1, y1 + line_height);
+					if(open_line == nullptr) {
+						open_line = std::make_shared<LineBox>(parent, text_data.styles, root);
+						lines.emplace_back(open_line);
+					}
+					TextBoxPtr text_box = std::make_shared<TextBox>(open_line, text_data.styles, root);
+					text_box->line_.line_ = line;
+					text_box->line_.width_ = text_box->calculateWidth(text_box->line_);
+					line_height = text_box->getLineHeight();
+					text_box->line_.height_ = line_height;
+					text_box->line_.offset_.y = cursor.y;
+					text_box->line_.offset_.x = cursor.x;
+					cursor.x += text_box->line_.width_;
+					open_line->addChild(text_box);
 
-					width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) - cursor.x + eng.getXAtPosition(y1, y1 + line_height);
-				}
-			}					
-		}
+					if(line->is_end_line) {
+						// update the cursor for the next line
+						cursor.y += line_height;
+						y1 = cursor.y + parent->getOffset().y;
+						cursor.x = eng.getXAtPosition(y1, y1 + line_height);
 
-		for(auto& line : lines) {
-			//line->setContentWidth(line->line_.width_);
-			//line->setContentHeight(line_height);
+						width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) - cursor.x + eng.getXAtPosition(y1, y1 + line_height);
+
+						open_line.reset();
+					}
+				}					
+			}
 		}
 
 		eng.setCursor(cursor);

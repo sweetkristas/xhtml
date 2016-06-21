@@ -47,7 +47,8 @@ namespace xhtml
         FixedPoint width = 0;
         for(auto& child : getChildren()) {
 			if(!child->isFloat()) {
-				child_height += child->getMBPHeight() + child->getHeight();
+				//child_height += child->getMBPHeight() + child->getHeight();
+				child_height = std::max(child_height, child->getTop() + child->getMBPBottom() + child->getHeight());
 				width = std::max(width, child->getLeft() + child->getWidth() + child->getMBPWidth());
 			}
 		}
@@ -73,19 +74,8 @@ namespace xhtml
 
 	std::vector<LineBoxPtr> LineBox::reflowText(const BoxPtr& parent, const RootBoxPtr& root, const std::vector<TextHolder>& text_data, LayoutEngine& eng, const Dimensions& containing)
 	{
-		std::vector<LineBoxPtr> line_boxes;
-
-		for(auto& td : text_data) {
-			auto line_box = std::make_shared<LineBox>(parent, td.styles, root);
-			auto tboxes = TextBox::reflowText(td, line_box, root, eng, containing);
-			for(auto& tbox : tboxes) {
-				line_box->addChild(tbox);
-			}
-			line_boxes.emplace_back(line_box);
-		}
-		return line_boxes;
+		return TextBox::reflowText(text_data, parent, root, eng, containing);
 	}
-
 
 
 	LineBoxContainer::LineBoxContainer(const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root)
