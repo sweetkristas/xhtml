@@ -199,6 +199,7 @@ namespace xhtml
 		virtual FixedPoint getBottomOffset() const { return dimensions_.content_.height; }
 
 		FixedPoint getLineHeight() const { return line_height_; }
+		void setLineHeight(FixedPoint lh) { line_height_ = lh; }
 
 		bool isReplaceable() const { return is_replaceable_; }
 

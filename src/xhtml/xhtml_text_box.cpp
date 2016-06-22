@@ -82,7 +82,7 @@ namespace xhtml
 
 		// XXX if padding left/border left applies should reduce width and move cursor position if isFirstInlineChild() is set.
 		// Simlarly the last line width should be reduced by padding right/border right.
-		FixedPoint width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) - cursor.x + eng.getXAtPosition(y1, y1 + line_height);
+		FixedPoint width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width)/* - cursor.x*/ + eng.getXAtPosition(y1, y1 + line_height);
 
 
 		for(auto& text_data : th) {
@@ -90,8 +90,21 @@ namespace xhtml
 			Text::iterator it = last_it;
 
 			while(it != text_data.txt->end()) {
-				LinePtr line = text_data.txt->reflowText(it, width, text_data.styles);
-				if(line != nullptr && !line->line.empty()) {
+				LinePtr line = text_data.txt->reflowText(it, width - cursor.x, text_data.styles);
+				if(line != nullptr) {
+					if(line->line.empty()) {
+						if(line->is_end_line) {
+							// update the cursor for the next line
+							cursor.y += line_height;
+							y1 = cursor.y + parent->getOffset().y;
+							cursor.x = eng.getXAtPosition(y1, y1 + line_height);
+
+							width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) /*- cursor.x*/ + eng.getXAtPosition(y1, y1 + line_height);
+
+							open_line.reset();
+						}
+						continue;
+					}
 					// is the line larger than available space and are there floats present?
 					FixedPoint last_x = line->line.back().advance.back().x;
 					if(last_x > width && eng.hasFloatsAtPosition(y1, y1 + line_height)) {
@@ -99,7 +112,7 @@ namespace xhtml
 						y1 = cursor.y + parent->getOffset().y;
 						cursor.x = eng.getXAtPosition(y1, y1 + line_height);
 						it = last_it;
-						width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width);
+						width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) + eng.getXAtPosition(y1, y1 + line_height);
 						continue;
 					}
 
@@ -111,6 +124,9 @@ namespace xhtml
 					text_box->line_.line_ = line;
 					text_box->line_.width_ = text_box->calculateWidth(text_box->line_);
 					line_height = text_box->getLineHeight();
+					if(open_line->getLineHeight() < line_height) {
+						open_line->setLineHeight(line_height);
+					}
 					text_box->line_.height_ = line_height;
 					text_box->line_.offset_.y = cursor.y;
 					text_box->line_.offset_.x = cursor.x;
@@ -123,7 +139,7 @@ namespace xhtml
 						y1 = cursor.y + parent->getOffset().y;
 						cursor.x = eng.getXAtPosition(y1, y1 + line_height);
 
-						width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) - cursor.x + eng.getXAtPosition(y1, y1 + line_height);
+						width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) /*- cursor.x*/ + eng.getXAtPosition(y1, y1 + line_height);
 
 						open_line.reset();
 					}
