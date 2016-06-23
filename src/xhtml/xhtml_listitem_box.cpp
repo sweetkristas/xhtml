@@ -150,7 +150,7 @@ namespace xhtml
 			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 			bool placed = false;
 			while(!placed) {
-				if(w >= box_w) {
+				if((w - box_w) >= LayoutEngine::getFixedPointScale()) {
 					left = left - (getStyleNode()->getFloat() == Float::LEFT ? x : box_w);
 					top = y;
 					placed = true;
