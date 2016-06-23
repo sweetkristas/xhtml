@@ -92,46 +92,35 @@ namespace xhtml
 			while(it != text_data.txt->end()) {
 				LinePtr line = text_data.txt->reflowText(it, width - cursor.x, text_data.styles);
 				if(line != nullptr) {
-					if(line->line.empty()) {
-						if(line->is_end_line) {
-							// update the cursor for the next line
+					if(!line->line.empty()) {
+						// is the line larger than available space and are there floats present?
+						FixedPoint last_x = line->line.back().advance.back().x;
+						if(last_x > width && eng.hasFloatsAtPosition(y1, y1 + line_height)) {
 							cursor.y += line_height;
 							y1 = cursor.y + parent->getOffset().y;
 							cursor.x = eng.getXAtPosition(y1, y1 + line_height);
-
-							width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) /*- cursor.x*/ + eng.getXAtPosition(y1, y1 + line_height);
-
-							open_line.reset();
+							it = last_it;
+							width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) + eng.getXAtPosition(y1, y1 + line_height);
+							continue;
 						}
-						continue;
-					}
-					// is the line larger than available space and are there floats present?
-					FixedPoint last_x = line->line.back().advance.back().x;
-					if(last_x > width && eng.hasFloatsAtPosition(y1, y1 + line_height)) {
-						cursor.y += line_height;
-						y1 = cursor.y + parent->getOffset().y;
-						cursor.x = eng.getXAtPosition(y1, y1 + line_height);
-						it = last_it;
-						width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width) + eng.getXAtPosition(y1, y1 + line_height);
-						continue;
-					}
 
-					if(open_line == nullptr) {
-						open_line = std::make_shared<LineBox>(parent, text_data.styles, root);
-						lines.emplace_back(open_line);
+						if(open_line == nullptr) {
+							open_line = std::make_shared<LineBox>(parent, text_data.styles, root);
+							lines.emplace_back(open_line);
+						}
+						TextBoxPtr text_box = std::make_shared<TextBox>(open_line, text_data.styles, root);
+						text_box->line_.line_ = line;
+						text_box->line_.width_ = text_box->calculateWidth(text_box->line_);
+						line_height = text_box->getLineHeight();
+						if(open_line->getLineHeight() < line_height) {
+							open_line->setLineHeight(line_height);
+						}
+						text_box->line_.height_ = line_height;
+						text_box->line_.offset_.y = cursor.y;
+						text_box->line_.offset_.x = cursor.x;
+						cursor.x += text_box->line_.width_;
+						open_line->addChild(text_box);
 					}
-					TextBoxPtr text_box = std::make_shared<TextBox>(open_line, text_data.styles, root);
-					text_box->line_.line_ = line;
-					text_box->line_.width_ = text_box->calculateWidth(text_box->line_);
-					line_height = text_box->getLineHeight();
-					if(open_line->getLineHeight() < line_height) {
-						open_line->setLineHeight(line_height);
-					}
-					text_box->line_.height_ = line_height;
-					text_box->line_.offset_.y = cursor.y;
-					text_box->line_.offset_.x = cursor.x;
-					cursor.x += text_box->line_.width_;
-					open_line->addChild(text_box);
 
 					if(line->is_end_line) {
 						// update the cursor for the next line
