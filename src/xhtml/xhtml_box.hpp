@@ -220,6 +220,7 @@ namespace xhtml
 		const BackgroundInfo& getBackgroundInfo() const { return background_info_; }
 	private:
 		virtual void handleLayout(LayoutEngine& eng, const Dimensions& containing) = 0;
+		virtual void handlePreChildLayout3(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePreChildLayout2(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handlePostChildLayout(LayoutEngine& eng, BoxPtr child) {}

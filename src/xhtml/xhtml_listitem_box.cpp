@@ -150,7 +150,7 @@ namespace xhtml
 			FixedPoint w = eng.getWidthAtPosition(y1, y1 + lh, containing.content_.width);
 			bool placed = false;
 			while(!placed) {
-				if((w - box_w) >= LayoutEngine::getFixedPointScale()) {
+				if((w - box_w) >= 0) {//LayoutEngine::getFixedPointScale()) {
 					left = left - (getStyleNode()->getFloat() == Float::LEFT ? x : box_w);
 					top = y;
 					placed = true;
@@ -199,6 +199,11 @@ namespace xhtml
 	void ListItemBox::handlePostChildLayout(LayoutEngine& eng, BoxPtr child) 
 	{
 		setContentHeight(getHeight() + child->getHeight() + child->getMBPBottom());
+	}
+
+	void ListItemBox::handlePreChildLayout3(LayoutEngine& eng, const Dimensions& containing)
+	{
+		eng.setCursor(point());
 	}
 
 	void ListItemBox::handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const 

@@ -65,6 +65,9 @@ namespace xhtml
 		for(auto& word : line_.line_->line) {
 			ss << " " << word.word;
 		}
+		if(line_.line_->is_end_line) {
+			ss << " : EOL";
+		}
 		ss << "\n";
 		return ss.str();
 	}
@@ -83,6 +86,7 @@ namespace xhtml
 		// XXX if padding left/border left applies should reduce width and move cursor position if isFirstInlineChild() is set.
 		// Simlarly the last line width should be reduced by padding right/border right.
 		FixedPoint width = eng.getWidthAtPosition(y1, y1 + line_height, containing.content_.width)/* - cursor.x*/ + eng.getXAtPosition(y1, y1 + line_height);
+		LOG_INFO("width: " << width << "; cursor: " << cursor.x << "," << cursor.y << "; y1: " << y1);
 
 
 		for(auto& text_data : th) {
@@ -96,6 +100,7 @@ namespace xhtml
 						// is the line larger than available space and are there floats present?
 						FixedPoint last_x = line->line.back().advance.back().x;
 						if(last_x > width && eng.hasFloatsAtPosition(y1, y1 + line_height)) {
+							std::cerr << "XXXX\n";
 							cursor.y += line_height;
 							y1 = cursor.y + parent->getOffset().y;
 							cursor.x = eng.getXAtPosition(y1, y1 + line_height);

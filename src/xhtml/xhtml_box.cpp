@@ -186,6 +186,7 @@ namespace xhtml
 
 		for(auto& child : boxes_) {
 			if(child->isFloat()) {
+				handlePreChildLayout3(eng, containing);
 				child->layout(eng, dimensions_);
 				eng.addFloat(child);
 			}
@@ -202,6 +203,7 @@ namespace xhtml
 
 		for(auto& child : boxes_) {
 			if(!child->isFloat()) {
+				handlePreChildLayout3(eng, containing);
 				child->layout(eng, dimensions_);
 				handlePostChildLayout(eng, child);
 			}
