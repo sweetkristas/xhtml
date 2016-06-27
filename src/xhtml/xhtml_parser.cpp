@@ -93,8 +93,10 @@ namespace xhtml
 			for(auto& a : attributes_) {
 				node->addAttribute(a.second->createAttribute());
 			}
-			for(auto& c : children_) {
-				node->addChild(c->createNode(owner_doc));
+			if(name_ != "script") {
+				for(auto& c : children_) {
+					node->addChild(c->createNode(owner_doc));
+				}
 			}
 			node->init();
 			return node;
