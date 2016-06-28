@@ -78,6 +78,8 @@ namespace xhtml
 					for(auto& attr : element.second) {
 						attributes_[attr.first] = std::make_shared<ParserAttribute>(attr.first, attr.second.data());
 					}
+				} else if(name_ == "script") {
+					children_.emplace_back(std::make_shared<ParserNode>(XmlText, element.second));
 				} else {
 					children_.emplace_back(std::make_shared<ParserNode>(element.first, element.second));
 				}
@@ -93,10 +95,8 @@ namespace xhtml
 			for(auto& a : attributes_) {
 				node->addAttribute(a.second->createAttribute());
 			}
-			if(name_ != "script") {
-				for(auto& c : children_) {
-					node->addChild(c->createNode(owner_doc));
-				}
+			for(auto& c : children_) {
+				node->addChild(c->createNode(owner_doc));
 			}
 			node->init();
 			return node;
