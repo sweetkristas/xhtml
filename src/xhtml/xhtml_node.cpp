@@ -641,7 +641,7 @@ namespace xhtml
 		bool changed = false;
 
 		if(needsRebuild()) {
-			LOG_DEBUG("Rebuild layout!");
+			LOG_INFO("Rebuild layout!");
 			style_tree.reset();
 			trigger_rebuild_ = false;
 			triggerLayout();
@@ -677,6 +677,7 @@ namespace xhtml
 
 		if(needsRender() && layout != nullptr) {
 			profile::manager pman_render("render");
+			style_tree->getSceneTree()->clear();
 			layout->render(point());
 			trigger_render_ = false;
 			changed = true;
