@@ -169,6 +169,10 @@ namespace xhtml
 					lines.emplace_back(open_line);
 				}
 				open_line->addChild(box);
+				if(open_line->getLineHeight() < box->getHeight() + box->getMBPHeight()) {
+					open_line->setLineHeight(box->getHeight() + box->getMBPHeight());
+					line_height = box->getHeight() + box->getMBPHeight();
+				}
 			}
 		}
 
