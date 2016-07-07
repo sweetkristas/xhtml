@@ -37,11 +37,13 @@ using std::round;
 
 namespace KRE
 {
-	namespace {
+	namespace 
+	{
 		std::set<Texture*> g_all_textures;
 	}
 
-	const std::set<Texture*>& Texture::getAllTextures() {
+	const std::set<Texture*>& Texture::getAllTextures() 
+	{
 		return g_all_textures;
 	}
 
