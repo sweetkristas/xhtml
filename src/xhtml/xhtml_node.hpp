@@ -138,7 +138,9 @@ namespace xhtml
 		bool hasPsuedoClassActive(css::PseudoClass pclass) { return (active_pclass_ & pclass) != css::PseudoClass::NONE; }
 		css::PseudoClass getPseudoClass() const { return pclass_; }
 		// This sets the rectangle that should be active for mouse presses.
-		void setActiveRect(const rect& r) { active_rect_ = r; }
+		void setActiveRect(const rect& r) { 
+			active_rect_ = r; 
+		}
 		const rect& getActiveRect() const { return active_rect_; }
 		void setModelMatrix(const glm::mat4& model) { model_matrix_ = model; }
 		const glm::mat4& getModelMatrix() const { return model_matrix_; }

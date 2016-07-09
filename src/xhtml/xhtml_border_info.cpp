@@ -304,7 +304,7 @@ namespace xhtml
 	bool BorderInfo::isValid(css::Side side) const 
 	{ 
 		return (styles_ != nullptr && styles_->getBorderStyle()[static_cast<int>(side)] != css::BorderStyle::HIDDEN 
-			&& styles_->getBorderStyle()[static_cast<int>(side)] != css::BorderStyle::NONE) || (styles_->getBorderImage() != nullptr); 
+			&& styles_->getBorderStyle()[static_cast<int>(side)] != css::BorderStyle::NONE) || (styles_ != nullptr && styles_->getBorderImage() != nullptr); 
 	}
 
 	void BorderInfo::init(const Dimensions& dims)

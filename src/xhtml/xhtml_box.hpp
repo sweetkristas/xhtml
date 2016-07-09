@@ -233,6 +233,7 @@ namespace xhtml
 		virtual void postParentLayout(LayoutEngine& eng, const Dimensions& containing) {}
 		virtual void handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const = 0;
 		virtual void handleEndRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const {}
+		virtual void handleCreateSceneTree(KRE::SceneTreePtr scene_parent) {}
 
 		void init();
 

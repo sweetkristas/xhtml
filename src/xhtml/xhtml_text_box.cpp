@@ -39,7 +39,7 @@ namespace xhtml
 		  line_(),
 		  shadows_()
 	{
-		auto shadows = parent->getStyleNode()->getTextShadow();
+		auto shadows = getStyleNode()->getTextShadow();
 		if(shadows) {
 			// Process shadows in reverse order.
 			for(auto it = shadows->getShadows().crbegin(); it != shadows->getShadows().crend(); ++it) {
@@ -108,7 +108,7 @@ namespace xhtml
 							}
 
 							if(open_line == nullptr) {
-								open_line = std::make_shared<LineBox>(parent, text_data.styles, root);
+								open_line = std::make_shared<LineBox>(parent, nullptr, root);
 								open_line->setContentY(cursor.y);
 								lines.emplace_back(open_line);
 							}
@@ -152,16 +152,17 @@ namespace xhtml
 						width_at_cursor = eng.getWidthAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight(), containing.content_.width);
 					} while(eng.hasFloatsAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight()) && box->getWidth() + box-> getMBPWidth() > width_at_cursor);
 
-					cursor.x = eng.getXAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight()) + box->getMBPLeft();
+					cursor.x = eng.getXAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight());
 					open_line.reset();
-				} else {
-					box->setContentX(cursor.x + box->getMBPLeft());
-					cursor.x += box->getWidth() + box->getMBPRight();
 				}
 
-				LOG_INFO("cursor: " << cursor << ", box: " << box->getLeft() << "," << box->getTop());
+				box->setContentX(cursor.x + box->getMBPLeft());
+				box->setContentY(box->getMBPTop());
+				cursor.x += box->getWidth() + box->getMBPWidth();
+
+				//LOG_INFO("cursor: " << (cursor.x/65536.f) << "," << (cursor.y/65536.f) << "; box: " << (box->getLeft()/65536.f) << "," << box->getTop());
 				if(open_line == nullptr) {
-					open_line = std::make_shared<LineBox>(parent, text_data.styles, root);
+					open_line = std::make_shared<LineBox>(parent, nullptr, root);
 					open_line->setContentY(cursor.y);
 					lines.emplace_back(open_line);
 				}
@@ -197,10 +198,9 @@ namespace xhtml
 		calculateVertMPB(containing.content_.height);
 
 		setContentX(line_.offset_.x);
-		setContentY(line_.offset_.y + getParent()->getLineHeight());
+		setContentY(0);
 		line_.offset_.x = 0;
 		line_.offset_.y = 0;
-		//line_.offset_.y = getParent()->getLineHeight();
 
 		setContentWidth(line_.width_);
 		setContentHeight(line_.height_);
@@ -248,7 +248,8 @@ namespace xhtml
 		auto& vertical_align = getStyleNode()->getVerticalAlign();
 		css::CssVerticalAlign va = vertical_align->getAlign();
 
-		FixedPoint baseline = getLineHeight();//static_cast<FixedPoint>((getStyleNode()->getFont()->getFontXHeight() + getStyleNode()->getFont()->getLineGap()) * LayoutEngine::getFixedPointScaleFloat()) - getStyleNode()->getFont()->getDescender();
+		auto& fnt = getStyleNode()->getFont();
+		FixedPoint baseline = getParent()->getLineHeight() + fnt->getDescender() *2;
 
 		FixedPoint child_y = line_.offset_.y;
 		// XXX we should implement this fully.
@@ -291,7 +292,7 @@ namespace xhtml
 		}
 
 		//@@ disabled for testing.
-		//line_.offset_.y = child_y;
+		line_.offset_.y = child_y;
 	}
 
 	void TextBox::setJustify(FixedPoint containing_width)
@@ -315,7 +316,7 @@ namespace xhtml
 		//point offs = line_.offset_;
 		//offs.y -= line_.height_;
 		//getBackgroundInfo().render(scene_tree, dims, offs);
-		getBackgroundInfo().render(scene_tree, getDimensions(), offset - point{ 0, getParent()->getLineHeight()});
+		getBackgroundInfo().render(scene_tree, getDimensions(), offset);
 	}
 
 	void TextBox::handleRenderBorder(const KRE::SceneTreePtr& scene_tree, const point& offset) const
@@ -336,7 +337,7 @@ namespace xhtml
 				dims.border_.left = dims.border_.right = 0;
 			}
 		}*/
-		getBorderInfo().render(scene_tree, dims, offset - point{ 0, getParent()->getLineHeight()});
+		getBorderInfo().render(scene_tree, dims, offset);
 	}
 
 	void TextBox::handleRenderShadow(const KRE::SceneTreePtr& scene_tree, KRE::FontRenderablePtr fontr, float w, float h) const
@@ -459,8 +460,8 @@ namespace xhtml
 		KRE::FontRenderablePtr fontr = nullptr;
 		std::vector<point> path;
 		std::string text;
-		int dim_x = offset.x + line_.offset_.x + getParent()->getLeft();
-		int dim_y = offset.y + getStyleNode()->getFont()->getDescender() + line_.offset_.y + getParent()->getTop();
+		int dim_x = line_.offset_.x;
+		int dim_y = line_.offset_.y;
 		for(auto& word : line_.line_->line) {
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);
