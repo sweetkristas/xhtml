@@ -34,8 +34,13 @@ namespace xhtml
 	std::string LineBox::toString() const 
 	{
 		std::ostringstream ss;
-		ss << "LineBox: " << getDimensions().content_;
+		auto xy = getSceneTree()->getPosition();
+		ss << "LineBox: " << getDimensions().content_ << ", " << xy.x << "," << xy.y;
 		return ss.str();
+	}
+
+	void LineBox::handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing)
+	{
 	}
 
 	void LineBox::handleLayout(LayoutEngine& eng, const Dimensions& containing)
@@ -107,10 +112,6 @@ namespace xhtml
 				addChild(line_box);
 			}
 		}
-		FixedPoint left = getMBPLeft();
-		FixedPoint top = getMBPTop() + containing.content_.height;
-		setContentX(left);
-		setContentY(top);
 	}
 
 	void LineBoxContainer::handleLayout(LayoutEngine& eng, const Dimensions& containing)
@@ -128,6 +129,9 @@ namespace xhtml
 		}
 		setContentHeight(child_height);
 		setContentWidth(width);
+
+		setContentX(0);
+		setContentY(0);
 	}
 
 	void LineBoxContainer::postParentLayout(LayoutEngine& eng, const Dimensions& containing)

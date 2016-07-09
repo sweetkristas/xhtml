@@ -106,7 +106,8 @@ namespace xhtml
 	std::string InlineElementBox::toString() const
 	{
 		std::ostringstream ss;
-		ss << "InlineElementBox: " << getDimensions().content_;
+		auto node = getNode();
+		ss << "InlineElementBox: " << getDimensions().content_ << "; " << node->getActiveRect();
 		return ss.str();
 	}
 

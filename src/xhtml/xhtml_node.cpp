@@ -677,7 +677,7 @@ namespace xhtml
 
 		if(needsRender() && layout != nullptr) {
 			profile::manager pman_render("render");
-			style_tree->getSceneTree()->clear();
+			layout->getSceneTree()->clear();
 			layout->render(point());
 			trigger_render_ = false;
 			changed = true;

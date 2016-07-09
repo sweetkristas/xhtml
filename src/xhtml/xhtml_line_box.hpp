@@ -65,6 +65,7 @@ namespace xhtml
 		std::string toString() const override;
 		static std::vector<LineBoxPtr> reflowText(const BoxPtr& parent, const RootBoxPtr& root, const std::vector<TextHolder>& tex_data, LayoutEngine& eng, const Dimensions& containing);
 	private:
+		void handlePreChildLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void postParentLayout(LayoutEngine& eng, const Dimensions& containing) override;
 		void handleRender(const KRE::SceneTreePtr& scene_tree, const point& offset) const override;

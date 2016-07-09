@@ -23,6 +23,7 @@
 
 #include "AttributeSet.hpp"
 #include "SceneObject.hpp"
+#include "SceneTree.hpp"
 #include "DisplayDevice.hpp"
 
 #include "solid_renderable.hpp"

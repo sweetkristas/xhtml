@@ -86,7 +86,6 @@ void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml:
 			profile::manager pman("create style tree");
 			if(style_tree == nullptr) {
 				style_tree = xhtml::StyleNode::createStyleTree(doc);
-				scene_tree = style_tree->getSceneTree();
 			} else {
 				style_tree->updateStyles();
 			}
@@ -96,12 +95,11 @@ void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml:
 		{
 		profile::manager pman("layout");
 		layout = xhtml::Box::createLayout(style_tree, width, height);
+		scene_tree = layout->getSceneTree();
 		}
 		{
 		profile::manager pman_render("render");
-		scene_tree->clear();
 		layout->render(point());
-		
 		}
 
 		if(display_tree_parse) {

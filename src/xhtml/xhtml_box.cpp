@@ -71,6 +71,7 @@ namespace xhtml
 		  is_replaceable_(false),
 		  is_first_inline_child_(false),
 		  is_last_inline_child_(false),
+		  scene_tree_(nullptr),
 		  scrollbar_(nullptr)
 	{
 		if(getNode() != nullptr && getNode()->id() == NodeId::ELEMENT) {
@@ -153,6 +154,19 @@ namespace xhtml
 		auto root = getRoot();
 		ASSERT_LOG(root != nullptr, "Couldn't lock root, was null.");
 		return root->getDimensions();
+	}
+
+	KRE::SceneTreePtr Box::createSceneTree(KRE::SceneTreePtr scene_parent)
+	{
+		if(scene_parent == nullptr) {
+			scene_tree_.reset();
+		}
+		scene_tree_ = KRE::SceneTree::create(scene_parent);
+		for(auto& child : getChildren()) {
+			KRE::SceneTreePtr ptr = child->createSceneTree(scene_tree_);
+			scene_tree_->addChild(ptr);
+		}
+		return scene_tree_;
 	}
 
 	void Box::layout(LayoutEngine& eng, const Dimensions& containing)
@@ -309,15 +323,10 @@ namespace xhtml
 			}
 		}
 
-		KRE::SceneTreePtr scene_tree = nullptr;
-		if(node_ != nullptr) {
-			scene_tree = node_->getSceneTree();
-			if(id_ != BoxId::TEXT) {
-				scene_tree->setPosition(offs.x / LayoutEngine::getFixedPointScaleFloat(), offs.y / LayoutEngine::getFixedPointScaleFloat());
-			}
-			//offs.x = 0;
-			//offs.y = 0;
+		KRE::SceneTreePtr scene_tree = getSceneTree();
+		scene_tree->setPosition(offs.x / LayoutEngine::getFixedPointScaleFloat(), offs.y / LayoutEngine::getFixedPointScaleFloat());
 
+		if(node_ != nullptr) {
 			// XXX needs a modifer for transform origin.
 			auto transform = node_->getTransform();
 			if(!transform->getTransforms().empty()) {
@@ -337,40 +346,40 @@ namespace xhtml
 			}
 		}
 
-		if(scene_tree != nullptr) {
-			handleRenderBackground(scene_tree, offs);
-			handleRenderBorder(scene_tree, offs);
-			handleRender(scene_tree, offs);
-			handleRenderFilters(scene_tree, offs);
-		}
+		handleRenderBackground(scene_tree, offs);
+		handleRenderBorder(scene_tree, offs);
+		handleRender(scene_tree, offs);
+		handleRenderFilters(scene_tree, offs);
+
 		for(auto& child : getChildren()) {
 			if(!child->isFloat()) {
-				child->render(offs);
+				child->render(offs + offset);
 			}
 		}
 		for(auto& child : getChildren()) {
 			if(child->isFloat()) {
-				child->render(offs);
+				child->render(offs + offset);
 			}
 		}
 		for(auto& ab : absolute_boxes_) {
 			ab->render(point(0, 0));
 		}
-		if(scene_tree != nullptr) {
-			handleEndRender(scene_tree, offs);
-		}
+
+		handleEndRender(scene_tree, offs);
 
 		// set the active rect on any parent node.
 		auto node = getNode();
 		if(node != nullptr) {
 			auto& dims = getDimensions();
 
+			//LOG_INFO("offs: " << (offs.x/65536.f) << "," << (offs.y/65536.f) << ", offset: " << (offset.x/65536.f) << "," << (offset.y/65536.f));
 			offs += offset;
 			const int x = (offs.x - dims.padding_.left - dims.border_.left) / LayoutEngine::getFixedPointScale();
 			const int y = (offs.y - dims.padding_.top - dims.border_.top) / LayoutEngine::getFixedPointScale();
 			const int w = (dims.content_.width + dims.padding_.left + dims.padding_.right + dims.border_.left + dims.border_.right) / LayoutEngine::getFixedPointScale();
 			const int h = (dims.content_.height + dims.padding_.top + dims.padding_.bottom + dims.border_.top + dims.border_.bottom) / LayoutEngine::getFixedPointScale();
 			node->setActiveRect(rect(x, y, w, h));
+			//LOG_INFO(toString() << ": active_rect: " << x << "," << y << "," << w << "," << h);
 
 			//scrollbar_->setLocation(x+w-20, y);
 			//scrollbar_->setDimensions(20, h);

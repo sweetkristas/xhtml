@@ -101,6 +101,8 @@ namespace xhtml
 
 			root_->layout(*this, root_dims);
 			root_->setContentHeight(container.y);
+
+			root_->createSceneTree(nullptr);
 			return;
 		}
 	}

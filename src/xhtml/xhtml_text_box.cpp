@@ -109,6 +109,7 @@ namespace xhtml
 
 							if(open_line == nullptr) {
 								open_line = std::make_shared<LineBox>(parent, text_data.styles, root);
+								open_line->setContentY(cursor.y);
 								lines.emplace_back(open_line);
 							}
 							TextBoxPtr text_box = std::make_shared<TextBox>(open_line, text_data.styles, root);
@@ -119,7 +120,7 @@ namespace xhtml
 								open_line->setLineHeight(line_height);
 							}
 							text_box->line_.height_ = line_height;
-							text_box->line_.offset_.y = cursor.y;
+							text_box->line_.offset_.y = 0; //cursor.y;
 							text_box->line_.offset_.x = cursor.x;
 							cursor.x += text_box->line_.width_;
 							open_line->addChild(text_box);
@@ -144,34 +145,31 @@ namespace xhtml
 
 				// try and fit the box at cursor, failing that we move the cursor and try again.
 				FixedPoint width_at_cursor = eng.getWidthAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight(), containing.content_.width)
-					- cursor.x + eng.getXAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight());
+					+ eng.getXAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight()) - cursor.x;
 				if(box->getWidth() + box->getMBPWidth() > width_at_cursor) {
-					cursor.y += std::max(line_height, box->getHeight() + box->getMBPHeight());
-					while(eng.hasFloatsAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight()) && box->getWidth() +box-> getMBPWidth() > width_at_cursor) {
+					do {
+						cursor.y += std::max(line_height, box->getHeight() + box->getMBPHeight());
 						width_at_cursor = eng.getWidthAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight(), containing.content_.width);
-					}
-					cursor.x = eng.getXAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight());
-					box->setContentX(cursor.x);
-					box->setContentY(cursor.y);
-					//cursor.y += box->getHeight() + box->getMBPHeight();
-					cursor.x = eng.getXAtPosition(cursor.y, cursor.y + line_height);
+					} while(eng.hasFloatsAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight()) && box->getWidth() + box-> getMBPWidth() > width_at_cursor);
 
+					cursor.x = eng.getXAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight());
 					open_line.reset();
 				} else {
-					box->setContentX(cursor.x);
-					// XXX if height is greater than other objects on line we need to increase lineheight.
-					box->setContentY(cursor.y);
-					cursor.x = box->getLeft() + box->getWidth() + box->getMBPRight();
+					box->setContentX(cursor.x + box->getMBPLeft());
+					cursor.x += box->getWidth() + box->getMBPRight();
 				}
 
 				if(open_line == nullptr) {
 					open_line = std::make_shared<LineBox>(parent, text_data.styles, root);
+					open_line->setContentY(cursor.y);
 					lines.emplace_back(open_line);
 				}
 				open_line->addChild(box);
-				if(open_line->getLineHeight() < box->getHeight() + box->getMBPHeight()) {
-					open_line->setLineHeight(box->getHeight() + box->getMBPHeight());
-					line_height = box->getHeight() + box->getMBPHeight();
+				box->setParent(open_line);
+				const auto h = box->getHeight() + box->getMBPHeight();
+				if(open_line->getLineHeight() < h) {
+					open_line->setLineHeight(h);
+					line_height = h;
 				}
 			}
 		}
@@ -460,8 +458,8 @@ namespace xhtml
 		KRE::FontRenderablePtr fontr = nullptr;
 		std::vector<point> path;
 		std::string text;
-		int dim_x = offset.x + line_.offset_.x;
-		int dim_y = offset.y + getStyleNode()->getFont()->getDescender() + line_.offset_.y;
+		int dim_x = offset.x + line_.offset_.x + getParent()->getLeft();
+		int dim_y = offset.y + getStyleNode()->getFont()->getDescender() + line_.offset_.y + getParent()->getTop();
 		for(auto& word : line_.line_->line) {
 			for(auto it = word.advance.begin(); it != word.advance.end()-1; ++it) {
 				path.emplace_back(it->x + dim_x, it->y + dim_y);
