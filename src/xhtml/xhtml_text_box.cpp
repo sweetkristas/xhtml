@@ -152,13 +152,14 @@ namespace xhtml
 						width_at_cursor = eng.getWidthAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight(), containing.content_.width);
 					} while(eng.hasFloatsAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight()) && box->getWidth() + box-> getMBPWidth() > width_at_cursor);
 
-					cursor.x = eng.getXAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight());
+					cursor.x = eng.getXAtPosition(cursor.y, cursor.y + box->getHeight() + box->getMBPHeight()) + box->getMBPLeft();
 					open_line.reset();
 				} else {
 					box->setContentX(cursor.x + box->getMBPLeft());
 					cursor.x += box->getWidth() + box->getMBPRight();
 				}
 
+				LOG_INFO("cursor: " << cursor << ", box: " << box->getLeft() << "," << box->getTop());
 				if(open_line == nullptr) {
 					open_line = std::make_shared<LineBox>(parent, text_data.styles, root);
 					open_line->setContentY(cursor.y);
