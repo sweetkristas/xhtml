@@ -60,6 +60,7 @@
      transform="translate(0,-540.3622)">
     <rect
        style="fill:#ffffff;fill-opacity:1;stroke-width:50;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
+	   fill="#fff"
        id="rect4134"
        width="512"
        height="512"

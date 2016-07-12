@@ -11,6 +11,6 @@
   </rdf:RDF>
  </metadata>
  <g id="layer1" transform="translate(0 -540.36)">
-  <path id="path4152" stroke-linejoin="round" d="m50 968.79 210-320 199.29 319.29" stroke="#000" stroke-linecap="round" stroke-width="50" fill="none"/>
+  <path id="path4152" stroke-linejoin="round" d="m50 968.79 210-320 199.29 319.29" stroke="none" stroke-linecap="round" stroke-width="50" fill="#fff"/>
  </g>
 </svg>

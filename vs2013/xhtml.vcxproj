@@ -102,6 +102,7 @@
     <ClCompile Include="..\src\xhtml\css_selector.cpp" />
     <ClCompile Include="..\src\xhtml\css_stylesheet.cpp" />
     <ClCompile Include="..\src\xhtml\css_transition.cpp" />
+    <ClCompile Include="..\src\xhtml\event_listener.cpp" />
     <ClCompile Include="..\src\xhtml\scrollable.cpp" />
     <ClCompile Include="..\src\xhtml\solid_renderable.cpp" />
     <ClCompile Include="..\src\xhtml\to_roman.cpp" />
@@ -215,6 +216,7 @@
     <ClInclude Include="..\src\kre\VGraphPatterns.hpp" />
     <ClInclude Include="..\src\kre\WindowManager.hpp" />
     <ClInclude Include="..\src\kre\WindowManagerFwd.hpp" />
+    <ClInclude Include="..\src\main.h" />
     <ClInclude Include="..\src\profile_timer.hpp" />
     <ClInclude Include="..\src\rect_renderable.hpp" />
     <ClInclude Include="..\src\svg\easy_svg.hpp" />
@@ -243,6 +245,7 @@
     <ClInclude Include="..\src\xhtml\css_selector.hpp" />
     <ClInclude Include="..\src\xhtml\css_stylesheet.hpp" />
     <ClInclude Include="..\src\xhtml\css_transition.hpp" />
+    <ClInclude Include="..\src\xhtml\event_listener.hpp" />
     <ClInclude Include="..\src\xhtml\scrollable.hpp" />
     <ClInclude Include="..\src\xhtml\solid_renderable.hpp" />
     <ClInclude Include="..\src\xhtml\to_roman.hpp" />
@@ -303,7 +306,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>

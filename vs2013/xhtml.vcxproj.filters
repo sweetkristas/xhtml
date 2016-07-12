@@ -378,6 +378,9 @@
     <ClCompile Include="..\src\rect_renderable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\xhtml\event_listener.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -804,6 +807,12 @@
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
     <ClInclude Include="..\src\rect_renderable.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\event_listener.hpp">
+      <Filter>Header Files\xhtml</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

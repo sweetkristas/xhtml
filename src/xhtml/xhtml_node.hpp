@@ -29,9 +29,11 @@
 
 #include "geometry.hpp"
 #include "SceneFwd.hpp"
+#include "SceneTree.hpp"
 
 #include "css_stylesheet.hpp"
 #include "css_transition.hpp"
+#include "event_listener.hpp"
 #include "xhtml.hpp"
 #include "xhtml_element_id.hpp"
 #include "xhtml_script_interface.hpp"
@@ -215,6 +217,7 @@ namespace xhtml
 		bool handleMouseMotion(bool claimed, int x, int y);
 		bool handleMouseButtonDown(bool claimed, int x, int y, unsigned button);
 		bool handleMouseButtonUp(bool claimed, int x, int y, unsigned button);
+		bool handleMouseWheel(bool claimed, int x, int y, int direction);
 
 		void rebuildTree() { trigger_rebuild_ = true; }
 		void triggerLayout() { trigger_layout_ = true; }
@@ -229,7 +232,11 @@ namespace xhtml
 		NodePtr getActiveElement() const { return active_element_.lock(); }
 		void setActiveElement(const NodePtr& el) { active_element_ = el; }
 
-		bool process(StyleNodePtr& style_tree, int w, int h);
+		void addEventListener(event_listener_ptr evt);
+		void removeEventListener(event_listener_ptr evt);
+		void clearEventListeners(void);
+
+		KRE::SceneTreePtr process(StyleNodePtr& style_tree, int w, int h);
 
 		// type is expected to be a content type i.e. "text/javascript"
 		static void registerScriptHandler(const std::string& type, std::function<ScriptPtr()> fn);
@@ -242,6 +249,7 @@ namespace xhtml
 		bool trigger_rebuild_;
 
 		WeakNodePtr active_element_;
+		std::set<event_listener_ptr> event_listeners_;
 	};
 
 	class DocumentFragment : public Node

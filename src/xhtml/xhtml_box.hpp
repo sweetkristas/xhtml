@@ -85,7 +85,7 @@ namespace xhtml
 	{
 	public:
 		Box(BoxId id, const BoxPtr& parent, const StyleNodePtr& node, const RootBoxPtr& root);
-		virtual ~Box() {}
+		virtual ~Box();
 		BoxId id() const { return id_; }
 		const Dimensions& getDimensions() const { return dimensions_; }
 		const std::vector<BoxPtr>& getChildren() const { return boxes_; }
@@ -250,6 +250,9 @@ namespace xhtml
 
 		point offset_;
 		FixedPoint line_height_;
+
+		// The height of the content before any adjustments from CSS.
+		FixedPoint precss_content_height_;
 
 		bool is_replaceable_;
 

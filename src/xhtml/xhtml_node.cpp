@@ -397,12 +397,14 @@ namespace xhtml
 			if((active_pclass_ & css::PseudoClass::FOCUS) != css::PseudoClass::FOCUS) {
 				active_pclass_ = active_pclass_ | css::PseudoClass::FOCUS;
 				getOwnerDoc()->setActiveElement(shared_from_this());
+				//LOG_INFO("1) trigger");
 				*trigger = true;
 			}
 			return true;
 		} else if((active_pclass_ & css::PseudoClass::FOCUS) == css::PseudoClass::FOCUS) {
 			active_pclass_ = active_pclass_ & ~css::PseudoClass::FOCUS;
 			getOwnerDoc()->setActiveElement(nullptr);
+			//LOG_INFO("2) trigger");
 			*trigger = true;
 		}
 
@@ -475,12 +477,12 @@ namespace xhtml
 		if(mouse_entered_) {
 			if((active_pclass_ & css::PseudoClass::HOVER) != css::PseudoClass::HOVER) {
 				active_pclass_ = active_pclass_ | css::PseudoClass::HOVER;
-				*trigger = true;
+				//*trigger = true;
 			}
 			return true;
 		} else if((active_pclass_ & css::PseudoClass::HOVER) == css::PseudoClass::HOVER) {
 			active_pclass_ = active_pclass_ & ~css::PseudoClass::HOVER;
-			*trigger = true;
+			//*trigger = true;
 		}
 		return true;
 	}
@@ -534,8 +536,16 @@ namespace xhtml
 
 	bool Document::handleMouseMotion(bool claimed, int x, int y)
 	{
-		bool trigger = false;		
 		point p(x, y);
+		for(auto& evt : event_listeners_) {
+			Uint32 buttons = SDL_GetMouseState(nullptr, nullptr);
+			claimed |= evt->mouse_motion(claimed, p, SDL_GetModState());
+		}
+		if(claimed) {
+			return claimed;
+		}
+
+		bool trigger = false;		
 		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
 			node->handleMouseMotion(&trigger, p);
 			return true;
@@ -546,8 +556,16 @@ namespace xhtml
 
 	bool Document::handleMouseButtonDown(bool claimed, int x, int y, unsigned button)
 	{
-		bool trigger = false;
 		point p(x, y);
+		for(auto& evt : event_listeners_) {
+			Uint32 buttons = SDL_GetMouseState(nullptr, nullptr);
+			claimed |= evt->mouse_button_down(claimed, p, buttons, SDL_GetModState());
+		}
+		if(claimed) {
+			return claimed;
+		}
+
+		bool trigger = false;
 		claimed = !preOrderTraversal([&trigger, &p, button](NodePtr node) {
 			node->handleMouseButtonDown(&trigger, p, button);
 			return true;
@@ -558,14 +576,48 @@ namespace xhtml
 
 	bool Document::handleMouseButtonUp(bool claimed, int x, int y, unsigned button)
 	{
-		bool trigger = false;
 		point p(x, y);
+		for(auto& evt : event_listeners_) {
+			Uint32 buttons = SDL_GetMouseState(nullptr, nullptr);
+			claimed |= evt->mouse_button_up(claimed, p, buttons, SDL_GetModState());
+		}
+		if(claimed) {
+			return claimed;
+		}
+
+		bool trigger = false;
 		claimed = !preOrderTraversal([&trigger, &p, button](NodePtr node) {
 			node->handleMouseButtonUp(&trigger, p, button);
 			return true;
-		});
+		});		
 		trigger_layout_ |= trigger;
 		return claimed;
+	}
+
+	bool Document::handleMouseWheel(bool claimed, int x, int y, int direction)
+	{
+		point delta(x, y);
+		for(auto& evt : event_listeners_) {
+			int mx, my;
+			Uint32 buttons = SDL_GetMouseState(&mx, &my);
+			claimed |= evt->mouse_wheel(claimed, point(mx, my), delta, direction);
+		}
+		return claimed;
+	}
+
+	void Document::addEventListener(event_listener_ptr evt)
+	{
+		event_listeners_.emplace(evt);
+	}
+
+	void Document::removeEventListener(event_listener_ptr evt)
+	{
+		event_listeners_.erase(evt);
+	}
+
+	void Document::clearEventListeners(void)
+	{
+		event_listeners_.clear();
 	}
 
 	// Documents do not have an owner document.
@@ -574,7 +626,9 @@ namespace xhtml
 		  style_sheet_(ss == nullptr ? std::make_shared<css::StyleSheet>() : ss),
 		  trigger_layout_(true),
 		  trigger_render_(false),
-		  trigger_rebuild_(false)
+		  trigger_rebuild_(false),
+		  active_element_(),
+		  event_listeners_()
 	{
 	}
 
@@ -635,7 +689,7 @@ namespace xhtml
 		});
 	}
 
-	bool Document::process(StyleNodePtr& style_tree, int w, int h)
+	KRE::SceneTreePtr Document::process(StyleNodePtr& style_tree, int w, int h)
 	{
 		RootBoxPtr layout = nullptr;
 		bool changed = false;
@@ -648,7 +702,8 @@ namespace xhtml
 		}
 
 		if(needsLayout()) {
-			LOG_DEBUG("Triggered layout!");
+			LOG_INFO("Triggered layout!");
+			clearEventListeners();
 
 			// XXX should we should have a re-process styles flag here.
 			{
@@ -683,7 +738,7 @@ namespace xhtml
 			changed = true;
 		}
 
-		return changed;
+		return layout != nullptr ? layout->getSceneTree() : nullptr;
 	}
 
 	void Node::mergeProperties(const css::Specificity& specificity, const css::PropertyList& plist)

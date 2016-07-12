@@ -58,6 +58,7 @@
 #if defined(_MSC_VER)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include "main.h"
 #endif
 
 namespace
@@ -66,8 +67,9 @@ namespace
 	static int layout_cycle_test = false;
 }
 
-void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml::DocumentPtr doc, KRE::SceneTreePtr& scene_tree, KRE::SceneGraphPtr graph)
+int check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml::DocumentPtr doc, KRE::SceneTreePtr& scene_tree, KRE::SceneGraphPtr graph)
 {
+	int ret = -1;
 	xhtml::RenderContextManager rcm;
 	// layout has to happen after initialisation of graphics
 	if(doc->needsLayout()) {
@@ -100,6 +102,7 @@ void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml:
 		{
 		profile::manager pman_render("render");
 		layout->render(point());
+		ret = (layout->getHeight() + layout->getMBPHeight()) / 65536;
 		}
 
 		if(display_tree_parse) {
@@ -110,6 +113,7 @@ void check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml:
 			}, 0);
 		}
 	}
+	return ret;
 }
 
 xhtml::DocumentPtr load_xhtml(const std::string& ua_ss, const std::string& test_doc)
@@ -375,10 +379,11 @@ int main(int argc, char* argv[])
 	xhtml::DocumentPtr doc = load_xhtml(ua_ss, test_doc);
 	xhtml::StyleNodePtr style_tree = nullptr;
 	KRE::SceneTreePtr scene_tree = nullptr;
-	check_layout(width, height, style_tree, doc, scene_tree, scene);
+	xhtml::RenderContextManager rcm;
+	//int cheight = check_layout(width, height, style_tree, doc, scene_tree, scene);
 
-	while(layout_cycle_test) {
-		doc->triggerLayout();
+	//while(layout_cycle_test) {
+	//	doc->triggerLayout();
 		/* For cycle testing of ui_test2.xhtml
 		if(layout_cycle_test) {
 			bool toggle = false;
@@ -391,8 +396,11 @@ int main(int argc, char* argv[])
 				}
 			}
 		}*/
-		check_layout(width, height, style_tree, doc, scene_tree, scene);
-	}
+		//int ch = check_layout(width, height, style_tree, doc, scene_tree, scene);
+		//if(ch != -1) {
+		//	cheight = ch;
+		//}
+	//}
 
 	auto canvas = Canvas::getInstance();
 
@@ -420,9 +428,16 @@ int main(int argc, char* argv[])
 
 	SceneObjectPtr bt = nullptr;
 
-	auto scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int y_offs){
-		std::cerr << "scrollbar change to: " << y_offs << "\n";
-	}, rect(width-10, 0, 10, height));
+	//int scrollbar_offset = 0;
+	//scrollable::ScrollbarPtr scrollbar = nullptr;
+	/*if(cheight > height) {
+		scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [&scrollbar_offset](int y_offs){
+			scrollbar_offset = y_offs;
+		}, rect(width-15, 0, 15, height));
+		scrollbar->setRange(0, cheight - height);
+		scrollbar->setLineSize(20);
+		scrollbar->setPageSize(static_cast<int>(static_cast<float>(cheight)/height*height));
+	}*/
 
 	SDL_Event e;
 	bool done = false;
@@ -437,11 +452,22 @@ int main(int argc, char* argv[])
 			} else if(e.type == SDL_QUIT) {
 				done = true;
 			} else if(e.type == SDL_MOUSEMOTION) {
-				doc->handleMouseMotion(false, e.motion.x, e.motion.y);
+				bool claimed = false;
+				//bool claimed = scrollbar != nullptr ? scrollbar->handleMouseMotion(false, e.motion.x, e.motion.y) : false;
+				doc->handleMouseMotion(claimed, e.motion.x, e.motion.y);
 			} else if(e.type == SDL_MOUSEBUTTONDOWN) {
-				doc->handleMouseButtonDown(false, e.button.x, e.button.y, e.button.button);
+				bool claimed = false;
+				//bool claimed = scrollbar != nullptr ? scrollbar->handleMouseButtonDown(false, e.button.x, e.button.y, e.button.button) : false;
+				doc->handleMouseButtonDown(claimed, e.button.x, e.button.y, e.button.button);
 			} else if(e.type == SDL_MOUSEBUTTONUP) {
-				doc->handleMouseButtonUp(false, e.button.x, e.button.y, e.button.button);
+				bool claimed = false;
+				//bool claimed = scrollbar != nullptr ? scrollbar->handleMouseButtonUp(false, e.motion.x, e.motion.y, e.button.button) : false;
+				doc->handleMouseButtonUp(claimed, e.button.x, e.button.y, e.button.button);
+			} else if(e.type == SDL_MOUSEWHEEL) {
+				if(e.wheel.which != SDL_TOUCH_MOUSEID) {
+					bool claimed = false;
+					doc->handleMouseWheel(claimed, e.wheel.x, e.wheel.y, 0);//e.wheel.direction);
+				}
 			} else if(e.type == SDL_WINDOWEVENT) {
 				const SDL_WindowEvent& wnd = e.window;
 				if(wnd.event == SDL_WINDOWEVENT_RESIZED) {
@@ -457,7 +483,27 @@ int main(int argc, char* argv[])
 		//main_wnd->setClearColor(KRE::Color::colorWhite());
 		main_wnd->clear(ClearFlags::ALL);
 
-		check_layout(width, height, style_tree, doc, scene_tree, scene);
+		auto st = doc->process(style_tree, width, height);
+		if(st != nullptr) {
+			scene_tree = st;
+		}
+
+		//int ch = check_layout(width, height, style_tree, doc, scene_tree, scene);
+		/*if(ch != -1) {
+			cheight = ch;
+			if(cheight > height) {
+				if(scrollbar == nullptr) {
+					scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [&scrollbar_offset](int y_offs){
+						scrollbar_offset = y_offs;
+					}, rect(width-15, 0, 15, height));
+				}
+				scrollbar->setRange(0, cheight - height);
+				scrollbar->setLineSize(20);
+				scrollbar->setPageSize(static_cast<int>(static_cast<float>(cheight)/height*height));
+			} else {
+				scrollbar.reset();
+			}
+		}*/
 
 		// Called once a cycle before rendering.
 		Uint32 current_tick_time = SDL_GetTicks();
@@ -481,11 +527,6 @@ int main(int argc, char* argv[])
 		if(bt) {
 			bt->preRender(main_wnd);
 			main_wnd->render(bt.get());
-		}
-
-		if(scrollbar) {
-			scrollbar->preRender(main_wnd);
-			main_wnd->render(scrollbar.get());
 		}
 
 		main_wnd->swap();
