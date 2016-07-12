@@ -90,7 +90,7 @@ namespace KRE
 		void clear();
 
 		void setClipRect(const rect& r) { clip_rect_.reset(new rect(r)); }
-		const rect& getClipRect() const { clip_rect_ ? *clip_rect_ : rect(); }
+		const rect& getClipRect() const { static rect empty_rect; return clip_rect_ ? *clip_rect_ : empty_rect; }
 		void clearClipRect() { clip_rect_.reset(); }
 
 		void setClipShape(const RenderablePtr& r) { clip_shape_ = r; }
