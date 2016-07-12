@@ -117,6 +117,14 @@ namespace scrollable
 		}
 	}
 
+	void Scrollbar::setOnChange(change_handler onchange) 
+	{ 
+		on_change_ = onchange;
+		if(on_change_) {
+			on_change_(scroll_pos_);
+		}
+	}
+
 	void Scrollbar::init()
 	{
 		// number of different positions that we can scroll to.
@@ -175,6 +183,12 @@ namespace scrollable
 	void Scrollbar::setDimensions(int w, int h)
 	{
 		loc_.set_wh(w, h);
+		init();
+	}
+
+	void Scrollbar::setRect(const rect& r)
+	{
+		loc_ = r;
 		init();
 	}
 

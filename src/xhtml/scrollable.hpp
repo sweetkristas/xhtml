@@ -47,11 +47,15 @@ namespace scrollable
 		int getMax() const { return max_range_; }
 		// N.B. using this function doesn't trigger a change notification.
 		void setScrollPosition(int pos);
+		const Direction& getDirection() const { return dir_; }
 
 		void setLocation(int x, int y);
 		void setDimensions(int w, int h);
+		void setRect(const rect& r);
 		const point& getLocation() const { return loc_.top_left(); }
 		const point& getDimensions() const { static point p; p = point(loc_.w(), loc_.h()); return p; }
+
+		void setOnChange(change_handler onchange);
 
 		void setPageSize(int ps) { page_size_.reset(new int(ps)); }
 		void setLineSize(int ls) { line_size_.reset(new int(ls)); }

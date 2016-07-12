@@ -74,8 +74,7 @@ namespace xhtml
 		  is_replaceable_(false),
 		  is_first_inline_child_(false),
 		  is_last_inline_child_(false),
-		  scene_tree_(nullptr),
-		  scrollbar_(nullptr)
+		  scene_tree_(nullptr)
 	{
 		if(getNode() != nullptr && getNode()->id() == NodeId::ELEMENT) {
 			is_replaceable_ = getNode()->isReplaced();
@@ -432,26 +431,38 @@ namespace xhtml
 					rh = getRoot()->getLayoutDimensions();
 				}
 				
+				scrollable::ScrollbarPtr scrollbar = node->getScrollbar(scrollable::Scrollbar::Direction::VERTICAL);
 				if(ovf == Overflow::SCROLL || ovf == Overflow::AUTO && (precss_content_height_ > box_height || y + h > rh.y)) {
 					const auto scale = LayoutEngine::getFixedPointScaleFloat();
 					if(precss_content_height_ > box_height) {
-						scrollbar_ = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [scene_tree](int offs){
-							scene_tree->offsetPosition(0, -offs);
-						}, rect((offs.x + dims.content_.width) / LayoutEngine::getFixedPointScale() - scrollbar_default_width, offs.y / LayoutEngine::getFixedPointScale(), scrollbar_default_width, box_height / LayoutEngine::getFixedPointScale()));
-						scrollbar_->setRange(0, 1 + (precss_content_height_ - box_height) / LayoutEngine::getFixedPointScale());
+						rect r((offs.x + dims.content_.width) / LayoutEngine::getFixedPointScale() - scrollbar_default_width, offs.y / LayoutEngine::getFixedPointScale(), scrollbar_default_width, box_height / LayoutEngine::getFixedPointScale());
+						if(scrollbar == nullptr) {
+							scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [scene_tree](int offs) {
+								scene_tree->offsetPosition(0, -offs);
+							}, r);
+							node->setScrollbar(scrollbar);
+						} else {
+							scrollbar->setRect(r);
+							scrollbar->setOnChange([scene_tree](int offs) {
+								scene_tree->offsetPosition(0, -offs);
+							});
+						}
+						scrollbar->setRange(0, 1 + (precss_content_height_ - box_height) / LayoutEngine::getFixedPointScale());
 						auto tmp = static_cast<int>((precss_content_height_ / scale) * (box_height / scale));
-						scrollbar_->setPageSize(static_cast<int>(tmp / (precss_content_height_/LayoutEngine::getFixedPointScale())));
+						scrollbar->setPageSize(static_cast<int>(tmp / (precss_content_height_/LayoutEngine::getFixedPointScale())));
 					} else {
-						/*scrollbar_ = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int x){}, 
+						/*scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int x){}, 
 							rect((offs.x + dims.content_.width) / LayoutEngine::getFixedPointScale() - scrollbar_default_width, offs.y / LayoutEngine::getFixedPointScale(), scrollbar_default_width, rh.y - offs.y / LayoutEngine::getFixedPointScale()));*/
 					}
-					scrollbar_->setLineSize(getLineHeight() / LayoutEngine::getFixedPointScale());
-					node->getOwnerDoc()->addEventListener(scrollbar_);
+					scrollbar->setLineSize(getLineHeight() / LayoutEngine::getFixedPointScale());
+					node->getOwnerDoc()->addEventListener(scrollbar);
 					scene_tree->setClipRect(rect(x - offset.x/LayoutEngine::getFixedPointScale(), y - offset.y/LayoutEngine::getFixedPointScale(), w, h));
 
 					auto scene_tree_root = scene_tree->getRoot();
 					ASSERT_LOG(scene_tree_root != nullptr, "SceneTree root was null.");
-					scene_tree_root->addEndObject(scrollbar_);
+					scene_tree_root->addEndObject(scrollbar);
+				} else {
+					node->removeScrollbar(scrollable::Scrollbar::Direction::VERTICAL);
 				}
 			}
 		}

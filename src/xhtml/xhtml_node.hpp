@@ -34,6 +34,7 @@
 #include "css_stylesheet.hpp"
 #include "css_transition.hpp"
 #include "event_listener.hpp"
+#include "scrollable.hpp"
 #include "xhtml.hpp"
 #include "xhtml_element_id.hpp"
 #include "xhtml_script_interface.hpp"
@@ -154,6 +155,7 @@ namespace xhtml
 		bool handleMouseMotion(bool* trigger, const point& p);
 		bool handleMouseButtonUp(bool* trigger, const point& p, unsigned button);
 		bool handleMouseButtonDown(bool* trigger, const point& p, unsigned button);
+		bool handleMouseWheel(bool* trigger, const point& p, const point& delta, int direction);
 
 		void clearProperties() { properties_.clear(); }
 		void inheritProperties();
@@ -171,6 +173,13 @@ namespace xhtml
 		ScriptPtr getScriptHandler() const { return script_handler_; }
 		void setActiveHandler(EventHandlerId id, bool active=true);
 		bool hasActiveHandler(EventHandlerId id);
+
+		
+		void setScrollbar(const scrollable::ScrollbarPtr& scrollbar);
+		void removeScrollbar(scrollable::Scrollbar::Direction d);
+		const scrollable::ScrollbarPtr& getScrollbar(scrollable::Scrollbar::Direction d) const {
+			return d == scrollable::Scrollbar::Direction::VERTICAL ? scrollbar_vert_ : scrollbar_horz_;
+		}
 	protected:
 		std::string nodeToString() const;
 	private:
@@ -178,6 +187,7 @@ namespace xhtml
 		virtual bool handleMouseMotionInt(bool* trigger, const point& p) { return true; }
 		virtual bool handleMouseButtonUpInt(bool* trigger, const point& p) { return true; }
 		virtual bool handleMouseButtonDownInt(bool* trigger, const point& p) { return true; }
+		virtual bool handleMouseWheelInt(bool* trigger, const point& p, const point& delta, int direction) { return true; }
 		virtual void handleSetDimensions(const rect& r) {}
 
 		NodeId id_;
@@ -201,6 +211,9 @@ namespace xhtml
 		std::vector<bool> active_handlers_;
 
 		bool mouse_entered_;
+
+		scrollable::ScrollbarPtr scrollbar_vert_;
+		scrollable::ScrollbarPtr scrollbar_horz_;
 
 		// back reference to the tree node holding computer values for us.
 		WeakStyleNodePtr style_node_;

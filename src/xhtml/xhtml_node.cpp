@@ -369,6 +369,31 @@ namespace xhtml
 		}
 	}
 
+	void Node::setScrollbar(const scrollable::ScrollbarPtr& scrollbar)
+	{
+		ASSERT_LOG(scrollbar != nullptr, "setting a null scrollbar isn't allowed. Use removeScrollbar() instead.");	
+		if(scrollbar->getDirection() == scrollable::Scrollbar::Direction::VERTICAL) {
+			scrollbar_vert_ = scrollbar;
+		} else {
+			scrollbar_horz_ = scrollbar;
+		}
+	}
+
+	void Node::removeScrollbar(scrollable::Scrollbar::Direction d)
+	{
+		if(d == scrollable::Scrollbar::Direction::VERTICAL) {
+			scrollbar_vert_.reset();
+		} else {
+			scrollbar_horz_.reset();
+		}
+	}
+
+	bool Node::handleMouseWheel(bool* trigger, const point& p, const point& delta, int direction)
+	{
+		// XXX to finish.
+		return false;
+	}
+
 	bool Node::handleMouseButtonUp(bool* trigger, const point& mp, unsigned button)
 	{
 		auto pos = model_matrix_ * glm::vec4(static_cast<float>(mp.x), static_cast<float>(mp.y), 0.0f, 1.0f);
