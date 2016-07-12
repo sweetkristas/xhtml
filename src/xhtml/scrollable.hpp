@@ -63,6 +63,8 @@ namespace scrollable
 		bool isVisible() const { return visible_; }
 		void setVisible(bool v = true) { visible_ = v; }
 
+		void scrollLines(int lines);
+
 		void preRender(const KRE::WindowPtr& wm) override;
 
 		void triggerFadeIn();

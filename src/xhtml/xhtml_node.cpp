@@ -390,7 +390,13 @@ namespace xhtml
 
 	bool Node::handleMouseWheel(bool* trigger, const point& p, const point& delta, int direction)
 	{
-		// XXX to finish.
+		if(!active_rect_.empty() && geometry::pointInRect(p, active_rect_)) {
+			if(scrollbar_vert_ && delta.y != 0) {
+				scrollbar_vert_->scrollLines((direction ? -1 : 1) * delta.y);
+			} else if(scrollbar_horz_ && delta.x != 0) {
+				scrollbar_horz_->scrollLines((direction ? -1 : 1) * delta.x);
+			}
+		}
 		return false;
 	}
 
@@ -632,11 +638,22 @@ namespace xhtml
 	bool Document::handleMouseWheel(bool claimed, int x, int y, int direction)
 	{
 		point delta(x, y);
+		int mx, my;
+		Uint32 buttons = SDL_GetMouseState(&mx, &my);
+		point p(mx, my);
 		for(auto& evt : event_listeners_) {
-			int mx, my;
-			Uint32 buttons = SDL_GetMouseState(&mx, &my);
-			claimed |= evt->mouse_wheel(claimed, point(mx, my), delta, direction);
+			claimed |= evt->mouse_wheel(claimed, p, delta, direction);
 		}
+		if(claimed) {
+			return claimed;
+		}
+		
+		bool trigger = false;
+		claimed = !preOrderTraversal([&trigger, &p, &delta, direction](NodePtr node) {
+			node->handleMouseWheel(&trigger, p, delta, direction);
+			return true;
+		});		
+		trigger_layout_ |= trigger;
 		return claimed;
 	}
 

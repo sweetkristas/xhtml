@@ -469,6 +469,15 @@ namespace scrollable
 		return claimed;
 	}
 
+	void Scrollbar::scrollLines(int lines)
+	{
+		if(dir_ == Direction::VERTICAL) {
+			setScrollPosition(scroll_pos_ - lines * getLineSize());
+		} else {
+			setScrollPosition(scroll_pos_ - lines * getLineSize());
+		}
+	}
+
 	void Scrollbar::setRange(int minr, int maxr) 
 	{ 
 		min_range_ = minr; 
