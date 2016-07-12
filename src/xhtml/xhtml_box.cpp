@@ -451,8 +451,23 @@ namespace xhtml
 						auto tmp = static_cast<int>((precss_content_height_ / scale) * (box_height / scale));
 						scrollbar->setPageSize(static_cast<int>(tmp / (precss_content_height_/LayoutEngine::getFixedPointScale())));
 					} else {
-						/*scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [](int x){}, 
-							rect((offs.x + dims.content_.width) / LayoutEngine::getFixedPointScale() - scrollbar_default_width, offs.y / LayoutEngine::getFixedPointScale(), scrollbar_default_width, rh.y - offs.y / LayoutEngine::getFixedPointScale()));*/
+						rect r((offs.x + dims.content_.width) / LayoutEngine::getFixedPointScale() - scrollbar_default_width, offs.y / LayoutEngine::getFixedPointScale(), scrollbar_default_width, rh.y-y);
+						if(scrollbar == nullptr) {
+							scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [scene_tree](int offs) {
+								scene_tree->offsetPosition(0, -offs);
+							}, r);
+							node->setScrollbar(scrollbar);
+						} else {
+							scrollbar->setRect(r);
+							scrollbar->setOnChange([scene_tree](int offs) {
+								scene_tree->offsetPosition(0, -offs);
+							});
+						}
+						scrollbar->setRange(0, 1 + y + h - rh.y);
+						auto tmp = static_cast<int>((y+h) * rh.y);
+						scrollbar->setPageSize(static_cast<int>(tmp / (y+h)));
+
+						//LOG_INFO("r=" << r << "; range=" << scrollbar->getMin() << "," << scrollbar->getMax() << "; page size=" << (tmp/(y+h)));
 					}
 					scrollbar->setLineSize(getLineHeight() / LayoutEngine::getFixedPointScale());
 					node->getOwnerDoc()->addEventListener(scrollbar);
