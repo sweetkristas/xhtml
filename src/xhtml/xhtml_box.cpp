@@ -458,6 +458,11 @@ namespace xhtml
 					node->getOwnerDoc()->addEventListener(scrollbar);
 					scene_tree->setClipRect(rect(x - offset.x/LayoutEngine::getFixedPointScale(), y - offset.y/LayoutEngine::getFixedPointScale(), w, h));
 
+					if(ovf == Overflow::AUTO) {
+						scrollbar->enableFade(0.2f, 0.75f, true, false);
+						scrollbar->triggerFadeOut();
+					}
+
 					auto scene_tree_root = scene_tree->getRoot();
 					ASSERT_LOG(scene_tree_root != nullptr, "SceneTree root was null.");
 					scene_tree_root->addEndObject(scrollbar);

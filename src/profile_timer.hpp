@@ -58,4 +58,9 @@ namespace profile
 		void start()	{ t1 = SDL_GetPerformanceCounter(); }
 		double check()	{ t2 = SDL_GetPerformanceCounter(); return (t2 - t1) / double(frequency); }
 	};
+
+    inline int get_tick_time()
+    {
+        return static_cast<int>(SDL_GetTicks());
+    }
 }

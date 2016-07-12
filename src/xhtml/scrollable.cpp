@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include "asserts.hpp"
+#include "profile_timer.hpp"
 #include "scrollable.hpp"
 
 #include "easy_svg.hpp"
@@ -54,6 +55,25 @@ namespace scrollable
 			}
 			return tex;
 		}
+
+		template<typename D=float>
+		inline D ease_in(D t, D p1, D p2, D d) 
+		{
+			D c = p2 - p1;
+			t /= d;
+			t *= t;
+			return t * c + p1;
+		}
+
+		template<typename D=float>
+		inline D ease_out(D t, D p1, D p2, D d) 
+		{
+			D c = p2 - p1;
+			t /= d;
+			t *= (t - D(2));
+			return -t * c + p1;
+		}
+
 	}
 
 	Scrollbar::Scrollbar(Direction d, change_handler onchange, const rect& loc, const point& offset)
@@ -87,8 +107,21 @@ namespace scrollable
 		  thumb_dragging_(false),
 		  thumb_mouseover_(false),
 		  thumb_update_(false),
+		  mouse_in_scrollbar_(false),
 		  drag_start_position_(),
-		  offset_(offset)
+		  offset_(offset),
+		  fade_enabled_(false),
+		  fade_triggered_(false),
+		  fade_in_time_(0.5),
+		  fade_out_time_(0.5),
+		  transition_(0),
+		  start_time_(0),
+		  fade_out_start_(0),
+		  fade_in_on_mouseenter_(false),
+		  fade_out_on_mouseleave_(false),
+		  fading_in_(true),
+		  start_alpha_(255),
+		  alpha_(255)
 	{
 		setTexture(get_scrollbar_texture(nullptr));
 
@@ -139,7 +172,7 @@ namespace scrollable
 			left_arrow_area_ = rect(loc_.x(), loc_.y(), loc_.h(), loc_.h());
 			right_arrow_area_ = rect(loc_.x2() - loc_.h(), loc_.y(), loc_.h(), loc_.h());
 
-			background_loc_ = rect(loc_.x() + left_arrow_area_.w(), loc_.y(), loc_.w() - right_arrow_area_.w(), loc_.h());
+			background_loc_ = rect(loc_.x() + left_arrow_area_.w(), loc_.y(), loc_.w() - right_arrow_area_.w() - left_arrow_area_.w(), loc_.h());
 		}
 		computeThumbPosition();
 
@@ -155,21 +188,85 @@ namespace scrollable
 				background_loc_.y2() - min_length);
 			thumb_area_ = rect(loc_.x(), y_loc, loc_.w(), min_length);
 		} else {
-			// XXX
+			const int min_length = std::max(loc_.h(), (loc_.w() - up_arrow_area_.w() - down_arrow_area_.w()) / range);
+			const int x_loc = std::min(std::max(static_cast<int>(static_cast<float>(scroll_pos_) / range * background_loc_.w()) + background_loc_.x1() - min_length/2, background_loc_.x1()),
+				background_loc_.x2() - min_length);
+			thumb_area_ = rect(x_loc, loc_.y(), min_length, loc_.h());
 		}
 		thumb_update_ = true;
 	}
 
 	void Scrollbar::updateColors()
 	{
+		transition_ = profile::get_tick_time();
+		if(fade_enabled_ && fade_triggered_) {
+			float delta = static_cast<float>(transition_ - start_time_)/1000.0f;
+			if(fading_in_) {
+				// p1 should be current alpha value
+				alpha_ = static_cast<int>(255.f * ease_in(delta, start_alpha_/255.f, 1.0f, fade_in_time_));
+				if(delta >= fade_in_time_) {
+					fade_triggered_ = false;
+				}
+			} else {
+				if(fade_out_start_ == 0 ||  transition_ > fade_out_start_) {
+					fade_out_start_ = 0;
+					// p1 should be current alpha value
+					alpha_ = static_cast<int>(255.f * ease_out(delta, start_alpha_ / 255.f, 0.0f, fade_out_time_));
+					if(delta >= fade_out_time_) {
+						fade_triggered_ = false;
+					}
+				}
+			}
+			alpha_ = std::max(0, std::min(255, alpha_));
+		}
+		if(thumb_dragging_ || mouse_in_scrollbar_) {
+			alpha_ = 255;
+		}
+		
 		if(attr_background_) {
-			attr_background_->setColor(background_color_);
+			Color c = background_color_;
+			if(fade_enabled_) {
+				c.setAlpha(alpha_);
+			}
+			attr_background_->setColor(c);
 		}
 		if(attr_arrows_) {
-			attr_arrows_->setColor(Color::colorWhite());
+			Color c(Color::colorWhite());
+			if(fade_enabled_) {
+				c.setAlpha(alpha_);
+			}
+			attr_arrows_->setColor(c);
 		}
 		if(attr_thumb_) {
-			attr_thumb_->setColor(thumb_dragging_ ? thumb_selected_color_ : thumb_mouseover_ ? thumb_mouseover_color_  : thumb_color_);
+			Color c = thumb_dragging_ ? thumb_selected_color_ : thumb_mouseover_ ? thumb_mouseover_color_  : thumb_color_;
+			if(fade_enabled_) {
+				c.setAlpha(alpha_);
+			}
+			attr_thumb_->setColor(c);
+		}
+	}
+
+	void Scrollbar::triggerFadeIn()
+	{
+		if(!fade_triggered_ && !fading_in_) {
+			fade_triggered_ = true;
+			fading_in_ = true;
+			start_alpha_ = alpha_;
+			transition_ = 0;
+			start_time_ = profile::get_tick_time();
+			fade_out_start_ = 0;
+		}
+	}
+
+    void Scrollbar::triggerFadeOut()
+	{
+		if(!fade_triggered_ && fading_in_) {
+			fade_triggered_ = true;
+			fading_in_ = false;
+			start_alpha_ = alpha_;
+			transition_ = 0;
+			fade_out_start_ = profile::get_tick_time() + 750;
+			start_time_ = fade_out_start_;
 		}
 	}
 
@@ -190,6 +287,16 @@ namespace scrollable
 	{
 		loc_ = r;
 		init();
+	}
+
+	void Scrollbar::enableFade(float in_time, float out_time, bool in_on_mouseenter, bool out_on_mouseleave)
+	{
+		fade_enabled_ = true;
+		transition_ = 0.0;
+		fade_in_time_ = in_time;
+		fade_out_time_ = out_time;
+		fade_in_on_mouseenter_ = in_on_mouseenter;
+		fade_out_on_mouseleave_ = out_on_mouseleave;
 	}
 
 	void Scrollbar::preRender(const WindowPtr& wm)
@@ -261,6 +368,11 @@ namespace scrollable
 		if(!claimed && geometry::pointInRect(p, loc_)) {
 			claimed = true;
 
+			mouse_in_scrollbar_ = true;
+			if(fade_enabled_ && fade_in_on_mouseenter_ && fade_triggered_ == false) {
+				triggerFadeIn();
+			}
+
 			// test in the arrow regions and the thumb region.
 			if(geometry::pointInRect(p, dir_ == Direction::VERTICAL ? up_arrow_area_ : left_arrow_area_)) {
 				// XXX
@@ -274,7 +386,12 @@ namespace scrollable
 				thumb_mouseover_ = false;
 			}
 		} else {
+			mouse_in_scrollbar_ = false;
 			thumb_mouseover_ = false;
+	
+			if(fade_enabled_ && fade_out_on_mouseleave_ && fade_triggered_ == false) {
+				triggerFadeOut();
+			}
 		}
 
 		if(thumb_dragging_) {

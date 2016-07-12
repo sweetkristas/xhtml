@@ -64,6 +64,12 @@ namespace scrollable
 		void setVisible(bool v = true) { visible_ = v; }
 
 		void preRender(const KRE::WindowPtr& wm) override;
+
+		void triggerFadeIn();
+		void triggerFadeOut();
+
+		void enableFade(float in_time=0.5, float out_time=0.5, bool in_on_mouseenter=true, bool out_on_mouseleave=false);
+		void disableFade() { fade_enabled_ = false; transition_ = 0.0; }
 	private:
 		bool handle_mouse_motion(bool claimed, const point& p, unsigned keymod) override;
 		bool handle_mouse_button_up(bool claimed, const point& p, unsigned buttons, unsigned keymod) override;
@@ -105,9 +111,22 @@ namespace scrollable
 		bool thumb_dragging_;
 		bool thumb_mouseover_;
 		bool thumb_update_;
+		bool mouse_in_scrollbar_;
 		point drag_start_position_;
 		// Offset to compensate for mouse position being different from draw location.
 		point offset_;
+		bool fade_enabled_;
+		bool fade_triggered_;
+		float fade_in_time_;
+		float fade_out_time_;
+		int transition_;
+		int start_time_;
+		int fade_out_start_;
+		bool fade_in_on_mouseenter_;
+		bool fade_out_on_mouseleave_;
+		bool fading_in_;
+		int start_alpha_;
+		int alpha_;
 		Scrollbar() = delete;
 	};
 

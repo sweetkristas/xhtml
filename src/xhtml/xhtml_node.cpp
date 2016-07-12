@@ -422,14 +422,12 @@ namespace xhtml
 			if((active_pclass_ & css::PseudoClass::FOCUS) != css::PseudoClass::FOCUS) {
 				active_pclass_ = active_pclass_ | css::PseudoClass::FOCUS;
 				getOwnerDoc()->setActiveElement(shared_from_this());
-				//LOG_INFO("1) trigger");
 				*trigger = true;
 			}
 			return true;
 		} else if((active_pclass_ & css::PseudoClass::FOCUS) == css::PseudoClass::FOCUS) {
 			active_pclass_ = active_pclass_ & ~css::PseudoClass::FOCUS;
 			getOwnerDoc()->setActiveElement(nullptr);
-			//LOG_INFO("2) trigger");
 			*trigger = true;
 		}
 
@@ -474,6 +472,12 @@ namespace xhtml
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_ENTER, variant(&m));
 				}
 				mouse_entered_ = true;
+				if(scrollbar_vert_ != nullptr) {
+					scrollbar_vert_->triggerFadeIn();
+				}
+				if(scrollbar_horz_ != nullptr) {
+					scrollbar_horz_->triggerFadeIn();
+				}
 			} else {
 				if(mouse_entered_ == true && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_LEAVE)) {
 					std::map<variant, variant> m;
@@ -482,6 +486,12 @@ namespace xhtml
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_LEAVE, variant(&m));
 				}
 				mouse_entered_ = false;
+				if(scrollbar_vert_ != nullptr) {
+					scrollbar_vert_->triggerFadeOut();
+				}
+				if(scrollbar_horz_ != nullptr) {
+					scrollbar_horz_->triggerFadeOut();
+				}
 			}
 
 			if(getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_MOVE)) {
@@ -502,12 +512,12 @@ namespace xhtml
 		if(mouse_entered_) {
 			if((active_pclass_ & css::PseudoClass::HOVER) != css::PseudoClass::HOVER) {
 				active_pclass_ = active_pclass_ | css::PseudoClass::HOVER;
-				//*trigger = true;
+				*trigger = true;
 			}
 			return true;
 		} else if((active_pclass_ & css::PseudoClass::HOVER) == css::PseudoClass::HOVER) {
 			active_pclass_ = active_pclass_ & ~css::PseudoClass::HOVER;
-			//*trigger = true;
+			*trigger = true;
 		}
 		return true;
 	}
