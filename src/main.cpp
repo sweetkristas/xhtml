@@ -58,63 +58,13 @@
 #if defined(_MSC_VER)
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#include "main.h"
 #endif
 
 namespace
 {
 	static int display_tree_parse = false;
-	static int layout_cycle_test = false;
 }
 
-int check_layout(int width, int height, xhtml::StyleNodePtr& style_tree, xhtml::DocumentPtr doc, KRE::SceneTreePtr& scene_tree, KRE::SceneGraphPtr graph)
-{
-	int ret = -1;
-	xhtml::RenderContextManager rcm;
-	// layout has to happen after initialisation of graphics
-	if(doc->needsLayout()) {
-		LOG_DEBUG("Triggered layout!");
-
-		//display_list->clear();
-
-		// XXX should we should have a re-process styles flag here.
-
-		{
-		profile::manager pman("apply styles");
-		doc->processStyleRules();
-		}
-
-		{
-			profile::manager pman("create style tree");
-			if(style_tree == nullptr) {
-				style_tree = xhtml::StyleNode::createStyleTree(doc);
-			} else {
-				style_tree->updateStyles();
-			}
-		}
-
-		xhtml::RootBoxPtr layout = nullptr;
-		{
-		profile::manager pman("layout");
-		layout = xhtml::Box::createLayout(style_tree, width, height);
-		scene_tree = layout->getSceneTree();
-		}
-		{
-		profile::manager pman_render("render");
-		layout->render(point());
-		ret = (layout->getHeight() + layout->getMBPHeight()) / 65536;
-		}
-
-		if(display_tree_parse) {
-			layout->preOrderTraversal([](xhtml::BoxPtr box, int nesting) {
-				std::stringstream ss;
-				ss << std::string(nesting * 2, ' ') << box->toString();
-				LOG_INFO(ss.str());
-			}, 0);
-		}
-	}
-	return ret;
-}
 
 xhtml::DocumentPtr load_xhtml(const std::string& ua_ss, const std::string& test_doc)
 {
@@ -124,17 +74,9 @@ xhtml::DocumentPtr load_xhtml(const std::string& ua_ss, const std::string& test_
 	auto doc = xhtml::Document::create(user_agent_style_sheet);
 	auto doc_frag = xhtml::parse_from_file(test_doc, doc);
 	doc->addChild(doc_frag, doc);
-	//doc->normalize();
 	doc->processStyles();
 	// whitespace can only be processed after applying styles.
 	doc->processWhitespace();
-
-	/*doc->preOrderTraversal([](xhtml::NodePtr n) {
-		LOG_DEBUG(n->toString());
-		return true;
-	});*/
-
-	// XXX - open question. Should we generate another tree for handling mouse events.
 
 	return doc;
 }
@@ -290,8 +232,6 @@ int main(int argc, char* argv[])
 	for(int i = 1; i < argc; ++i) {
 		if(argv[i] == std::string("--display-tree")) {
 			display_tree_parse = true;
-		} else if(argv[i] == std::string("--layout-cycle")) {
-			layout_cycle_test = true;
 		} else {
 			args.emplace_back(argv[i]);
 		}
@@ -328,19 +268,6 @@ int main(int argc, char* argv[])
 	read_system_fonts(&font_files);
 	KRE::FontDriver::setAvailableFonts(font_files);
 	KRE::FontDriver::setFontProvider("stb");
-
-#if 0
-	auto test_surf = KRE::Surface::create("../data/httt_story1.jpg");
-	auto outputs0 = KRE::scale::nearest_neighbour(test_surf, 60);
-	outputs0->savePng("test-nearest.png");
-
-	auto outputs1 = KRE::scale::bilinear(test_surf, 60);
-	outputs1->savePng("test-linear.png");
-
-	auto outputs2 = KRE::scale::bicubic(test_surf, 60);
-	outputs2->savePng("test-bilinear.png");
-	return 0;
-#endif
 
 #if 1
 	WindowManager wm("SDL");
@@ -380,64 +307,8 @@ int main(int argc, char* argv[])
 	xhtml::StyleNodePtr style_tree = nullptr;
 	KRE::SceneTreePtr scene_tree = nullptr;
 	xhtml::RenderContextManager rcm;
-	//int cheight = check_layout(width, height, style_tree, doc, scene_tree, scene);
-
-	//while(layout_cycle_test) {
-	//	doc->triggerLayout();
-		/* For cycle testing of ui_test2.xhtml
-		if(layout_cycle_test) {
-			bool toggle = false;
-			auto div_content1 = doc->getElementById("content1");
-			if(div_content1 != nullptr) {
-				if(toggle) {
-					div_content1->addAttribute(xhtml::Attribute::create("style", "display: none", doc));
-				} else  {
-					div_content1->addAttribute(xhtml::Attribute::create("style", "display: block", doc));
-				}
-			}
-		}*/
-		//int ch = check_layout(width, height, style_tree, doc, scene_tree, scene);
-		//if(ch != -1) {
-		//	cheight = ch;
-		//}
-	//}
 
 	auto canvas = Canvas::getInstance();
-
-	//auto txt = Font::getInstance()->renderText("Thequickbrownfoxjumpsoverthelazydog.", Color::colorWhite(), static_cast<int>(24.0*96.0/72.0), true, "FreeSerif.ttf");
-
-	SurfacePtr surf = nullptr;
-	surf = Surface::create("summer.png");
-	//std::vector<unsigned char> pixels;
-	//pixels.resize(512 * 512);
-	{
-		//profile::manager pman("fill rect");
-		//for(int y = 32; y < (512-32); ++y) {
-		//	std::fill(&pixels[y * 512 + 32], &pixels[y * 512 + 512-32], 255);
-		//}
-	}
-	//pixels_alpha_blur(pixels.data(), 512, 512, 512, 64.0f);
-	//surf = Surface::create(512, 512, 8, 512, 0, 0, 0, 0xff, pixels.data());
-	//surface_alpha_blur(surf, 6.0f);
-	//auto bt = std::make_shared<Blittable>(Texture::createTexture(surf));
-	//bt->setShader(ShaderProgram::getProgram("font_shader"));
-	//bt->setColor(Color::colorBlue());
-	//bt->setCentre(Blittable::Centre::MIDDLE);
-	//bt->setPosition(width/2, 5 * height / 6);
-	//bt = test_filter_shader("test_npc.png");
-
-	SceneObjectPtr bt = nullptr;
-
-	//int scrollbar_offset = 0;
-	//scrollable::ScrollbarPtr scrollbar = nullptr;
-	/*if(cheight > height) {
-		scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [&scrollbar_offset](int y_offs){
-			scrollbar_offset = y_offs;
-		}, rect(width-15, 0, 15, height));
-		scrollbar->setRange(0, cheight - height);
-		scrollbar->setLineSize(20);
-		scrollbar->setPageSize(static_cast<int>(static_cast<float>(cheight)/height*height));
-	}*/
 
 	SDL_Event e;
 	bool done = false;
@@ -453,15 +324,12 @@ int main(int argc, char* argv[])
 				done = true;
 			} else if(e.type == SDL_MOUSEMOTION) {
 				bool claimed = false;
-				//bool claimed = scrollbar != nullptr ? scrollbar->handleMouseMotion(false, e.motion.x, e.motion.y) : false;
 				doc->handleMouseMotion(claimed, e.motion.x, e.motion.y);
 			} else if(e.type == SDL_MOUSEBUTTONDOWN) {
 				bool claimed = false;
-				//bool claimed = scrollbar != nullptr ? scrollbar->handleMouseButtonDown(false, e.button.x, e.button.y, e.button.button) : false;
 				doc->handleMouseButtonDown(claimed, e.button.x, e.button.y, e.button.button);
 			} else if(e.type == SDL_MOUSEBUTTONUP) {
 				bool claimed = false;
-				//bool claimed = scrollbar != nullptr ? scrollbar->handleMouseButtonUp(false, e.motion.x, e.motion.y, e.button.button) : false;
 				doc->handleMouseButtonUp(claimed, e.button.x, e.button.y, e.button.button);
 			} else if(e.type == SDL_MOUSEWHEEL) {
 				if(e.wheel.which != SDL_TOUCH_MOUSEID) {
@@ -488,23 +356,6 @@ int main(int argc, char* argv[])
 			scene_tree = st;
 		}
 
-		//int ch = check_layout(width, height, style_tree, doc, scene_tree, scene);
-		/*if(ch != -1) {
-			cheight = ch;
-			if(cheight > height) {
-				if(scrollbar == nullptr) {
-					scrollbar = std::make_shared<scrollable::Scrollbar>(scrollable::Scrollbar::Direction::VERTICAL, [&scrollbar_offset](int y_offs){
-						scrollbar_offset = y_offs;
-					}, rect(width-15, 0, 15, height));
-				}
-				scrollbar->setRange(0, cheight - height);
-				scrollbar->setLineSize(20);
-				scrollbar->setPageSize(static_cast<int>(static_cast<float>(cheight)/height*height));
-			} else {
-				scrollbar.reset();
-			}
-		}*/
-
 		// Called once a cycle before rendering.
 		Uint32 current_tick_time = SDL_GetTicks();
 		float dt = (current_tick_time - last_tick_time) / 1000.0f;
@@ -514,19 +365,10 @@ int main(int argc, char* argv[])
 		scene->process(dt);
 		last_tick_time = current_tick_time;
 
-		//scene->renderScene(rman);
-		//rman->render(main_wnd);
-
 		if(scene_tree != nullptr) {
-			//ClipScope::Manager clipper(rect(width/4, height/4, width/2, height/2));
 			ClipScope::Manager clipper(rect(0, 0, width, height));
 			scene_tree->preRender(main_wnd);
 			scene_tree->render(main_wnd);
-		}
-
-		if(bt) {
-			bt->preRender(main_wnd);
-			main_wnd->render(bt.get());
 		}
 
 		main_wnd->swap();
