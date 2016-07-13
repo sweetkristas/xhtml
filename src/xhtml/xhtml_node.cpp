@@ -39,7 +39,7 @@ namespace xhtml
 {
 	namespace 
 	{
-		static bool debug_display_tree_parse = true;
+		static bool debug_display_tree_parse = false;
 
 		struct DocumentImpl : public Document 
 		{
@@ -741,6 +741,11 @@ namespace xhtml
 			}
 			return true;
 		});
+	}
+
+	void Document::enableDebug(int flags)
+	{
+		debug_display_tree_parse = flags & DebugFlags::DISPLAY_PARSE_TREE ? true : false;
 	}
 
 	KRE::SceneTreePtr Document::process(StyleNodePtr& style_tree, int w, int h)

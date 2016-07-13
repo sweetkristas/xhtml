@@ -60,12 +60,6 @@
 #include <Windows.h>
 #endif
 
-namespace
-{
-	static int display_tree_parse = false;
-}
-
-
 xhtml::DocumentPtr load_xhtml(const std::string& ua_ss, const std::string& test_doc)
 {
 	auto user_agent_style_sheet = std::make_shared<css::StyleSheet>();
@@ -231,7 +225,7 @@ int main(int argc, char* argv[])
 	std::vector<std::string> args;
 	for(int i = 1; i < argc; ++i) {
 		if(argv[i] == std::string("--display-tree")) {
-			display_tree_parse = true;
+			xhtml::Document::enableDebug(xhtml::DebugFlags::DISPLAY_PARSE_TREE);
 		} else {
 			args.emplace_back(argv[i]);
 		}
