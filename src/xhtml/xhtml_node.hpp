@@ -50,7 +50,7 @@ namespace xhtml
 	};
 
 	enum DebugFlags	{
-		DISPLAY_PARSE_TREE,
+		DISPLAY_PARSE_TREE	= (1 << 0),
 	};
 
 	struct Keystate
