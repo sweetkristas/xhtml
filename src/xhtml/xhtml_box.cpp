@@ -432,7 +432,7 @@ namespace xhtml
 				}
 				
 				scrollable::ScrollbarPtr scrollbar = node->getScrollbar(scrollable::Scrollbar::Direction::VERTICAL);
-				if(ovf == Overflow::SCROLL || ovf == Overflow::AUTO && (precss_content_height_ > box_height || y + h > rh.y)) {
+				if(ovf == Overflow::SCROLL || (ovf == Overflow::AUTO && (precss_content_height_ > box_height || (y + h) > rh.y))) {
 					const auto scale = LayoutEngine::getFixedPointScaleFloat();
 					if(precss_content_height_ > box_height) {
 						rect r((offs.x + dims.content_.width) / LayoutEngine::getFixedPointScale() - scrollbar_default_width, offs.y / LayoutEngine::getFixedPointScale(), scrollbar_default_width, box_height / LayoutEngine::getFixedPointScale());
