@@ -582,7 +582,7 @@ namespace xhtml
 		point p(x, y);
 		for(auto& evt : event_listeners_) {
 			Uint32 buttons = SDL_GetMouseState(nullptr, nullptr);
-			claimed |= evt->mouse_motion(claimed, p, SDL_GetModState());
+			claimed |= evt->mouseMotion(claimed, p, SDL_GetModState());
 		}
 		if(claimed) {
 			return claimed;
@@ -602,7 +602,7 @@ namespace xhtml
 		point p(x, y);
 		for(auto& evt : event_listeners_) {
 			Uint32 buttons = SDL_GetMouseState(nullptr, nullptr);
-			claimed |= evt->mouse_button_down(claimed, p, buttons, SDL_GetModState());
+			claimed |= evt->mouseButtonDown(claimed, p, buttons, SDL_GetModState());
 		}
 		if(claimed) {
 			return claimed;
@@ -622,7 +622,7 @@ namespace xhtml
 		point p(x, y);
 		for(auto& evt : event_listeners_) {
 			Uint32 buttons = SDL_GetMouseState(nullptr, nullptr);
-			claimed |= evt->mouse_button_up(claimed, p, buttons, SDL_GetModState());
+			claimed |= evt->mouseButtonUp(claimed, p, buttons, SDL_GetModState());
 		}
 		if(claimed) {
 			return claimed;
@@ -644,7 +644,7 @@ namespace xhtml
 		Uint32 buttons = SDL_GetMouseState(&mx, &my);
 		point p(mx, my);
 		for(auto& evt : event_listeners_) {
-			claimed |= evt->mouse_wheel(claimed, p, delta, direction);
+			claimed |= evt->mouseWheel(claimed, p, delta, direction);
 		}
 		if(claimed) {
 			return claimed;
@@ -659,12 +659,12 @@ namespace xhtml
 		return claimed;
 	}
 
-	void Document::addEventListener(event_listener_ptr evt)
+	void Document::addEventListener(EventListenerPtr evt)
 	{
 		event_listeners_.emplace(evt);
 	}
 
-	void Document::removeEventListener(event_listener_ptr evt)
+	void Document::removeEventListener(EventListenerPtr evt)
 	{
 		event_listeners_.erase(evt);
 	}

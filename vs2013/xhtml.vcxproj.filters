@@ -381,6 +381,9 @@
     <ClCompile Include="..\src\xhtml\event_listener.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\xhtml\text_edit.cpp">
+      <Filter>Source Files\xhtml</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\kre\AttributeSet.hpp">
@@ -814,6 +817,9 @@
     </ClInclude>
     <ClInclude Include="..\src\main.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\xhtml\text_edit.hpp">
+      <Filter>Header Files\xhtml</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

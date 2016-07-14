@@ -46,6 +46,7 @@
 #include "css_parser.hpp"
 #include "FontDriver.hpp"
 #include "scrollable.hpp"
+#include "text_edit.hpp"
 #include "xhtml.hpp"
 #include "xhtml_layout_engine.hpp"
 #include "xhtml_root_box.hpp"
@@ -304,31 +305,44 @@ int main(int argc, char* argv[])
 
 	auto canvas = Canvas::getInstance();
 
+	auto te = controls::TextEdit::create(rect(10, 10, 200, 20));
+
 	SDL_Event e;
 	bool done = false;
 	Uint32 last_tick_time = SDL_GetTicks();
 	while(!done) {
 		while(SDL_PollEvent(&e)) {
 			// XXX we need to add some keyboard/mouse callback handling here for "doc".
-			if(e.type == SDL_KEYUP && e.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-				done = true;
+			if(e.type == SDL_KEYUP) {
+				if(e.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+					done = true;
+				} else {
+					te->keyUp(false, e.key.keysym, e.key.repeat != 0, e.key.state == SDL_PRESSED);
+				}				
 			} else if(e.type == SDL_KEYDOWN) {
-				LOG_DEBUG("KEY PRESSED: " << SDL_GetKeyName(e.key.keysym.sym) << " : " << e.key.keysym.sym << " : " << e.key.keysym.scancode);
+				//LOG_DEBUG("KEY PRESSED: " << SDL_GetKeyName(e.key.keysym.sym) << " : " << e.key.keysym.sym << " : " << e.key.keysym.scancode);
+				te->keyDown(false, e.key.keysym, e.key.repeat != 0, e.key.state == SDL_PRESSED);
 			} else if(e.type == SDL_QUIT) {
 				done = true;
 			} else if(e.type == SDL_MOUSEMOTION) {
 				bool claimed = false;
-				doc->handleMouseMotion(claimed, e.motion.x, e.motion.y);
+				claimed = te->mouseMotion(claimed, point(e.motion.x, e.motion.y), SDL_GetModState());
+				claimed = doc->handleMouseMotion(claimed, e.motion.x, e.motion.y);
 			} else if(e.type == SDL_MOUSEBUTTONDOWN) {
 				bool claimed = false;
-				doc->handleMouseButtonDown(claimed, e.button.x, e.button.y, e.button.button);
+				claimed = te->mouseButtonDown(claimed, point(e.motion.x, e.motion.y), SDL_GetMouseState(nullptr, nullptr), SDL_GetModState());
+				claimed = doc->handleMouseButtonDown(claimed, e.button.x, e.button.y, e.button.button);
 			} else if(e.type == SDL_MOUSEBUTTONUP) {
 				bool claimed = false;
-				doc->handleMouseButtonUp(claimed, e.button.x, e.button.y, e.button.button);
+				claimed = te->mouseButtonUp(claimed, point(e.motion.x, e.motion.y), SDL_GetMouseState(nullptr, nullptr), SDL_GetModState());
+				claimed = doc->handleMouseButtonUp(claimed, e.button.x, e.button.y, e.button.button);
 			} else if(e.type == SDL_MOUSEWHEEL) {
 				if(e.wheel.which != SDL_TOUCH_MOUSEID) {
 					bool claimed = false;
-					doc->handleMouseWheel(claimed, e.wheel.x, e.wheel.y, 0);//e.wheel.direction);
+					point p;
+					unsigned state = SDL_GetMouseState(&p.x, &p.y);
+					claimed = te->mouseWheel(claimed, p, point(e.wheel.x, e.wheel.y), 0);//e.wheel.direction);
+					claimed = doc->handleMouseWheel(claimed, e.wheel.x, e.wheel.y, 0);//e.wheel.direction);
 				}
 			} else if(e.type == SDL_WINDOWEVENT) {
 				const SDL_WindowEvent& wnd = e.window;
@@ -363,6 +377,17 @@ int main(int argc, char* argv[])
 			ClipScope::Manager clipper(rect(0, 0, width, height));
 			scene_tree->preRender(main_wnd);
 			scene_tree->render(main_wnd);
+		}
+
+		if(te != nullptr) {
+			te->preRender(main_wnd);
+			main_wnd->render(te.get());
+
+			auto& r = te->getRenderable();
+			if(r != nullptr) {
+				r->preRender(main_wnd);
+				main_wnd->render(r.get());
+			}
 		}
 
 		main_wnd->swap();
