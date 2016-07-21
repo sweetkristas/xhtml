@@ -124,6 +124,8 @@ namespace xhtml
 		bool preOrderTraversal(std::function<bool(NodePtr)> fn);
 		// bottom-up scanning of the tree
 		bool postOrderTraversal(std::function<bool(NodePtr)> fn);
+		// XXX special case for mouse stuff, needs re-factored.
+		bool preOrderTraversalMouse(std::function<bool(NodePtr, point*)> fn, const point& p);
 		// scanning from a child node up through parents
 		bool ancestralTraverse(std::function<bool(NodePtr)> fn);
 		virtual bool hasTag(const std::string& tag) const { return false; }

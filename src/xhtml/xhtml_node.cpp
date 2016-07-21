@@ -203,8 +203,9 @@ namespace xhtml
 	void Node::setAttribute(const std::string& name, const std::string& value)
 	{
 		attributes_[name] = Attribute::create(name, value, getOwnerDoc());
-	}	
-	bool Node::preOrderTraversal(std::function<bool(NodePtr)> fn)
+	}
+
+	bool Node::preOrderTraversal(std::function<bool(NodePtr)> fn) 
 	{
 		// Visit node, visit children.
 		if(!fn(shared_from_this())) {
@@ -212,6 +213,21 @@ namespace xhtml
 		}
 		for(auto& c : children_) {
 			if(!c->preOrderTraversal(fn)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	bool Node::preOrderTraversalMouse(std::function<bool(NodePtr, point*)> fn, const point& p)
+	{
+		point np = p;
+		// Visit node, visit children.
+		if(!fn(shared_from_this(), &np)) {
+			return false;
+		}
+		for(auto& c : children_) {
+			if(!c->preOrderTraversalMouse(fn, np)) {
 				return false;
 			}
 		}
@@ -470,7 +486,7 @@ namespace xhtml
 	{
 		auto pos = model_matrix_ * glm::vec4(static_cast<float>(mp.x), static_cast<float>(mp.y), 0.0f, 1.0f);
 		point p(static_cast<int>(pos.x), static_cast<int>(pos.y));
-		//LOG_DEBUG("mp: " << mp << ", p: " << p << ", ar: " <<  active_rect_);
+		//LOG_INFO("mp: " << mp << ", p: " << p << ", ar: " <<  active_rect_ << ", pos: " << pos.x << "," << pos.y);
 		if(!active_rect_.empty()) {
 			if(geometry::pointInRect(p, active_rect_)) {
 				if(mouse_entered_ == false && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_ENTER)) {
@@ -588,11 +604,20 @@ namespace xhtml
 			return claimed;
 		}
 
-		bool trigger = false;		
-		claimed = !preOrderTraversal([&trigger, &p](NodePtr node) {
-			node->handleMouseMotion(&trigger, p);
+		bool trigger = false;
+
+		claimed = !preOrderTraversalMouse([&trigger](NodePtr node, point* p) {
+			node->handleMouseMotion(&trigger, *p);
+			auto sv = node->getScrollbar(scrollable::Scrollbar::Direction::VERTICAL);
+			if(sv) {
+				p->y += sv->getScrollPosition();
+			}
+			auto sh = node->getScrollbar(scrollable::Scrollbar::Direction::HORIZONTAL);
+			if(sh) {
+				p->x += sh->getScrollPosition();
+			}
 			return true;
-		});
+		}, p);
 		trigger_layout_ |= trigger;
 		return claimed;
 	}
@@ -609,10 +634,18 @@ namespace xhtml
 		}
 
 		bool trigger = false;
-		claimed = !preOrderTraversal([&trigger, &p, button](NodePtr node) {
-			node->handleMouseButtonDown(&trigger, p, button);
+		claimed = !preOrderTraversalMouse([&trigger, button](NodePtr node, point* p) {
+			node->handleMouseButtonDown(&trigger, *p, button);
+			auto sv = node->getScrollbar(scrollable::Scrollbar::Direction::VERTICAL);
+			if(sv) {
+				p->y += sv->getScrollPosition();
+			}
+			auto sh = node->getScrollbar(scrollable::Scrollbar::Direction::HORIZONTAL);
+			if(sh) {
+				p->x += sh->getScrollPosition();
+			}
 			return true;
-		});
+		}, p);
 		trigger_layout_ |= trigger;
 		return claimed;
 	}
@@ -629,10 +662,18 @@ namespace xhtml
 		}
 
 		bool trigger = false;
-		claimed = !preOrderTraversal([&trigger, &p, button](NodePtr node) {
-			node->handleMouseButtonUp(&trigger, p, button);
+		claimed = !preOrderTraversalMouse([&trigger, button](NodePtr node, point* p) {
+			node->handleMouseButtonUp(&trigger, *p, button);
+			auto sv = node->getScrollbar(scrollable::Scrollbar::Direction::VERTICAL);
+			if(sv) {
+				p->y += sv->getScrollPosition();
+			}
+			auto sh = node->getScrollbar(scrollable::Scrollbar::Direction::HORIZONTAL);
+			if(sh) {
+				p->x += sh->getScrollPosition();
+			}
 			return true;
-		});		
+		}, p);
 		trigger_layout_ |= trigger;
 		return claimed;
 	}
@@ -651,10 +692,18 @@ namespace xhtml
 		}
 		
 		bool trigger = false;
-		claimed = !preOrderTraversal([&trigger, &p, &delta, direction](NodePtr node) {
-			node->handleMouseWheel(&trigger, p, delta, direction);
+		claimed = !preOrderTraversalMouse([&trigger, delta, direction](NodePtr node, point* p) {
+			node->handleMouseWheel(&trigger, *p, delta, direction);
+			auto sv = node->getScrollbar(scrollable::Scrollbar::Direction::VERTICAL);
+			if(sv) {
+				p->y += sv->getScrollPosition();
+			}
+			auto sh = node->getScrollbar(scrollable::Scrollbar::Direction::HORIZONTAL);
+			if(sh) {
+				p->x += sh->getScrollPosition();
+			}
 			return true;
-		});		
+		}, p);
 		trigger_layout_ |= trigger;
 		return claimed;
 	}
