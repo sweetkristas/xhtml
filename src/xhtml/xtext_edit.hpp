@@ -27,13 +27,14 @@
 
 #include "AttributeSet.hpp"
 #include "geometry.hpp"
+#include "FontDriver.hpp"
 #include "SceneObject.hpp"
 #include "WindowManagerFwd.hpp"
 #include "event_listener.hpp"
 #include "FontDriver.hpp"
 #include "scrollable.hpp"
 
-namespace controls
+namespace xhtml
 {
 	class TextEdit;
 	typedef std::shared_ptr<TextEdit> TextEditPtr;
@@ -51,6 +52,10 @@ namespace controls
 		TextEdit(const rect& area, TextEditType type=TextEditType::SINGLE_LINE, const std::string& default_value=std::string());
 		~TextEdit() {}
 
+		const std::string& getText() const { return current_line_text_; }
+
+		void setFont(const KRE::FontHandlePtr& fh);
+
 		void setHandlers(change_handler onchange);
 
 		const KRE::FontRenderablePtr& getRenderable() const { return renderable_; }
@@ -59,6 +64,9 @@ namespace controls
 
 		static TextEditPtr create(const rect& area, TextEditType type=TextEditType::SINGLE_LINE, const std::string& default_value=std::string());
 	private:
+		void init();
+		void setText(const std::string& text);
+
 		bool handleKeyDown(bool claimed, const SDL_Keysym& keysym, bool repeat, bool pressed);
 		bool handleKeyUp(bool claimed, const SDL_Keysym& keysym, bool repeat, bool pressed) { return claimed; }
 		bool handleTextInput(bool claimed, const std::string& text);
@@ -80,6 +88,7 @@ namespace controls
 		KRE::ColorPtr text_color_;
 
 		KRE::FontRenderablePtr renderable_;
+		KRE::FontHandlePtr fh_;
 
 		scrollable::ScrollbarPtr scollbar_;
 	};

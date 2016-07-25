@@ -21,9 +21,9 @@
 	   distribution.
 */
 
-#include "text_edit.hpp"
+#include "xtext_edit.hpp"
 
-namespace controls
+namespace xhtml
 {
 	using namespace KRE;
 
@@ -37,11 +37,31 @@ namespace controls
 		  text_color_(new Color(Color::colorBlack())),
 		  renderable_(nullptr)
 	{
+		init();
 	}
 
 	TextEditPtr TextEdit::create(const rect& area, TextEditType type, const std::string& default_value)
 	{
 		return std::make_shared<TextEdit>(area, type, default_value);
+	}
+
+	void TextEdit::init()
+	{
+		if(fh_) {
+			std::vector<point> path;
+			path = fh_->getGlyphPath(current_line_text_);
+			if(renderable_) {
+				renderable_->clear();
+			}
+			renderable_ = fh_->createRenderableFromPath(renderable_, current_line_text_, path);
+			renderable_->setPosition(0, 100);
+		}
+	}
+
+	void TextEdit::setText(const std::string& text)
+	{
+		current_line_text_ = text;
+		init();
 	}
 
 	void TextEdit::setHandlers(change_handler onchange)
@@ -76,16 +96,28 @@ namespace controls
 	bool TextEdit::handleKeyDown(bool claimed, const SDL_Keysym& keysym, bool repeat, bool pressed) 
 	{
 		LOG_INFO("key down: " << keysym.sym << "; repeat: " << (repeat ? "true" : "false") << "; " << (pressed ? "pressed" : "released"));
+		current_line_text_ +=  keysym.sym;
+		init();
 		return claimed;
 	}
 
 	bool TextEdit::handleTextInput(bool claimed, const std::string& text) 
 	{
+		LOG_INFO("TextEdit::handleTextInput: " << text);
+		current_line_text_ = text;
+		init();
 		return claimed;
 	}
 
 	bool TextEdit::handleTextEditing(bool claimed, const std::string& text, int start, int length) 
 	{
+		LOG_INFO("TextEdit::handleTextEditing: " << text << "; start: " << start << "; length: " << length);
 		return claimed;
+	}
+
+	void TextEdit::setFont(const KRE::FontHandlePtr& fh) 
+	{ 
+		fh_ = fh;
+		init();
 	}
 }

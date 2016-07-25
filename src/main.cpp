@@ -46,7 +46,7 @@
 #include "css_parser.hpp"
 #include "FontDriver.hpp"
 #include "scrollable.hpp"
-#include "text_edit.hpp"
+#include "xtext_edit.hpp"
 #include "xhtml.hpp"
 #include "xhtml_layout_engine.hpp"
 #include "xhtml_root_box.hpp"
@@ -305,7 +305,9 @@ int main(int argc, char* argv[])
 
 	auto canvas = Canvas::getInstance();
 
-	auto te = controls::TextEdit::create(rect(10, 10, 200, 20));
+	auto te = xhtml::TextEdit::create(rect(10, 10, 200, 20), xhtml::TextEditType::SINGLE_LINE, "this is some default text. 0123456789");
+	std::vector<std::string> font_family{ "monospace" };
+	te->setFont(KRE::FontDriver::getFontHandle(font_family, 16));
 
 	int layout_x = width / 4;
 	int layout_y = height / 4;

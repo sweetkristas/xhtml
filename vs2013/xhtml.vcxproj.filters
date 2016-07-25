@@ -381,10 +381,10 @@
     <ClCompile Include="..\src\xhtml\event_listener.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\xhtml\text_edit.cpp">
+    <ClCompile Include="..\src\xhtml\xslider.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\xhtml\xslider.cpp">
+    <ClCompile Include="..\src\xhtml\xtext_edit.cpp">
       <Filter>Source Files\xhtml</Filter>
     </ClCompile>
   </ItemGroup>
@@ -821,10 +821,10 @@
     <ClInclude Include="..\src\main.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\xhtml\text_edit.hpp">
+    <ClInclude Include="..\src\xhtml\xslider.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\xhtml\xslider.hpp">
+    <ClInclude Include="..\src\xhtml\xtext_edit.hpp">
       <Filter>Header Files\xhtml</Filter>
     </ClInclude>
   </ItemGroup>
