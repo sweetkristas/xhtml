@@ -121,8 +121,25 @@ namespace KRE
 			return static_cast<int>(descent_ * scale_ * 65536.0f);
 		}
 
+		int getBaseline() override
+		{
+			return baseline_ * 65536;
+		}
+
 		void getBoundingBox(const std::string& str, long* w, long* h) override
 		{
+			ASSERT_LOG(w != nullptr, "getBoundingBox: width was null.");
+			ASSERT_LOG(h != nullptr, "getBoundingBox: height was null.");
+			*w = 0;
+			*h = 0;
+			glyphTraverse(str, [w, h](stbtt_packedchar* b) {
+				auto char_width = b->x1 - b->x0;
+				auto char_height = b->y1 - b->y0;
+				*w += char_width;
+				if(*h < char_height) {
+					*h = char_height;
+				}
+			});
 		}
 
 		std::vector<unsigned> getGlyphs(const std::string& text) override		
@@ -132,6 +149,37 @@ namespace KRE
 				res.emplace_back(stbtt_FindGlyphIndex(&font_handle_, cp));
 			}
 			return res;
+		}
+
+
+		void glyphTraverse(const std::string& text, std::function<void(stbtt_packedchar*)> fn)
+		{
+			auto cp_str = utils::utf8_to_codepoint(text);
+
+			std::vector<char32_t> glyphs_to_add;
+			for(char32_t cp : cp_str) {
+				auto it = packed_char_.find(UnicodeRange(cp));
+				if(it == packed_char_.end()) {
+					glyphs_to_add.emplace_back(cp);
+				}
+			}
+			if(!glyphs_to_add.empty()) {
+				addGlyphsToTexture(glyphs_to_add);
+			}
+
+			for(char32_t cp : cp_str) {
+				auto it = packed_char_.find(UnicodeRange(cp));
+				if(it == packed_char_.end()) {
+					cp = 0xfffd;
+					it = packed_char_.find(UnicodeRange(0xfffd));
+					if(it == packed_char_.end()) {
+						continue;
+					}
+				}
+				
+				stbtt_packedchar* b = it->second.data() + cp - it->first.first;
+				fn(b);
+			}
 		}
 
 		const std::vector<point>& getGlyphPath(const std::string& text) override

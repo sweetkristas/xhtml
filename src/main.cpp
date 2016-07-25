@@ -315,6 +315,7 @@ int main(int argc, char* argv[])
 	SDL_Event e;
 	bool done = false;
 	Uint32 last_tick_time = SDL_GetTicks();
+	SDL_StartTextInput();
 	while(!done) {
 		while(SDL_PollEvent(&e)) {
 			// XXX we need to add some keyboard/mouse callback handling here for "doc".
@@ -398,6 +399,7 @@ int main(int argc, char* argv[])
 		main_wnd->swap();
 	}
 #endif
+	SDL_StopTextInput();
 
 	return 0;
 }

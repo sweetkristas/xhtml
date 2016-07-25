@@ -371,6 +371,11 @@ namespace KRE
 		return impl_->getDescender();
 	}
 
+	int FontHandle::getBaseline()
+	{
+		return impl_->getBaseline();
+	}
+
 	const std::vector<point>& FontHandle::getGlyphPath(const std::string& text)
 	{
 		return impl_->getGlyphPath(text);
@@ -378,7 +383,9 @@ namespace KRE
 
 	rect FontHandle::getBoundingBox(const std::string& text)
 	{
-		return rect();
+		long w, h;
+		impl_->getBoundingBox(text, &w, &h);
+		return rect(0, 0, w, h);
 	}
 
 	FontRenderablePtr FontHandle::createRenderableFromPath(FontRenderablePtr r, const std::string& text, const std::vector<point>& path)

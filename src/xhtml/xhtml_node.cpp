@@ -829,7 +829,7 @@ namespace xhtml
 			profile::manager pman_render("render");
 			layout_x_ = x;
 			layout_y_ = y;
-			auto& st = layout->getSceneTree();
+			auto st = layout->getSceneTree();
 			st->clear();
 			layout->render(point(x, y));
 			st->setPosition(x, y);

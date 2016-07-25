@@ -22,6 +22,10 @@
 */
 
 #include "xtext_edit.hpp"
+#include "profile_timer.hpp"
+
+#include "DisplayDevice.hpp"
+#include "Shaders.hpp"
 
 namespace xhtml
 {
@@ -37,6 +41,16 @@ namespace xhtml
 		  text_color_(new Color(Color::colorBlack())),
 		  renderable_(nullptr)
 	{
+		setShader(ShaderProgram::getProgram("simple"));
+
+		auto ab = DisplayDevice::createAttributeSet(false, false, false);
+		attr_ = std::make_shared<Attribute<glm::u16vec2>>(AccessFreqHint::STATIC, AccessTypeHint::DRAW);
+		attr_->addAttributeDesc(AttributeDesc(AttrType::POSITION, 2, AttrFormat::SHORT, false));
+		ab->addAttribute(attr_);
+
+		ab->setDrawMode(DrawMode::LINE_LOOP);
+		addAttributeSet(ab);
+
 		init();
 	}
 
@@ -47,14 +61,28 @@ namespace xhtml
 
 	void TextEdit::init()
 	{
+		//if(changed_) {
+		std::vector<glm::u16vec2> vertices;
+		vertices.emplace_back(loc_.x1(), loc_.y1());
+		vertices.emplace_back(loc_.x2(), loc_.y1());
+		vertices.emplace_back(loc_.x2(), loc_.y2());
+		vertices.emplace_back(loc_.x1(), loc_.y2());
+		attr_->update(&vertices);
+		//}
+
+
 		if(fh_) {
+			profile::manager pman("render text");
+			auto r = fh_->getBoundingBox(current_line_text_);
+			LOG_INFO("bounding box: " << r);
+			
 			std::vector<point> path;
 			path = fh_->getGlyphPath(current_line_text_);
 			if(renderable_) {
 				renderable_->clear();
 			}
 			renderable_ = fh_->createRenderableFromPath(renderable_, current_line_text_, path);
-			renderable_->setPosition(0, 100);
+			renderable_->setPosition(loc_.x(), loc_.y() + (loc_.h() - r.h()) / 2 + fh_->getBaseline()/65536);
 		}
 	}
 
@@ -96,8 +124,8 @@ namespace xhtml
 	bool TextEdit::handleKeyDown(bool claimed, const SDL_Keysym& keysym, bool repeat, bool pressed) 
 	{
 		LOG_INFO("key down: " << keysym.sym << "; repeat: " << (repeat ? "true" : "false") << "; " << (pressed ? "pressed" : "released"));
-		current_line_text_ +=  keysym.sym;
-		init();
+		//current_line_text_ +=  keysym.sym;
+		//init();
 		return claimed;
 	}
 

@@ -91,5 +91,7 @@ namespace xhtml
 		KRE::FontHandlePtr fh_;
 
 		scrollable::ScrollbarPtr scollbar_;
+
+		std::shared_ptr<KRE::Attribute<glm::u16vec2>> attr_;
 	};
 }
