@@ -64,10 +64,10 @@ namespace controls
 		bool handleTextInput(bool claimed, const std::string& text);
 		bool handleTextEditing(bool claimed, const std::string& text, int start, int length);
 
-		bool handleMouseMotion(bool claimed, const point& p, unsigned keymod) override;
-		bool handleMouseButtonUp(bool claimed, const point& p, unsigned buttons, unsigned keymod) override;
-		bool handleMouseButtonDown(bool claimed, const point& p, unsigned buttons, unsigned keymod) override;	
-		bool handleMouseWheel(bool claimed, const point& p, const point& delta, int direction) override;
+		bool handleMouseMotion(bool claimed, const point& p, unsigned keymod, bool in_rect) override;
+		bool handleMouseButtonUp(bool claimed, const point& p, unsigned buttons, unsigned keymod, bool in_rect) override;
+		bool handleMouseButtonDown(bool claimed, const point& p, unsigned buttons, unsigned keymod, bool in_rect) override;	
+		bool handleMouseWheel(bool claimed, const point& p, const point& delta, int direction, bool in_rect) override;
 
 		TextEditType type_;
 		std::string current_line_text_;

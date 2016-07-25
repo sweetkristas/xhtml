@@ -127,6 +127,7 @@
     <ClCompile Include="..\src\xhtml\xhtml_style_tree.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_text_box.cpp" />
     <ClCompile Include="..\src\xhtml\xhtml_text_node.cpp" />
+    <ClCompile Include="..\src\xhtml\xslider.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\asserts.hpp" />
@@ -274,6 +275,7 @@
     <ClInclude Include="..\src\xhtml\xhtml_style_tree.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_text_box.hpp" />
     <ClInclude Include="..\src\xhtml\xhtml_text_node.hpp" />
+    <ClInclude Include="..\src\xhtml\xslider.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\data\test1.xhtml" />

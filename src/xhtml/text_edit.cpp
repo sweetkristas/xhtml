@@ -53,22 +53,22 @@ namespace controls
 	{
 	}
 
-	bool TextEdit::handleMouseMotion(bool claimed, const point& p, unsigned keymod) 
+	bool TextEdit::handleMouseMotion(bool claimed, const point& p, unsigned keymod, bool in_rect) 
 	{
 		return claimed;
 	}
 
-	bool TextEdit::handleMouseButtonUp(bool claimed, const point& p, unsigned buttons, unsigned keymod) 
+	bool TextEdit::handleMouseButtonUp(bool claimed, const point& p, unsigned buttons, unsigned keymod, bool in_rect) 
 	{
 		return claimed;
 	}
 
-	bool TextEdit::handleMouseButtonDown(bool claimed, const point& p, unsigned buttons, unsigned keymod) 
+	bool TextEdit::handleMouseButtonDown(bool claimed, const point& p, unsigned buttons, unsigned keymod, bool in_rect) 
 	{
 		return claimed;
 	}
 
-	bool TextEdit::handleMouseWheel(bool claimed, const point& p, const point& delta, int direction) 
+	bool TextEdit::handleMouseWheel(bool claimed, const point& p, const point& delta, int direction, bool in_rect) 
 	{
 		return claimed;
 	}

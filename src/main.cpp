@@ -307,6 +307,9 @@ int main(int argc, char* argv[])
 
 	auto te = controls::TextEdit::create(rect(10, 10, 200, 20));
 
+	int layout_x = width / 4;
+	int layout_y = height / 4;
+
 	SDL_Event e;
 	bool done = false;
 	Uint32 last_tick_time = SDL_GetTicks();
@@ -327,20 +330,22 @@ int main(int argc, char* argv[])
 			} else if(e.type == SDL_MOUSEMOTION) {
 				bool claimed = false;
 				claimed = te->mouseMotion(claimed, point(e.motion.x, e.motion.y), SDL_GetModState());
-				claimed = doc->handleMouseMotion(claimed, e.motion.x, e.motion.y);
+				claimed = doc->handleMouseMotion(claimed, e.motion.x - layout_x, e.motion.y - layout_y);
 			} else if(e.type == SDL_MOUSEBUTTONDOWN) {
 				bool claimed = false;
 				claimed = te->mouseButtonDown(claimed, point(e.motion.x, e.motion.y), SDL_GetMouseState(nullptr, nullptr), SDL_GetModState());
-				claimed = doc->handleMouseButtonDown(claimed, e.button.x, e.button.y, e.button.button);
+				claimed = doc->handleMouseButtonDown(claimed, e.button.x - layout_x, e.button.y - layout_y, e.button.button);
 			} else if(e.type == SDL_MOUSEBUTTONUP) {
 				bool claimed = false;
 				claimed = te->mouseButtonUp(claimed, point(e.motion.x, e.motion.y), SDL_GetMouseState(nullptr, nullptr), SDL_GetModState());
-				claimed = doc->handleMouseButtonUp(claimed, e.button.x, e.button.y, e.button.button);
+				claimed = doc->handleMouseButtonUp(claimed, e.button.x - layout_x, e.button.y - layout_y, e.button.button);
 			} else if(e.type == SDL_MOUSEWHEEL) {
 				if(e.wheel.which != SDL_TOUCH_MOUSEID) {
 					bool claimed = false;
 					point p;
 					unsigned state = SDL_GetMouseState(&p.x, &p.y);
+					p.x -= layout_x;
+					p.y -= layout_y;
 					claimed = te->mouseWheel(claimed, p, point(e.wheel.x, e.wheel.y), 0);//e.wheel.direction);
 					claimed = doc->handleMouseWheel(claimed, e.wheel.x, e.wheel.y, 0);//e.wheel.direction);
 				}
@@ -359,9 +364,10 @@ int main(int argc, char* argv[])
 		//main_wnd->setClearColor(KRE::Color::colorWhite());
 		main_wnd->clear(ClearFlags::ALL);
 
-		auto st = doc->process(style_tree, width, height);
+		auto st = doc->process(style_tree, width/2, height/2);
 		if(st != nullptr) {
 			scene_tree = st;
+			scene_tree->setPosition(layout_x, layout_y);
 		}
 
 		// Called once a cycle before rendering.

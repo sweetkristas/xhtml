@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+          "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+<head>
+    <style>
+body {
+	background-color: rgb(48, 48, 48);
+	border: 2px solid red;
+	font-family: 'arial.ttf', serif;
+	overflow: auto;
+}
+
+#test, #test1 {
+	width: 80%;
+	height: 20px;
+}
+
+	</style>
+<script>
+	function outputUpdate(selector, vol) {
+		document.querySelector(selector).value = vol;
+	}
+</script>
+</head>
+<body>
+	<div>
+		<label for="test">test</label>
+		<input type="range" min="8" max="128" step="2" id="test" value="64" oninput="outputUpdate('#xxx1', value)"/>
+		<output for="test" id="xxx1">64</output>
+		
+		<label for="test1">test</label>
+		<input type="range" min="8" max="128" step="2" id="test1" value="64" oninput="outputUpdate('#xxx2', value)"/>
+		<output for="test1" id="xxx2">64</output>
+	</div>
+</body>
+</html>
