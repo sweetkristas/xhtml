@@ -580,7 +580,7 @@ namespace xhtml
 
 	bool Document::handleMouseMotion(bool claimed, int x, int y)
 	{
-		point p(x, y);
+		point p(x - layout_x_, y - layout_y_);
 		for(auto& evt : event_listeners_) {
 			Uint32 buttons = SDL_GetMouseState(nullptr, nullptr);
 			claimed |= evt->mouseMotion(claimed, p, SDL_GetModState());
@@ -609,7 +609,7 @@ namespace xhtml
 
 	bool Document::handleMouseButtonDown(bool claimed, int x, int y, unsigned button)
 	{
-		point p(x, y);
+		point p(x - layout_x_, y - layout_y_);
 		for(auto& evt : event_listeners_) {
 			Uint32 buttons = SDL_GetMouseState(nullptr, nullptr);
 			claimed |= evt->mouseButtonDown(claimed, p, buttons, SDL_GetModState());
@@ -637,7 +637,7 @@ namespace xhtml
 
 	bool Document::handleMouseButtonUp(bool claimed, int x, int y, unsigned button)
 	{
-		point p(x, y);
+		point p(x - layout_x_, y - layout_y_);
 		for(auto& evt : event_listeners_) {
 			Uint32 buttons = SDL_GetMouseState(nullptr, nullptr);
 			claimed |= evt->mouseButtonUp(claimed, p, buttons, SDL_GetModState());
@@ -668,7 +668,7 @@ namespace xhtml
 		point delta(x, y);
 		int mx, my;
 		Uint32 buttons = SDL_GetMouseState(&mx, &my);
-		point p(mx, my);
+		point p(mx - layout_x_, my - layout_y_);
 		for(auto& evt : event_listeners_) {
 			claimed |= evt->mouseWheel(claimed, p, delta, direction);
 		}
@@ -715,6 +715,8 @@ namespace xhtml
 		  trigger_layout_(true),
 		  trigger_render_(false),
 		  trigger_rebuild_(false),
+		  layout_x_(0),
+		  layout_y_(0),
 		  active_element_(),
 		  event_listeners_()
 	{
@@ -782,7 +784,7 @@ namespace xhtml
 		debug_display_tree_parse = flags & DebugFlags::DISPLAY_PARSE_TREE ? true : false;
 	}
 
-	KRE::SceneTreePtr Document::process(StyleNodePtr& style_tree, int w, int h)
+	KRE::SceneTreePtr Document::process(StyleNodePtr& style_tree, int x, int y, int w, int h)
 	{
 		RootBoxPtr layout = nullptr;
 		bool changed = false;
@@ -825,8 +827,12 @@ namespace xhtml
 
 		if(needsRender() && layout != nullptr) {
 			profile::manager pman_render("render");
-			layout->getSceneTree()->clear();
-			layout->render(point());
+			layout_x_ = x;
+			layout_y_ = y;
+			auto& st = layout->getSceneTree();
+			st->clear();
+			layout->render(point(x, y));
+			st->setPosition(x, y);
 			trigger_render_ = false;
 			changed = true;
 

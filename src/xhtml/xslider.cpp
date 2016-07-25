@@ -170,18 +170,19 @@ namespace xhtml
 	
 	bool Slider::handleMouseWheel(bool claimed, const point& p, const point& delta, int direction, bool in_rect)
 	{
+		// XXX
 		return claimed;
 	}
 		
 	bool Slider::handleKeyDown(bool claimed, const SDL_Keysym& keysym, bool repeat, bool pressed) 
 	{
-
+		// XXX
 		return claimed;
 	}
 	
 	bool Slider::handleKeyUp(bool claimed, const SDL_Keysym& keysym, bool repeat, bool pressed) 
 	{
-
+		// XXX
 		return claimed;
 	}
 
