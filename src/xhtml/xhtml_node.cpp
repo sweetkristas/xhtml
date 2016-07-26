@@ -787,7 +787,7 @@ namespace xhtml
 		
 		static bool marked_transtions = false;
 		if(!marked_transtions) {
-			marked_transtions = true;
+			//marked_transtions = true;
 			preOrderTraversal([](NodePtr n) {
 				n->markTransitions();
 				return true;

@@ -374,6 +374,7 @@ namespace css
 			// no transition properties listed, just exit.
 			return;
 		}
+
 		// Find duration
 		auto dura_it = properties_.find(Property::TRANSITION_DURATION);
 		if(dura_it == properties_.end() || dura_it->second.style == nullptr) {
@@ -419,9 +420,11 @@ namespace css
 					auto pit = get_transitional_properties().find(prop.first);
 					if(pit != get_transitional_properties().end()) {
 						// is transitional
-						prop.second.style->addTransition(duration[index % duration.size()], 
-							ttfns[index % ttfns.size()],
-							delay[index % delay.size()]);
+						if(!prop.second.style->hasTransition()) {
+							prop.second.style->addTransition(duration[index % duration.size()], 
+								ttfns[index % ttfns.size()],
+								delay[index % delay.size()]);
+						}
 					}
 				}
 			} else {
@@ -431,9 +434,11 @@ namespace css
 					++index;
 					continue;
 				}
-				it->second.style->addTransition(duration[index % duration.size()], 
-					ttfns[index % ttfns.size()],
-					delay[index % delay.size()]);
+				if(!it->second.style->hasTransition()) {
+					it->second.style->addTransition(duration[index % duration.size()], 
+						ttfns[index % ttfns.size()],
+						delay[index % delay.size()]);
+				}
 			}
 			++index;
 		}

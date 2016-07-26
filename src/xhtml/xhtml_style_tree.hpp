@@ -154,6 +154,7 @@ namespace xhtml
 	private:
 		void processStyles(bool created);
 		void processColor(bool created, css::Property p, KRE::ColorPtr& color);
+		void processLength(bool created, css::Property p);
 		void processFilter(bool created);
 		void processTransform(bool created);
 		WeakNodePtr node_;

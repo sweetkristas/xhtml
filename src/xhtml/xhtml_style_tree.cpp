@@ -208,12 +208,34 @@ namespace xhtml
 				ColorTransitionPtr ct = ColorTransition::create(tx.ttfn, tx.duration, tx.delay);
 				ct->setStartColor(color == nullptr ? KRE::Color::colorWhite() : *color);
 				ct->setEndColor(*new_color);
-				LOG_INFO("create color transition: " << *color << " to " << *new_color);
-				addTransitionEffect(ct);
-				color = ct->getColor();
+				if(!ct->isEqual()) {
+					LOG_INFO("create color transition: " << *color << " to " << *new_color);
+					addTransitionEffect(ct);
+					color = ct->getColor();
+				}
 			}
 		} else {
 			color = new_color;
+		}
+	}
+
+	void StyleNode::processLength(bool created, Property p)
+	{
+		RenderContext& ctx = RenderContext::get();
+		std::shared_ptr<Length> length_style = ctx.getComputedValue(p)->asType<Length>();
+		if(length_style->hasTransition() && !created) {
+			for(auto& tx : length_style->getTransitions()) {
+				LengthTransitionPtr lt = LengthTransition::create(tx.ttfn, tx.duration, tx.delay);
+				lt->setStartLength([]() { return 0; } );
+				lt->setEndLength([length_style]() { return length_style->compute(); });
+				if(!lt->isEqual()) {
+					LOG_INFO("create length transition: " << (lt->getStartLength()/65536) << " to " << (lt->getEndLength()/65536));
+					addTransitionEffect(lt);
+					// XXX
+				}
+			}
+		} else {
+			// XXX
 		}
 	}
 
