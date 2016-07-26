@@ -209,7 +209,7 @@ namespace xhtml
 				ct->setStartColor(color == nullptr ? KRE::Color::colorWhite() : *color);
 				ct->setEndColor(*new_color);
 				if(!ct->isEqual()) {
-					LOG_INFO("create color transition: " << *color << " to " << *new_color);
+					//LOG_INFO("create color transition: " << *color << " to " << *new_color);
 					addTransitionEffect(ct);
 					color = ct->getColor();
 				}
@@ -223,7 +223,7 @@ namespace xhtml
 	{
 		RenderContext& ctx = RenderContext::get();
 		std::shared_ptr<Length> length_style = ctx.getComputedValue(p)->asType<Length>();
-		if(length_style->hasTransition() && !created) {
+		/*if(length_style->hasTransition() && !created) {
 			for(auto& tx : length_style->getTransitions()) {
 				LengthTransitionPtr lt = LengthTransition::create(tx.ttfn, tx.duration, tx.delay);
 				lt->setStartLength([]() { return 0; } );
@@ -236,14 +236,15 @@ namespace xhtml
 			}
 		} else {
 			// XXX
-		}
+		}*/
+		length = length_style;
 	}
 
 	void StyleNode::processWidth(bool created, Property p, std::shared_ptr<Width>& width)
 	{
 		RenderContext& ctx = RenderContext::get();
 		std::shared_ptr<Width> width_style = ctx.getComputedValue(p)->asType<Width>();
-		width_style->getLength();
+		/*width_style->getLength();
 		if(width_style->hasTransition() && !created) {
 			for(auto& tx : width_style->getTransitions()) {
 				WidthTransitionPtr wt = WidthTransition::create(tx.ttfn, tx.duration, tx.delay);
@@ -252,12 +253,12 @@ namespace xhtml
 				if(!wt->isEqual()) {
 					LOG_INFO("create length transition: " << (wt->getStartWidth()/65536) << " to " << (wt->getEndWidth()/65536));
 					addTransitionEffect(wt);
-					width = wt->getWidth();					
+					// XXXwidth = wt->getWidth();					
 				}
 			}
-		} else {
+		} else {*/
 			width = width_style;
-		}
+		//}
 	}
 
 	void StyleNode::processFilter(bool created)
