@@ -200,6 +200,7 @@ namespace xhtml
 		const scrollable::ScrollbarPtr& getScrollbar(scrollable::Scrollbar::Direction d) const {
 			return d == scrollable::Scrollbar::Direction::VERTICAL ? scrollbar_vert_ : scrollbar_horz_;
 		}
+		void markTransitions();
 	protected:
 		std::string nodeToString() const;
 	private:

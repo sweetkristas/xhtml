@@ -208,6 +208,7 @@ namespace xhtml
 				ColorTransitionPtr ct = ColorTransition::create(tx.ttfn, tx.duration, tx.delay);
 				ct->setStartColor(color == nullptr ? KRE::Color::colorWhite() : *color);
 				ct->setEndColor(*new_color);
+				LOG_INFO("create color transition: " << *color << " to " << *new_color);
 				addTransitionEffect(ct);
 				color = ct->getColor();
 			}

@@ -391,6 +391,11 @@ namespace xhtml
 		}
 	}
 
+	void Node::markTransitions() 
+	{ 
+		properties_.markTransitions(); 
+	}
+
 	bool Node::handleMouseWheel(bool* trigger, const point& p, const point& delta, int direction)
 	{
 		if(!active_rect_.empty() && geometry::pointInRect(p, active_rect_)) {
@@ -779,6 +784,15 @@ namespace xhtml
 			}
 			return true;
 		});
+		
+		static bool marked_transtions = false;
+		if(!marked_transtions) {
+			marked_transtions = true;
+			preOrderTraversal([](NodePtr n) {
+				n->markTransitions();
+				return true;
+			});
+		}
 	}
 
 	void Document::enableDebug(int flags)

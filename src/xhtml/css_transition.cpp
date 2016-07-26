@@ -125,13 +125,11 @@ namespace css
 	void Transition::process(float t)
 	{
 		if(started_ && !stopped_) {
-			//LOG_INFO("t: " << t << "; start_time: " << start_time_ << "; duration: " << duration_);
 			if(t > (start_time_ + duration_)) {
 				handleProcess(t, 1.0f);
 				stopped_ = true;
 			} else if(t >= start_time_) {
 				float frac = (t - start_time_) / duration_;
-				LOG_INFO("t: " << t << "; frac: " << frac);
 				if(frac > 1.0f) {
 					handleProcess(t, 1.0f);
 				} else {

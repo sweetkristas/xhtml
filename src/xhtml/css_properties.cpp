@@ -325,10 +325,11 @@ namespace css
 		auto it = properties_.find(p);
 		if(it == properties_.end()) {
 			// unconditionally add new properties
+			//LOG_INFO("property-new: " << get_property_info_table()[static_cast<int>(p)].name);
 			properties_[p] = PropertyStyle(o, specificity);
 		} else {
 			// check for important flag before merging.
-			/*LOG_DEBUG("property: " << get_property_info_table()[static_cast<int>(p)].name << ", current spec: "
+			/*LOG_INFO("property: " << get_property_info_table()[static_cast<int>(p)].name << ", current spec: "
 				<< it->second.specificity[0] << "," << it->second.specificity[1] << "," << it->second.specificity[2]
 				<< ", new spec: " << specificity[0] << "," << specificity[1] << "," << specificity[2] 
 				<< ", test: " << (it->second.specificity <= specificity ? "true" : "false"));*/
