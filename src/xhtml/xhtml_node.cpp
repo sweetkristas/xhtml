@@ -472,6 +472,7 @@ namespace xhtml
 		auto pos = model_matrix_ * glm::vec4(static_cast<float>(mp.x), static_cast<float>(mp.y), 0.0f, 1.0f);
 		point p(static_cast<int>(pos.x), static_cast<int>(pos.y));
 		//LOG_INFO("mp: " << mp << ", p: " << p << ", ar: " <<  active_rect_ << ", pos: " << pos.x << "," << pos.y);
+		bool mouse_left = false;
 		if(!active_rect_.empty()) {
 			if(geometry::pointInRect(p, active_rect_)) {
 				if(mouse_entered_ == false && getScriptHandler() && hasActiveHandler(EventHandlerId::MOUSE_ENTER)) {
@@ -495,6 +496,7 @@ namespace xhtml
 					getScriptHandler()->runEventHandler(shared_from_this(), EventHandlerId::MOUSE_LEAVE, variant(&m));
 				}
 				mouse_entered_ = false;
+				mouse_left = true;
 				if(scrollbar_vert_ != nullptr) {
 					scrollbar_vert_->triggerFadeOut();
 				}
@@ -524,7 +526,7 @@ namespace xhtml
 				*trigger = true;
 			}
 			return true;
-		} else if((active_pclass_ & css::PseudoClass::HOVER) == css::PseudoClass::HOVER) {
+		} else if(mouse_left && (active_pclass_ & css::PseudoClass::HOVER) == css::PseudoClass::HOVER) {
 			active_pclass_ = active_pclass_ & ~css::PseudoClass::HOVER;
 			*trigger = true;
 		}
@@ -798,6 +800,8 @@ namespace xhtml
 
 		if(needsLayout()) {
 			LOG_INFO("Triggered layout!");
+			RenderContext::get().setViewport(point(w, h));			
+			
 			clearEventListeners();
 
 			// XXX should we should have a re-process styles flag here.

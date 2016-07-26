@@ -25,6 +25,7 @@
 #include "profile_timer.hpp"
 
 #include "DisplayDevice.hpp"
+#include "solid_renderable.hpp"
 #include "Shaders.hpp"
 
 namespace xhtml
@@ -48,7 +49,7 @@ namespace xhtml
 		attr_->addAttributeDesc(AttributeDesc(AttrType::POSITION, 2, AttrFormat::SHORT, false));
 		ab->addAttribute(attr_);
 
-		ab->setDrawMode(DrawMode::LINE_LOOP);
+		ab->setDrawMode(DrawMode::LINES);
 		addAttributeSet(ab);
 
 		init();
@@ -65,24 +66,39 @@ namespace xhtml
 		std::vector<glm::u16vec2> vertices;
 		vertices.emplace_back(loc_.x1(), loc_.y1());
 		vertices.emplace_back(loc_.x2(), loc_.y1());
+
+		vertices.emplace_back(loc_.x2(), loc_.y1());
+		vertices.emplace_back(loc_.x2(), loc_.y2());
+
 		vertices.emplace_back(loc_.x2(), loc_.y2());
 		vertices.emplace_back(loc_.x1(), loc_.y2());
+
+		vertices.emplace_back(loc_.x1(), loc_.y2());
+		vertices.emplace_back(loc_.x1(), loc_.y1());
 		attr_->update(&vertices);
 		//}
 
 
 		if(fh_) {
 			profile::manager pman("render text");
-			auto r = fh_->getBoundingBox(current_line_text_);
-			LOG_INFO("bounding box: " << r);
+			int bh = fh_->getBoundingHeight();
+			LOG_INFO("bounding box height: " << bh);
 			
 			std::vector<point> path;
 			path = fh_->getGlyphPath(current_line_text_);
+			bool add_clip = false;
 			if(renderable_) {
 				renderable_->clear();
+			} else {
+				add_clip = true;
 			}
 			renderable_ = fh_->createRenderableFromPath(renderable_, current_line_text_, path);
-			renderable_->setPosition(loc_.x(), loc_.y() + (loc_.h() - r.h()) / 2 + fh_->getBaseline()/65536);
+			const int baseline = fh_->getBaseline()/65536;
+			renderable_->setPosition(loc_.x(), loc_.y() + (loc_.h() - bh) / 2 + baseline);
+			if(add_clip) {
+				auto rr = std::make_shared<SolidRenderable>(rect(0, -baseline, loc_.w(), loc_.h()));
+				renderable_->setClipSettings(get_stencil_mask_settings(), rr);
+			}
 		}
 	}
 
@@ -126,6 +142,11 @@ namespace xhtml
 		LOG_INFO("key down: " << keysym.sym << "; repeat: " << (repeat ? "true" : "false") << "; " << (pressed ? "pressed" : "released"));
 		//current_line_text_ +=  keysym.sym;
 		//init();
+		auto mods = SDL_GetModState();
+		if(keysym.sym == SDLK_a && pressed && (mods & KMOD_CTRL)) {
+			LOG_INFO("all text selected.");
+			setText("");
+		}
 		return claimed;
 	}
 

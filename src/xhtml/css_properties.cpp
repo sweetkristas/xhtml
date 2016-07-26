@@ -3031,6 +3031,7 @@ namespace css
 			} else {
 				throw ParserError(formatter() << "Unrecognised value for property '" << prefix << "': "  << (*it_)->toString());
 			}
+
 			skipWhitespace();
 
 			if(isToken(TokenId::DIMENSION)) {

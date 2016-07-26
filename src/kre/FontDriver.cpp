@@ -371,6 +371,11 @@ namespace KRE
 		return impl_->getDescender();
 	}
 
+	int FontHandle::getBoundingHeight()
+	{
+		return impl_->getBoundingHeight();
+	}
+
 	int FontHandle::getBaseline()
 	{
 		return impl_->getBaseline();

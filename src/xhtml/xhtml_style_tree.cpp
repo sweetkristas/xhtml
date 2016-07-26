@@ -417,15 +417,11 @@ namespace xhtml
 
 		switch(p) {
 			case Property::BACKGROUND_COLOR:
-				*background_color_ = *sp->asType<CssColor>()->compute();
+				background_color_ = std::make_shared<KRE::Color>(*sp->asType<CssColor>()->compute());
+				force_render = true;
 				break;
 			case Property::COLOR:
-				//if(color_ == nullptr) {
-				//	color_ = std::make_shared<KRE::Color>();
-				//}
-				//*color_ = *sp->asType<CssColor>()->compute();
 				color_ = std::make_shared<KRE::Color>(*sp->asType<CssColor>()->compute());
-				//LOG_INFO("style: color ptr: " << color_.get() << ", StyleNode: " << this);
 				force_render = true;
 				break;
 			case Property::BORDER_TOP_COLOR:
@@ -510,6 +506,7 @@ namespace xhtml
 				break;
 			case Property::WIDTH:
 				*width_height_[0] = *sp->asType<Width>();
+				force_render = true;
 				break;
 			case Property::HEIGHT:
 				*width_height_[1] = *sp->asType<Width>();

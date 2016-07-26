@@ -98,6 +98,7 @@ namespace KRE
 			  next_font_y_(0),
 			  last_line_height_(0),
 			  all_glyphs_added_(false),
+			  bounding_height_(0),
 			  glyph_info_(),
 			  line_gap_(0),
 			  baseline_(0)
@@ -143,6 +144,12 @@ namespace KRE
 				} else {
 					addGlyphsToTexture(FontDriver::getCommonGlyphs());
 				}
+
+				for(const auto& gi : glyph_info_) {
+					if(gi.second.height > bounding_height_) {
+						bounding_height_ = gi.second.height;
+					}
+				}
 			}
 		}
 		~FreetypeImpl() 
@@ -184,6 +191,11 @@ namespace KRE
 			// This is to ensure that the returned dimensions are tight, i.e. the final advance is replaced by the width of the character.
 			*w = (pen.x - slot->linearHoriAdvance + slot->metrics.width*65536L);
 			*h = (pen.y - slot->linearHoriAdvance + slot->metrics.height*65536L);
+		}
+
+		int getBoundingHeight()
+		{
+			return bounding_height_;
 		}
 
 		std::vector<unsigned> getGlyphs(const std::string& text) override
@@ -448,6 +460,7 @@ namespace KRE
 		int next_font_y_;
 		unsigned short last_line_height_;
 		bool all_glyphs_added_;
+		int bounding_height_;
 		// XXX see what is practically faster using a sorted list and binary search
 		// or this map. Also a vector would have better locality.
 		std::map<char32_t, GlyphInfo> glyph_info_;

@@ -39,8 +39,8 @@ namespace KRE
 	namespace
 	{
 		const int default_dpi = 96;
-		const int surface_width = 512;
-		const int surface_height = 512;
+		const int surface_width = 2048;
+		const int surface_height = 2048;
 	}
 
 	// Implication of non-overlapping ranges.
@@ -108,6 +108,17 @@ namespace KRE
 				font_texture_->setUnpackAlignment(0, 1);
 				font_texture_->setFiltering(0, Texture::Filtering::LINEAR, Texture::Filtering::LINEAR, Texture::Filtering::NONE);
 				addGlyphsToTexture(FontDriver::getCommonGlyphs());
+
+				// Calculate maximum bounding box height of all the common glyphs.
+				for(const auto& range : packed_char_) {
+					for(char32_t cp = range.first.first; cp != range.first.last + 1; ++cp) {
+						const stbtt_packedchar *b = range.second.data() + cp - range.first.first;
+						const int char_height = b->y1 - b->y0;
+						if(char_height > bounding_height_) {
+							bounding_height_ = char_height;
+						}
+					}
+				}
 			}
 		}
 
@@ -124,6 +135,11 @@ namespace KRE
 		int getBaseline() override
 		{
 			return baseline_ * 65536;
+		}
+
+		int getBoundingHeight() override
+		{
+			return bounding_height_;
 		}
 
 		void getBoundingBox(const std::string& str, long* w, long* h) override
@@ -455,6 +471,7 @@ namespace KRE
 		int ascent_;
 		int descent_;
 		int baseline_;
+		int bounding_height_;
 		float scale_;
 		float font_size_;
 		float line_gap_;

@@ -16,6 +16,20 @@ body {
 	height: 20px;
 }
 
+.button {
+	background-color: #23B574;
+	display: inline-block;
+	cursor: pointer;
+	padding: 8px 20px;
+	font-size: 20pt;
+	margin: 10px;
+}
+
+.button:hover {
+	background-color: #a8401e;
+	color: #ffb03b;
+}
+
 	</style>
 <script>
 	function outputUpdate(selector, vol) {
@@ -24,6 +38,10 @@ body {
 </script>
 </head>
 <body>
+	<h2>Edit Map Size</h2>
+	<div class="button">Small</div>
+	<div class="button">Medium</div>
+	<div class="button">Large</div>
 	<div>
 		<label for="test">test</label>
 		<input type="range" min="8" max="128" step="2" id="test" value="64" oninput="outputUpdate('#xxx1', value)"/>
