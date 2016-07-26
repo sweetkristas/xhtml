@@ -219,7 +219,7 @@ namespace xhtml
 		}
 	}
 
-	void StyleNode::processLength(bool created, Property p)
+	void StyleNode::processLength(bool created, Property p, std::shared_ptr<Length>& length)
 	{
 		RenderContext& ctx = RenderContext::get();
 		std::shared_ptr<Length> length_style = ctx.getComputedValue(p)->asType<Length>();
@@ -236,6 +236,27 @@ namespace xhtml
 			}
 		} else {
 			// XXX
+		}
+	}
+
+	void StyleNode::processWidth(bool created, Property p, std::shared_ptr<Width>& width)
+	{
+		RenderContext& ctx = RenderContext::get();
+		std::shared_ptr<Width> width_style = ctx.getComputedValue(p)->asType<Width>();
+		width_style->getLength();
+		if(width_style->hasTransition() && !created) {
+			for(auto& tx : width_style->getTransitions()) {
+				WidthTransitionPtr wt = WidthTransition::create(tx.ttfn, tx.duration, tx.delay);
+				wt->setStartWidth([width]() { return width->getLength().compute(); } );
+				wt->setEndWidth([width_style]() { return width_style->getLength().compute(); });
+				if(!wt->isEqual()) {
+					LOG_INFO("create length transition: " << (wt->getStartWidth()/65536) << " to " << (wt->getEndWidth()/65536));
+					addTransitionEffect(wt);
+					width = wt->getWidth();					
+				}
+			}
+		} else {
+			width = width_style;
 		}
 	}
 
@@ -330,8 +351,10 @@ namespace xhtml
 		float_style_ = ctx.getComputedValue(Property::FLOAT);
 		float_ = float_style_->getEnum<Float>();
 		font_handle_ = RenderContext::get().getFontHandle();
-		width_height_[0] = ctx.getComputedValue(Property::WIDTH)->asType<Width>();
-		width_height_[1] = ctx.getComputedValue(Property::HEIGHT)->asType<Width>();
+
+		processWidth(created, Property::WIDTH, width_height_[0]);
+		processWidth(created, Property::HEIGHT, width_height_[1]);
+
 		letter_spacing_ = ctx.getComputedValue(Property::LETTER_SPACING)->asType<Length>();
 		line_height_ = ctx.getComputedValue(Property::LINE_HEIGHT)->asType<Length>();
 		auto list_img = ctx.getComputedValue(Property::LIST_STYLE_IMAGE);
@@ -533,6 +556,7 @@ namespace xhtml
 				break;
 			case Property::HEIGHT:
 				*width_height_[1] = *sp->asType<Width>();
+				force_render = true;
 				break;
 			case Property::DISPLAY:
 				display_ = sp->getEnum<Display>();
