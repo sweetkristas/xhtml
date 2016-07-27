@@ -33,7 +33,9 @@
 #include "xhtml_style_tree.hpp"
 
 #include "filesystem.hpp"
+#if defined(ENABLE_PROFILING)
 #include "profile_timer.hpp"
+#endif
 
 namespace xhtml
 {
@@ -806,26 +808,34 @@ namespace xhtml
 		bool changed = false;
 
 		if(needsRebuild()) {
+#if defined(ENABLE_PROFILING)
 			LOG_INFO("Rebuild layout!");
+#endif
 			style_tree.reset();
 			trigger_rebuild_ = false;
 			triggerLayout();
 		}
 
 		if(needsLayout()) {
+#if defined(ENABLE_PROFILING)
 			LOG_INFO("Triggered layout!");
+#endif
 			RenderContext::get().setViewport(point(w, h));			
 			
 			clearEventListeners();
 
 			// XXX should we should have a re-process styles flag here.
 			{
+#if defined(ENABLE_PROFILING)
 				profile::manager pman("apply styles");
+#endif
 				processStyleRules();
 			}
 
 			{
+#if defined(ENABLE_PROFILING)
 				profile::manager pman("update style tree");
+#endif
 				if(style_tree == nullptr) {
 					style_tree = StyleNode::createStyleTree(std::static_pointer_cast<Document>(shared_from_this()));
 					processScriptAttributes();
@@ -835,7 +845,9 @@ namespace xhtml
 			}
 
 			{
+#if defined(ENABLE_PROFILING)
 				profile::manager pman("layout");
+#endif
 				layout = Box::createLayout(style_tree, w, h);
 			}
 
@@ -844,7 +856,9 @@ namespace xhtml
 		}
 
 		if(needsRender() && layout != nullptr) {
+#if defined(ENABLE_PROFILING)
 			profile::manager pman_render("render");
+#endif
 			layout_x_ = x;
 			layout_y_ = y;
 			auto st = layout->getSceneTree();
