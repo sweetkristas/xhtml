@@ -1,3 +1,3 @@
 # xhtml
 
-Experimental XHTML parser.
+Experimental XHTML Renderer.
